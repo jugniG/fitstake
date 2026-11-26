@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { ArrowRight, CheckCircle2, Shield } from 'lucide-react'
+import { ArrowRight, Check, CheckCircle2, Shield, X } from 'lucide-react'
 
 export function Hero() {
   return (
@@ -25,11 +25,40 @@ export function Hero() {
               there’s <span className="serif text-[#2b66f2]">zero consequence.</span>
             </h1>
 
-            <p className="mt-5 max-w-lg text-base leading-relaxed text-[#5a6678] sm:text-lg">
-              When skipping costs you $0 in the moment, free motivation evaporates in seconds.
-              Habit-Stakes puts your own money behind your daily workout commitment. Move on camera,
-              verify your reps, and keep 100% of your cash.
-            </p>
+            <ul className="mt-6 w-full max-w-lg space-y-3 text-left text-sm font-medium text-[#0d1b2a] sm:text-base">
+              <li className="flex items-start gap-3">
+                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-[#2b66f2]/10 text-[#2b66f2]">
+                  <Check className="size-3.5 stroke-[2.5]" />
+                </span>
+                <span>
+                  <strong>Deposit money</strong> according to what your pocket allows.
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-[#2b66f2]/10 text-[#2b66f2]">
+                  <Check className="size-3.5 stroke-[2.5]" />
+                </span>
+                <span>
+                  <strong>Perform exercises in front of camera daily</strong> (15 mins at home).
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-emerald-500/15 text-emerald-600">
+                  <Check className="size-3.5 stroke-[2.5]" />
+                </span>
+                <span>
+                  <strong>Get your deposit refunded</strong> every single day you complete.
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-rose-500/15 text-rose-600">
+                  <X className="size-3.5 stroke-[2.5]" />
+                </span>
+                <span className="text-rose-600 font-semibold">
+                  Feeling lazy and wanna skip? You will lose your money.
+                </span>
+              </li>
+            </ul>
 
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
               <Link
