@@ -176,10 +176,16 @@ export function getExerciseFeedback(
   const hasAnkles = (landmarks[27]?.visibility ?? 0) > 0.4 || (landmarks[28]?.visibility ?? 0) > 0.4
 
   if (exerciseType === 'squat') {
-    if (hasUpper && (!hasKnees || !hasAnkles || !hasHips)) {
+    if (hasUpper && (!hasHips || !hasKnees)) {
       return {
-        message: 'Legs cut off — tilt camera down or step back to show knees & feet',
+        message: 'Step back 2-3 steps or tilt screen down so hips & knees fit',
         isError: true,
+      }
+    }
+    if (hasUpper && hasHips && hasKnees && !hasAnkles) {
+      return {
+        message: 'Hips & knees tracked — squat until thighs are parallel to ground',
+        isError: false,
       }
     }
     if (warning === 'rep-too-fast') {
@@ -190,7 +196,7 @@ export function getExerciseFeedback(
     }
     if (warning === 'no-body' || warning === 'low-confidence') {
       return {
-        message: 'Full body needed: make sure your hips, knees, and feet are in frame',
+        message: 'Make sure your hips and knees are visible in frame',
         isError: true,
       }
     }

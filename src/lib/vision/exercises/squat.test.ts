@@ -67,6 +67,20 @@ describe('evaluateSquat', () => {
     expect(result.phase).toBe('b')
   })
 
+  it('tolerates close-range positioning where ankles are below the camera frame', () => {
+    // User is standing close (~3 ft away): hips and knees are visible, but ankles are off-screen (visibility 0.1)
+    const closeDeepSquat = buildLandmarks({
+      11: { x: 0.5, y: 0.35, z: 0, visibility: 0.95 },
+      23: { x: 0.4, y: 0.69, z: -0.1, visibility: 0.95 }, // hip descended
+      25: { x: 0.6, y: 0.72, z: 0.1, visibility: 0.95 }, // knee pushed forward
+      27: { x: 0.45, y: 0.98, z: 0, visibility: 0.1 }, // ankle cut off at bottom
+    })
+
+    const result = evaluateSquat(closeDeepSquat)
+    expect(result.phase).toBe('b')
+    expect(result.visible).toBe(true)
+  })
+
   it('handles missing or low-visibility landmarks safely', () => {
     expect(evaluateSquat(null)).toEqual({ phase: 'a', confidence: 0, visible: false })
 

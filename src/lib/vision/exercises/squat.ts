@@ -23,16 +23,29 @@ export function evaluateSquat(lm: Landmark[] | null): FrameEval {
   const [hip, knee, ankle] = side
   const hipLm = lm[hip]
   const kneeLm = lm[knee]
-  const ankleLm = lm[ankle]
+  let ankleLm = lm[ankle]
 
-  const confidence = Math.min(
-    hipLm.visibility ?? 1,
-    kneeLm.visibility ?? 1,
-    ankleLm.visibility ?? 1,
-  )
+  const hipVis = hipLm.visibility ?? 1
+  const kneeVis = kneeLm.visibility ?? 1
+  const ankleVis = ankleLm.visibility ?? 1
 
-  if (confidence < 0.4) {
-    return { phase: 'a', confidence, visible: false }
+  // If hips or knees are not visible at all, we cannot evaluate
+  if (hipVis < 0.4 || kneeVis < 0.4) {
+    return { phase: 'a', confidence: Math.min(hipVis, kneeVis), visible: false }
+  }
+
+  // Close-range tolerance: if the user is 3-4 feet from the laptop camera, their feet/ankles
+  // may slip slightly below the bottom edge of the frame (y >= 0.95 or low ankle visibility).
+  // In that case, synthesize a vertical ground anchor for the ankle so squats still register.
+  let confidence = Math.min(hipVis, kneeVis, ankleVis)
+  if (ankleVis < 0.4 || ankleLm.y >= 0.95) {
+    ankleLm = {
+      x: kneeLm.x,
+      y: Math.max(0.98, kneeLm.y + 0.25),
+      z: kneeLm.z,
+      visibility: 0.7,
+    }
+    confidence = Math.min(hipVis, kneeVis) * 0.85
   }
 
   const kneeAngle = angleAt(hipLm, kneeLm, ankleLm)
