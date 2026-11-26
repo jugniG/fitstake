@@ -46,7 +46,7 @@ export function MethodSteps() {
           <p className="inline-block rounded-full bg-[#eef3fb] px-3.5 py-1 text-xs font-bold tracking-wider text-[#5a6678] uppercase">
             The 5-Step StakeFit Method
           </p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0d1b2a] sm:text-5xl">
+          <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-[#0d1b2a] sm:text-5xl">
             How the StakeFit method works.
           </h2>
           <p className="mt-3 text-sm text-[#5a6678] sm:text-base">
@@ -81,7 +81,7 @@ export function MethodSteps() {
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 font-mono text-xs font-bold text-amber-800">
                   <Flame className="size-3.5" /> Interactive Stakes Simulator
                 </span>
-                <h3 className="mt-3 text-2xl font-bold text-[#0d1b2a] sm:text-3xl">
+                <h3 className="mt-3 text-2xl font-extrabold text-[#0d1b2a] sm:text-3xl">
                   Simulate your daily stake & refund.
                 </h3>
               </div>

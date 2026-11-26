@@ -193,6 +193,15 @@
     font-weight: 400;
   }
 
+  /* Landing page typography - bold, crisp modern headlines */
+  .landing h1,
+  .landing h2,
+  .landing h3 {
+    font-family: var(--font-sans);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+  }
+
   /* StakeFit smooth animation & transition utilities */
   .card-hover-lift {
     transition:

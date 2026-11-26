@@ -6,7 +6,7 @@ export function FinalCta() {
   return (
     <footer className="border-t border-[#0d1b2a14] bg-[#faf8f5] pt-20 pb-12">
       <div className="mx-auto max-w-4xl px-5 text-center">
-        <h2 className="text-4xl font-bold tracking-tight text-[#0d1b2a] sm:text-6xl lg:text-7xl leading-[1.08]">
+        <h2 className="text-4xl font-extrabold tracking-tight text-[#0d1b2a] sm:text-6xl lg:text-7xl leading-[1.08]">
           Willpower is a bad plan.
           <br />
           <span className="serif text-[#2b66f2]">Money is a better one.</span>

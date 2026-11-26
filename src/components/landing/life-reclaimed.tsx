@@ -41,7 +41,7 @@ export function LifeReclaimed() {
           <p className="inline-block rounded-full bg-[#eef3fb] px-3.5 py-1 text-xs font-bold tracking-wider text-[#5a6678] uppercase">
             Life reclaimed
           </p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0d1b2a] sm:text-4xl">
+          <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-[#0d1b2a] sm:text-4xl lg:text-5xl">
             What StakeFit helps you reclaim.
           </h2>
           <p className="mt-2 text-sm text-[#5a6678] sm:text-base">

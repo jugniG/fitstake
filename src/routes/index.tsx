@@ -18,7 +18,7 @@ export const Route = createFileRoute('/')({
 
 function IndexPage() {
   return (
-    <div className="min-h-dvh flex flex-col bg-[#faf8f5] text-[#0d1b2a] selection:bg-[#2b66f2]/20 selection:text-[#2b66f2] font-sans">
+    <div className="landing min-h-dvh flex flex-col bg-[#faf8f5] text-[#0d1b2a] selection:bg-[#2b66f2]/20 selection:text-[#2b66f2] font-sans">
       <NavHeader />
 
       <main className="flex-1">

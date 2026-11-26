@@ -31,7 +31,7 @@ export function FounderStory() {
 
           {/* Story Body */}
           <div className="mt-6 space-y-4 text-base leading-relaxed text-[#5a6678]">
-            <p className="text-lg font-bold text-[#0d1b2a]">
+            <p className="text-lg sm:text-xl font-extrabold text-[#0d1b2a]">
               “I didn’t build this to be a fitness influencer. I built it because I couldn’t stop
               procrastinating in my own room.”
             </p>

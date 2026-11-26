@@ -20,7 +20,7 @@ export function Hero() {
               <span>MORE ENERGY FOR WHAT MATTERS</span>
             </div>
 
-            <h1 className="mt-5 text-4xl font-bold tracking-tight text-[#0d1b2a] sm:text-6xl lg:text-7xl leading-[1.08] sm:leading-[1.04]">
+            <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-[#0d1b2a] sm:text-6xl lg:text-7xl leading-[1.08] sm:leading-[1.04]">
               You skip because
               <br />
               there’s <span className="serif text-[#2b66f2]">zero consequence.</span>

@@ -45,7 +45,7 @@ export function ProtocolProgression() {
           <p className="inline-block rounded-full bg-[#eef3fb] px-3.5 py-1 text-xs font-bold tracking-wider text-[#5a6678] uppercase">
             Commitment Protocol
           </p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0d1b2a] sm:text-5xl">
+          <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-[#0d1b2a] sm:text-5xl">
             Accomplish the consistency you&apos;ve dreamed of.
           </h2>
           <p className="mt-3 text-sm text-[#5a6678] sm:text-base">

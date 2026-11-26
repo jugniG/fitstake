@@ -11,7 +11,7 @@ export function HonestQuestions() {
               <p className="inline-block rounded-full bg-[#eef3fb] px-3.5 py-1 text-xs font-bold tracking-wider text-[#5a6678] uppercase">
                 In short · Two quick questions
               </p>
-              <h2 className="mt-3 text-lg font-bold text-[#5a6678] sm:text-xl">
+              <h2 className="mt-3 text-lg font-extrabold text-[#5a6678] sm:text-xl">
                 Before reading the rest, give yourself two honest answers:
               </h2>
             </div>
@@ -43,7 +43,7 @@ export function HonestQuestions() {
                 If your answer is yes
               </span>
 
-              <h3 className="text-2xl font-bold tracking-tight text-[#0d1b2a] sm:text-4xl">
+              <h3 className="text-2xl font-extrabold tracking-tight text-[#0d1b2a] sm:text-4xl">
                 Let me tell you —{' '}
                 <span className="serif text-[#2b66f2]">you still don’t do it.</span>
               </h3>

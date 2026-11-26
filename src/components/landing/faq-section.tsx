@@ -38,7 +38,7 @@ export function FaqSection() {
           <p className="inline-block rounded-full bg-[#eef3fb] px-3.5 py-1 text-xs font-bold tracking-wider text-[#5a6678] uppercase">
             FAQ
           </p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0d1b2a] sm:text-5xl">
+          <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-[#0d1b2a] sm:text-5xl">
             The <span className="serif text-[#2b66f2]">obvious</span> questions.
           </h2>
         </div>

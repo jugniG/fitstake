@@ -32,7 +32,7 @@ export function ScienceSection() {
           <p className="inline-block rounded-full bg-[#eef3fb] px-3.5 py-1 text-xs font-bold tracking-wider text-[#5a6678] uppercase">
             The Behavioral Science
           </p>
-          <h2 className="mt-4 text-3xl font-bold tracking-tight text-[#0d1b2a] sm:text-5xl leading-tight">
+          <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-[#0d1b2a] sm:text-5xl leading-tight">
             You don’t have a discipline problem.
             <br />
             <span className="serif text-[#2b66f2]">You have a consequence problem.</span>
