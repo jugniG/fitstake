@@ -26,12 +26,12 @@ export function evaluateSquat(lm: Landmark[] | null): FrameEval {
   const ankleLm = lm[ankle]
 
   const confidence = Math.min(
-    hipLm?.visibility ?? 1,
-    kneeLm?.visibility ?? 1,
-    ankleLm?.visibility ?? 1,
+    hipLm.visibility ?? 1,
+    kneeLm.visibility ?? 1,
+    ankleLm.visibility ?? 1,
   )
 
-  if (!hipLm || !kneeLm || !ankleLm || confidence < 0.4) {
+  if (confidence < 0.4) {
     return { phase: 'a', confidence, visible: false }
   }
 
@@ -49,7 +49,7 @@ export function evaluateSquat(lm: Landmark[] | null): FrameEval {
   // If shoulder is visible, check if the person is merely bending their spine forward
   // over a desk (hip angle acute while knees remain largely extended).
   const shoulderIdx = hip === 23 ? 11 : 12
-  const shoulderLm = lm[shoulderIdx]
+  const shoulderLm = lm.at(shoulderIdx)
   let isForwardBendOnly = false
   if (shoulderLm && (shoulderLm.visibility ?? 1) > 0.4) {
     const hipAngle = angleAt(shoulderLm, hipLm, kneeLm)
