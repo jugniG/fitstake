@@ -51,17 +51,19 @@ export function FounderStory() {
             </p>
 
             <p>
-              So I built Habit-Stakes to hack my own psychology with real financial stakes. It’s now
-              been <strong className="text-[#0d1b2a]">10 consecutive days</strong> that I haven’t
-              missed a single session—doing{' '}
-              <strong className="text-[#0d1b2a]">40 push-ups + 30 squats daily</strong> right in
-              front of my webcam.
+              So I built Habit-Stakes to engineer unbreakable consistency through financial stakes.
+              It completely removed the daily mental debate of whether I “feel like” working out.
+              It’s now been <strong className="text-[#0d1b2a]">10 consecutive days</strong> of pure,
+              unbroken consistency—knocking out{' '}
+              <strong className="text-[#0d1b2a]">40 push-ups + 30 squats every single day</strong>{' '}
+              right in front of my webcam without a single skip.
             </p>
 
             <p>
-              I don’t even go to a gym. Everything happens in my room in 15 minutes. Knowing that
-              missing midnight means forfeiting real cash is the only thing that psychologically
-              forces me to get off the chair and get it done.
+              I don’t even go to a gym. Everything happens in my room in 15 minutes. That’s the
+              secret to staying consistent: zero commute friction combined with a hard midnight
+              deadline. Knowing that procrastinating past midnight forfeits real cash turns daily
+              fitness from a willpower struggle into an automatic, non-negotiable daily reflex.
             </p>
           </div>
 
