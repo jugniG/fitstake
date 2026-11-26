@@ -1,92 +1,136 @@
 import { Link } from '@tanstack/react-router'
-import { ArrowRight, ShieldCheck, HeartPulse, EyeOff } from 'lucide-react'
-import { Button } from '#/components/ui/button'
+import { ArrowRight, CheckCircle2, Shield } from 'lucide-react'
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden pt-12 pb-20 sm:pt-20 sm:pb-28">
-      {/* Ambient background glows */}
+    <section className="relative overflow-hidden pt-16 pb-16 md:pt-24 md:pb-24">
+      {/* Warm glow background */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute top-1/4 left-1/2 -z-10 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-rust/10 blur-[120px]"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(120%_90%_at_80%_10%,rgba(43,102,242,0.12),transparent_60%)] opacity-70"
       />
 
-      <div className="mx-auto max-w-4xl px-6 text-center">
-        {/* Eyebrow badge */}
-        <div className="inline-flex items-center gap-2 rounded-full border border-rust/30 bg-rust/10 px-3.5 py-1 text-xs font-mono text-rust">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rust opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-rust" />
-          </span>
-          <span>Presage SmartSpectra™ Verified · Zero Video Stored</span>
-        </div>
-
-        {/* Main headline */}
-        <h1 className="mt-8 font-display text-4xl font-medium tracking-tight text-bone sm:text-6xl md:text-7xl leading-[1.08]">
-          Lock your word with real money.
-          <span className="block italic text-rust">Your body is the only receipt.</span>
-        </h1>
-
-        {/* Subtitle */}
-        <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
-          The ruthless accountability protocol. Back your daily workout with upfront cash in escrow.
-          Complete your reps on camera—verified locally with contactless vitals and pose vision. Win
-          your own money back day by day, or forfeit it forever.
-        </p>
-
-        {/* CTAs */}
-        <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <Link to="/login" className="w-full sm:w-auto">
-            <Button variant="primary" size="lg" className="w-full sm:w-auto gap-2 text-base">
-              Enter the Arena <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-          <a href="#calculator" className="w-full sm:w-auto">
-            <Button variant="secondary" size="lg" className="w-full sm:w-auto">
-              Simulate Your Stakes
-            </Button>
-          </a>
-        </div>
-
-        {/* Feature Highlights Grid */}
-        <div className="mt-16 grid grid-cols-1 gap-4 border-t border-line/50 pt-10 sm:grid-cols-3 sm:gap-6 text-left">
-          <div className="rounded-lg border border-line/40 bg-panel/40 p-4 backdrop-blur-xs">
-            <div className="flex items-center gap-2.5 text-rust">
-              <EyeOff className="h-5 w-5" />
-              <span className="font-mono text-xs uppercase tracking-wider font-semibold">
-                100% Client-Side
-              </span>
+      <div className="mx-auto max-w-6xl px-5">
+        <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-16">
+          {/* Left Column Text */}
+          <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#0d1b2a14] bg-white px-3.5 py-1 text-xs font-bold tracking-wider text-[#5a6678] uppercase shadow-xs">
+              <span className="size-2 rounded-full bg-[#2b66f2] animate-pulse" />
+              <span>MORE ENERGY FOR WHAT MATTERS</span>
             </div>
-            <p className="mt-2 text-xs leading-relaxed text-muted">
-              Camera frames exist in browser memory for milliseconds and vanish immediately. No
-              video is ever recorded, stored, or sent to a server.
+
+            <h1 className="mt-5 text-4xl font-bold tracking-tight text-[#0d1b2a] sm:text-6xl lg:text-7xl leading-[1.08] sm:leading-[1.04]">
+              Your workout,
+              <br />
+              with <span className="serif text-[#2b66f2]">real stakes.</span>
+            </h1>
+
+            <p className="mt-5 max-w-lg text-base leading-relaxed text-[#5a6678] sm:text-lg">
+              Habit-Stakes helps you set workout commitments — and stick to them. Put money behind
+              your word. Move on camera, verify your reps, and keep 100% of it.
+            </p>
+
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
+              <Link
+                to="/login"
+                className="btn-quippy inline-flex items-center gap-2 px-6 py-3 text-sm font-bold sm:text-base"
+              >
+                Get Started <ArrowRight className="size-4" />
+              </Link>
+              <a
+                href="#in-short"
+                className="inline-flex items-center rounded-full border border-[#0d1b2a1f] bg-white px-5 py-3 text-sm font-bold text-[#0d1b2a] shadow-xs transition-colors hover:bg-[#f1f3f7] sm:text-base"
+              >
+                Learn the science
+              </a>
+            </div>
+
+            <p className="mt-4 text-xs font-medium text-[#5a6678]">
+              Start free · Set up in 2 minutes · 100% On-device privacy
             </p>
           </div>
 
-          <div className="rounded-lg border border-line/40 bg-panel/40 p-4 backdrop-blur-xs">
-            <div className="flex items-center gap-2.5 text-rust">
-              <HeartPulse className="h-5 w-5" />
-              <span className="font-mono text-xs uppercase tracking-wider font-semibold">
-                SmartSpectra™ Vitals
-              </span>
-            </div>
-            <p className="mt-2 text-xs leading-relaxed text-muted">
-              Contactless optical sensing tracks heart rate surge and post-set recovery drop from
-              facial micro-luminance. Screen loops and spoofing fail.
-            </p>
-          </div>
+          {/* Right Column Interactive Preview Card */}
+          <div className="relative mx-auto w-full max-w-md lg:max-w-none">
+            <div className="relative rounded-3xl border border-[#0d1b2a14] bg-white p-6 shadow-xl transition-all">
+              {/* Card Header */}
+              <div className="flex items-center justify-between border-b border-[#0d1b2a10] pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="grid size-9 place-items-center rounded-xl bg-[#eef3fb] text-[#2b66f2] font-bold text-xs">
+                    HS
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-[#0d1b2a]">Deep Squats Challenge</h3>
+                    <p className="text-xs text-[#5a6678]">3 sets × 15 reps · Day 4 of 14</p>
+                  </div>
+                </div>
+                <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
+                  Active
+                </span>
+              </div>
 
-          <div className="rounded-lg border border-line/40 bg-panel/40 p-4 backdrop-blur-xs">
-            <div className="flex items-center gap-2.5 text-rust">
-              <ShieldCheck className="h-5 w-5" />
-              <span className="font-mono text-xs uppercase tracking-wider font-semibold">
-                Kelviq Escrow
-              </span>
+              {/* Simulated Camera Window */}
+              <div className="relative mt-5 aspect-4/3 overflow-hidden rounded-2xl bg-[#0d1b2a] p-4 text-white flex flex-col justify-between shadow-inner">
+                {/* Overlay Top Bar */}
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 backdrop-blur-md font-mono">
+                    <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>VISION HUD</span>
+                  </div>
+                  <div className="flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 backdrop-blur-md font-mono text-rose-300 font-bold">
+                    ❤️ 136 BPM
+                  </div>
+                </div>
+
+                {/* Simulated Pose Skeleton Visual */}
+                <div className="my-auto text-center">
+                  <div className="inline-block rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 backdrop-blur-xs">
+                    <p className="font-mono text-xs font-bold text-emerald-300">
+                      ✓ Parallel Depth: Knee Angle 96°
+                    </p>
+                    <p className="mt-0.5 font-mono text-[0.65rem] text-slate-300">
+                      SmartSpectra™ Exertion: Aerobic Zone
+                    </p>
+                  </div>
+                </div>
+
+                {/* Overlay Bottom Bar */}
+                <div className="flex items-center justify-between rounded-lg bg-black/60 px-3 py-1.5 text-xs font-mono backdrop-blur-md">
+                  <span>SET: 2/3 · REP: 12/15</span>
+                  <span className="text-emerald-400">100% PRIVACY (RAM ONLY)</span>
+                </div>
+              </div>
+
+              {/* Stakes & Won-Back Ledger Preview */}
+              <div className="mt-5 grid grid-cols-2 gap-3 text-left">
+                <div className="rounded-2xl border border-[#0d1b2a10] bg-[#faf8f5] p-3.5">
+                  <span className="text-[0.7rem] font-bold uppercase tracking-wider text-[#5a6678]">
+                    Daily Stake
+                  </span>
+                  <p className="font-mono text-xl font-bold text-[#0d1b2a] mt-0.5">$10.00</p>
+                  <p className="text-[0.65rem] text-[#5a6678] mt-0.5">At risk before midnight</p>
+                </div>
+
+                <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-3.5">
+                  <span className="text-[0.7rem] font-bold uppercase tracking-wider text-emerald-800">
+                    Won-Back Vault
+                  </span>
+                  <p className="font-mono text-xl font-bold text-emerald-700 mt-0.5">$40.00</p>
+                  <p className="text-[0.65rem] text-emerald-800/80 mt-0.5">
+                    100% refundable at end
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between text-xs text-[#5a6678] pt-2 border-t border-[#0d1b2a10]">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <Shield className="size-3.5 text-[#2b66f2]" /> Presage SmartSpectra™ Sensing
+                </span>
+                <span className="flex items-center gap-1 text-emerald-700 font-bold">
+                  <CheckCircle2 className="size-3.5" /> Zero Video Saved
+                </span>
+              </div>
             </div>
-            <p className="mt-2 text-xs leading-relaxed text-muted">
-              Your funds sit in audited merchant escrow. Every completed day locks your money safely
-              into the won-back vault until the final settlement refund.
-            </p>
           </div>
         </div>
       </div>
