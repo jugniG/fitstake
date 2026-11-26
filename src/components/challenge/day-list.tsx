@@ -17,7 +17,7 @@ const STATUS_BADGE: Record<
 export function DayList({ days }: { days: DashboardView['days'] }) {
   return (
     <section className="space-y-3">
-      <h2 className="font-display text-xl font-bold text-[#0d1b2a]">Daily Commitment Ledger</h2>
+      <h2 className="font-display text-xl font-bold text-[#0d1b2a]">Daily Workout History</h2>
       <Card className="overflow-hidden divide-y divide-[#0d1b2a10] rounded-2xl p-0">
         <ol className="divide-y divide-[#0d1b2a10]">
           {days.map((d) => {

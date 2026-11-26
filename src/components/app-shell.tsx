@@ -38,7 +38,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   : 'text-[#5a6678] hover:bg-white hover:text-[#0d1b2a]',
               )}
             >
-              Ledger
+              History
             </Link>
             <button
               type="button"

@@ -50,7 +50,7 @@ function DashboardPage() {
     )
   }
   if (!data) {
-    return <p className="text-muted">Opening the ledger…</p>
+    return <p className="text-muted">Loading your challenge…</p>
   }
   return (
     <DashboardViewComponent

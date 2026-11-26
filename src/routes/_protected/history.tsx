@@ -41,7 +41,7 @@ function HistoryPage() {
         {error}
       </p>
     )
-  if (!data) return <p className="text-sm font-medium text-[#5a6678]">Loading the ledger…</p>
+  if (!data) return <p className="text-sm font-medium text-[#5a6678]">Loading history…</p>
   if (!data.challenge)
     return <p className="text-sm font-medium text-[#5a6678]">No active commitment yet.</p>
 
@@ -49,7 +49,7 @@ function HistoryPage() {
     <div className="space-y-6">
       <header className="space-y-1">
         <p className="font-mono text-xs font-bold uppercase tracking-wider text-[#2b66f2]">
-          Commitment Ledger
+          Workout History
         </p>
         <h1 className="font-display text-3xl font-extrabold text-[#0d1b2a] sm:text-4xl">
           Day-by-day record
