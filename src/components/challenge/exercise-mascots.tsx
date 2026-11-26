@@ -27,7 +27,7 @@ export function BryllimExerciseImage({
   return (
     <div
       className={cn(
-        'group/mascot relative flex items-center justify-center overflow-hidden rounded-xl bg-[#f4f7fc] border border-[#0d1b2a10] p-1 transition-all select-none shadow-2xs',
+        'group/mascot relative flex items-center justify-center overflow-hidden rounded-xl bg-[#eef3fb]/80 border border-[#2b66f2]/20 p-1.5 transition-all select-none shadow-2xs',
         className,
       )}
       onMouseEnter={() => setFrame(1)}
@@ -37,7 +37,7 @@ export function BryllimExerciseImage({
       <img
         src={`/exercises/${slug}/frame-${frame}.png`}
         alt={`${name} demonstration`}
-        className="size-full object-contain filter contrast-105"
+        className="size-full object-contain transition-opacity duration-150"
         loading="lazy"
         draggable={false}
       />
