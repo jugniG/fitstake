@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { createFileRoute } from '@tanstack/react-router'
-import { validateEvent, WebhookVerificationError } from '@kelviq/node-sdk'
 import { env } from '#/lib/env'
+import { verifyKelviqWebhook } from '#/lib/kelviq/webhook'
 import { handleKelviqEvent } from '#/lib/server/webhook-handler'
 import type { KelviqEvent } from '#/lib/server/webhook-handler'
 
@@ -14,13 +14,13 @@ export const Route = createFileRoute('/api/webhooks/kelviq')({
 
         let event: KelviqEvent
         try {
-          event = validateEvent(raw, headers, env.KELVIQ_WEBHOOK_SECRET) as unknown as KelviqEvent
+          event = verifyKelviqWebhook(raw, headers, [
+            env.KELVIQ_WEBHOOK_SECRET,
+            'kq_whsec_wf5ddy1y39vfst15',
+            'kq_whsec_ww2s9j5irfak2h86',
+          ])
         } catch (error) {
-          if (error instanceof WebhookVerificationError) {
-            console.error('[kelviq-webhook] signature verification failed')
-          } else {
-            console.error('[kelviq-webhook] verify failed:', error)
-          }
+          console.error('[kelviq-webhook] verification failed:', (error as Error).message)
           return new Response('Invalid signature', { status: 400 })
         }
 
