@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { sendMagicLinkEmail, signInWithGoogle, useSession } from '#/lib/auth.client'
+import { sendMagicLinkEmail, signInWithGoogle, useSession } from '#/lib/auth-client'
 import { BrandMark } from '#/components/brand-mark'
 import { Button } from '#/components/ui/button'
 

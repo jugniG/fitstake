@@ -6,8 +6,15 @@ const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null
 // Magic-link delivery. Without a transport configured it logs the link so dev still works.
 export async function sendMagicLinkEmail(email: string, url: string): Promise<void> {
   if (!resend || !env.RESEND_FROM) {
-    console.info('[auth] magic-link url (no email transport configured):', url)
-    return
+    console.error(
+      '[auth] magic-link send failed: email transport not configured (RESEND_API_KEY / RESEND_FROM missing)',
+    )
+    if (process.env.NODE_ENV !== 'production') {
+      console.info('[auth] dev fallback url (no email sent):', url)
+    }
+    throw new Error(
+      'Email service is not configured. Set RESEND_API_KEY in .env, or use the link logged in the server terminal.',
+    )
   }
   try {
     await resend.emails.send({

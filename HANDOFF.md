@@ -83,7 +83,7 @@ src/
     env.ts                     server-only env access (never import from client)
     email.ts                   Resend magic-link delivery (logs link if no transport)
     auth.ts                    betterAuth instance (drizzleAdapter, Google, magicLink, tanstackStartCookies)
-    auth.client.ts             createAuthClient + signInWithGoogle/sendMagicLinkEmail/signOut/useSession
+    auth-client.ts             createAuthClient + signInWithGoogle/sendMagicLinkEmail/signOut/useSession
     auth.functions.ts          getSession / ensureSession server fns
     challenge/                 PURE, unit-tested: types, math, windows(TZ/DST), state, settlement + index
     vision/                    engine (MediaPipe), geometry, rep-counter, exercises/{squat,push-up,

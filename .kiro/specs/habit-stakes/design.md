@@ -42,7 +42,7 @@ src/
   lib/
     auth.ts                     Better Auth instance (server)
     auth.functions.ts           getSession / ensureSession server fns
-    auth.client.ts              authClient (Google + magic-link)
+    auth-client.ts              authClient (Google + magic-link)
     kelviq/client.ts            @kelviq/node-sdk singleton (server-only)
     kelviq/checkout.ts          createCommitmentCheckout(challenge)
     kelviq/webhook.ts           validateEvent + dispatch

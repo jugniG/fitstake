@@ -1,7 +1,7 @@
 import { Link, useRouterState, useNavigate } from '@tanstack/react-router'
 import { BookOpen, Flame, Video } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { useSession, signOut } from '#/lib/auth.client'
+import { useSession, signOut } from '#/lib/auth-client'
 import { cn } from '#/lib/utils'
 import { BrandMark } from '#/components/brand-mark'
 

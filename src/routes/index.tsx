@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import { useSession } from '#/lib/auth.client'
+import { useSession } from '#/lib/auth-client'
 import { BrandMark } from '#/components/brand-mark'
 import { Button } from '#/components/ui/button'
 
