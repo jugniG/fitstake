@@ -13,6 +13,7 @@ import { ArrowRight, Check, Plus, ShieldCheck, Sparkles, Trash2 } from 'lucide-r
 import { ExerciseDrawer, EXERCISE_CATALOG } from './exercise-drawer'
 import type { CatalogExerciseItem } from './exercise-drawer'
 import { ExerciseMascot } from './exercise-mascots'
+import { cn } from '#/lib/utils'
 
 const DURATION_PRESETS = [
   { label: '7 Days', days: 7, subtitle: 'Quick Sprint', badge: 'Reset' },
@@ -137,7 +138,6 @@ export function SetupForm() {
       return
     }
 
-    // Save to local storage for instant browser preview and reliability
     try {
       localStorage.setItem('stakefit:active-routine', JSON.stringify(selectedExercises))
     } catch {
@@ -167,44 +167,25 @@ export function SetupForm() {
 
   return (
     <>
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-8 pt-2">
-        {/* Live Overview Strip - Merged directly into Root Background */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#0d1b2a14] pb-4">
-          <div className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-emerald-500" />
-            <span className="text-xs font-bold uppercase tracking-wider text-[#0d1b2a]">
-              Commitment Terms
-            </span>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3 text-xs font-mono font-bold text-[#5a6678]">
-            <span>{totalDays}d</span>
-            <span className="text-[#0d1b2a20]">/</span>
-            <span>{formatUSD(dailyStake)}/day</span>
-            <span className="text-[#0d1b2a20]">/</span>
-            <span>{activeExercises.length} movements</span>
-            <span className="text-[#0d1b2a20]">/</span>
-            <span className="text-[#2b66f2]">Pot: {formatUSD(total)}</span>
-          </div>
-        </div>
-
-        {/* Section 1: Duration */}
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-3">
-              <span className="grid size-6 place-items-center rounded-full bg-[#2b66f2]/10 font-mono text-xs font-bold text-[#2b66f2]">
-                1
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-7 pt-1">
+        {/* Step 1: Duration Horizon */}
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="font-mono text-[0.7rem] font-bold uppercase tracking-wider text-[#2b66f2]">
+                Step 01
               </span>
               <h2 className="font-display text-lg font-bold text-[#0d1b2a] sm:text-xl">
                 How long do you want to be consistent?
               </h2>
             </div>
-            <span className="self-start sm:self-auto rounded-full bg-[#eef3fb] px-3 py-1 font-mono text-xs font-bold text-[#2b66f2]">
-              {totalDays} Days Selected
+            <span className="rounded-full bg-[#2b66f2]/10 px-2.5 py-0.5 font-mono text-xs font-bold text-[#2b66f2]">
+              {totalDays} days
             </span>
           </div>
 
-          {/* Preset Duration Tiles - Merged with Background */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 pt-1">
+          {/* Compact 4-Tile Duration Grid */}
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
             {DURATION_PRESETS.map((preset) => {
               const isSelected = totalDays === preset.days
               return (
@@ -212,21 +193,22 @@ export function SetupForm() {
                   key={preset.days}
                   type="button"
                   onClick={() => setValue('totalDays', preset.days, { shouldValidate: true })}
-                  className={`relative flex flex-col items-start rounded-2xl border p-4 text-left transition-all duration-200 active:scale-98 cursor-pointer ${
+                  className={cn(
+                    'relative flex flex-col items-start rounded-2xl border p-3.5 text-left transition-all cursor-pointer active:scale-98',
                     isSelected
-                      ? 'border-[#2b66f2] bg-[#2b66f2]/5 ring-1 ring-[#2b66f2]'
-                      : 'border-[#0d1b2a14] bg-transparent hover:border-[#2b66f2]/40 hover:bg-black/[0.02]'
-                  }`}
+                      ? 'border-[#2b66f2] bg-[#2b66f2]/8 shadow-xs ring-1 ring-[#2b66f2]'
+                      : 'border-[#0d1b2a14] bg-white/70 hover:bg-white hover:border-[#0d1b2a24]',
+                  )}
                 >
                   <span className="rounded-full bg-[#eef3fb] px-2 py-0.5 text-[0.65rem] font-bold text-[#2b66f2]">
                     {preset.badge}
                   </span>
-                  <p className="mt-3 font-display text-base font-bold text-[#0d1b2a] sm:text-lg">
+                  <p className="mt-2 font-display text-base font-bold text-[#0d1b2a] leading-tight">
                     {preset.label}
                   </p>
-                  <p className="text-xs text-[#5a6678]">{preset.subtitle}</p>
+                  <p className="text-[0.7rem] text-[#5a6678]">{preset.subtitle}</p>
                   {isSelected ? (
-                    <span className="absolute top-3 right-3 grid size-5 place-items-center rounded-full bg-[#2b66f2] text-white">
+                    <span className="absolute top-2.5 right-2.5 grid size-4.5 place-items-center rounded-full bg-[#2b66f2] text-white">
                       <Check className="size-3 stroke-[3]" />
                     </span>
                   ) : null}
@@ -235,82 +217,71 @@ export function SetupForm() {
             })}
           </div>
 
-          {/* Custom Duration Inline Input */}
-          <div className="flex items-center gap-3 pt-1">
-            <Label htmlFor="customDuration" className="text-xs text-[#5a6678] font-semibold">
-              Or custom duration (1–365 days):
-            </Label>
-            <div className="w-24">
+          {/* Subtle Inline Custom Duration */}
+          <div className="flex items-center gap-2 pt-0.5 text-xs text-[#5a6678]">
+            <span className="font-semibold">Or custom duration:</span>
+            <div className="relative flex items-center w-20">
               <Input
                 id="customDuration"
                 type="number"
                 min={1}
                 max={365}
                 {...register('totalDays', { valueAsNumber: true })}
-                className="h-8 text-xs font-mono font-bold bg-transparent"
+                className="h-7.5 px-2 text-center text-xs font-mono font-bold bg-white/80 border-[#0d1b2a18]"
               />
             </div>
+            <span>days (1–365)</span>
           </div>
           {errors.totalDays ? (
             <p role="alert" className="text-xs font-semibold text-rose-600">
               {errors.totalDays.message}
             </p>
           ) : null}
-        </div>
+        </section>
 
-        {/* Separator Line */}
-        <div className="border-t border-[#0d1b2a14]" />
+        {/* Divider Separator */}
+        <div className="border-t border-[#0d1b2a12]" />
 
-        {/* Section 2: Daily Stake */}
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-3">
-              <span className="grid size-6 place-items-center rounded-full bg-[#2b66f2]/10 font-mono text-xs font-bold text-[#2b66f2]">
-                2
+        {/* Step 2: Daily Stake */}
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="font-mono text-[0.7rem] font-bold uppercase tracking-wider text-[#2b66f2]">
+                Step 02
               </span>
-              <div>
-                <h2 className="font-display text-lg font-bold text-[#0d1b2a] sm:text-xl">
-                  How much can you stake daily on yourself?
-                </h2>
-                <p className="text-xs text-[#5a6678]">
-                  Choose an amount that stings enough to guarantee you won&apos;t skip.
-                </p>
-              </div>
+              <h2 className="font-display text-lg font-bold text-[#0d1b2a] sm:text-xl">
+                How much can you stake daily on yourself?
+              </h2>
+              <p className="text-xs text-[#5a6678]">
+                An amount at risk each day you don&apos;t record your workout.
+              </p>
             </div>
-            <span className="self-start sm:self-auto font-mono text-base font-bold text-[#2b66f2] bg-[#eef3fb] px-3 py-1 rounded-full">
+            <span className="font-mono text-sm font-bold text-[#2b66f2] bg-[#2b66f2]/10 px-3 py-1 rounded-full">
               {formatUSD(dailyStake)} / day
             </span>
           </div>
 
-          <div className="space-y-3 pt-1">
-            {/* Stake Preset Buttons */}
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold text-[#5a6678] uppercase tracking-wider mr-1">
-                Presets:
-              </span>
-              {STAKE_PRESETS.map((val) => (
-                <button
-                  key={val}
-                  type="button"
-                  onClick={() => setValue('dailyStakeAmount', val, { shouldValidate: true })}
-                  className={`rounded-xl border px-3.5 py-1.5 font-mono text-xs sm:text-sm font-bold transition-all active:scale-95 cursor-pointer ${
-                    dailyStake === val
-                      ? 'border-[#2b66f2] bg-[#2b66f2] text-white'
-                      : 'border-[#0d1b2a14] bg-transparent text-[#0d1b2a] hover:border-[#2b66f2] hover:bg-black/[0.02]'
-                  }`}
-                >
-                  {formatUSD(val)}
-                </button>
-              ))}
-            </div>
+          {/* Integrated Inline Amount Picker */}
+          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+            {STAKE_PRESETS.map((val) => (
+              <button
+                key={val}
+                type="button"
+                onClick={() => setValue('dailyStakeAmount', val, { shouldValidate: true })}
+                className={cn(
+                  'rounded-xl border px-3.5 py-1.5 font-mono text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-95',
+                  dailyStake === val
+                    ? 'border-[#2b66f2] bg-[#2b66f2] text-white shadow-xs'
+                    : 'border-[#0d1b2a14] bg-white/70 hover:bg-white text-[#0d1b2a]',
+                )}
+              >
+                ${val}
+              </button>
+            ))}
 
-            {/* Custom Input Box */}
-            <div className="max-w-xs space-y-1">
-              <Label htmlFor="dailyStakeInput" className="text-xs font-bold text-[#5a6678]">
-                Custom Daily Amount (USD)
-              </Label>
-              <div className="relative flex items-center">
-                <span className="absolute left-3.5 text-sm font-bold text-[#5a6678] pointer-events-none">
+            <div className="flex items-center gap-1.5">
+              <div className="relative flex items-center w-24">
+                <span className="absolute left-2.5 text-xs font-bold text-[#5a6678] pointer-events-none">
                   $
                 </span>
                 <Input
@@ -318,55 +289,54 @@ export function SetupForm() {
                   type="number"
                   min={1}
                   max={10000}
-                  className="pl-8 text-sm font-mono font-bold bg-transparent"
+                  placeholder="Custom"
+                  className="h-8.5 pl-6 pr-2 text-xs font-mono font-bold bg-white/80 border-[#0d1b2a18]"
                   {...register('dailyStakeAmount', { valueAsNumber: true })}
                 />
               </div>
-              {errors.dailyStakeAmount ? (
-                <p role="alert" className="text-xs font-semibold text-rose-600">
-                  {errors.dailyStakeAmount.message}
-                </p>
-              ) : null}
+              <span className="text-xs font-semibold text-[#5a6678]">/ day</span>
             </div>
           </div>
-        </div>
+          {errors.dailyStakeAmount ? (
+            <p role="alert" className="text-xs font-semibold text-rose-600">
+              {errors.dailyStakeAmount.message}
+            </p>
+          ) : null}
+        </section>
 
-        {/* Separator Line */}
-        <div className="border-t border-[#0d1b2a14]" />
+        {/* Divider Separator */}
+        <div className="border-t border-[#0d1b2a12]" />
 
-        {/* Section 3: Choose Exercises with Plus Button and Drawer */}
-        <div className="space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-3">
-              <span className="grid size-6 place-items-center rounded-full bg-[#2b66f2]/10 font-mono text-xs font-bold text-[#2b66f2]">
-                3
+        {/* Step 3: Exercise Routine */}
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="font-mono text-[0.7rem] font-bold uppercase tracking-wider text-[#2b66f2]">
+                Step 03
               </span>
-              <div>
-                <h2 className="font-display text-lg font-bold text-[#0d1b2a] sm:text-xl">
-                  Choose exercises you want to perform daily
-                </h2>
-                <p className="text-xs text-[#5a6678]">
-                  Pick movements from the pool. On workout day, your camera tracks each exercise
-                  sequentially.
-                </p>
-              </div>
+              <h2 className="font-display text-lg font-bold text-[#0d1b2a] sm:text-xl">
+                Choose exercises you want to perform daily
+              </h2>
+              <p className="text-xs text-[#5a6678]">
+                Your camera tracks each exercise sequentially in real time.
+              </p>
             </div>
-            <span className="self-start sm:self-auto rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 font-mono text-xs font-bold text-emerald-800">
-              {activeExercises.length} in Routine
+            <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 font-mono text-xs font-bold text-emerald-800">
+              {activeExercises.length} in routine
             </span>
           </div>
 
           {errors.exercises ? (
             <p
               role="alert"
-              className="text-xs font-semibold text-rose-600 bg-rose-50 p-3 rounded-xl border border-rose-200"
+              className="text-xs font-semibold text-rose-600 bg-rose-50 p-2.5 rounded-xl border border-rose-200"
             >
               {errors.exercises.message}
             </p>
           ) : null}
 
-          {/* Active Routine Cards (Merged directly with Background) */}
-          <div className="space-y-3 pt-1">
+          {/* Compact Active Routine Rows */}
+          <div className="space-y-2 pt-0.5">
             {EXERCISE_CATALOG.map((cat, idx) => {
               const isEnabled = exercises[idx]?.enabled ?? false
               if (!isEnabled) return null
@@ -374,111 +344,80 @@ export function SetupForm() {
               return (
                 <div
                   key={cat.type}
-                  className="relative rounded-2xl border border-[#0d1b2a14] bg-transparent hover:border-[#2b66f2]/40 p-4 sm:p-5 transition-all"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl border border-[#0d1b2a14] bg-white/70 hover:bg-white transition-all shadow-2xs"
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    {/* Mascot & Details */}
-                    <div className="flex items-center gap-4">
-                      <div className="size-16 sm:size-20 rounded-2xl border border-[#0d1b2a14] bg-transparent p-1.5 grid place-items-center shrink-0">
-                        <ExerciseMascot type={cat.type} className="size-full" />
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="size-13 rounded-xl border border-[#0d1b2a10] bg-white p-1 grid place-items-center shrink-0">
+                      <ExerciseMascot type={cat.type} className="size-full" />
+                    </div>
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-display text-sm sm:text-base font-bold text-[#0d1b2a] truncate">
+                          {cat.name}
+                        </h3>
+                        <span className="rounded-full bg-[#eef3fb] px-1.5 py-0.2 text-[0.6rem] font-bold text-[#2b66f2]">
+                          Camera Verified
+                        </span>
                       </div>
-                      <div className="space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="font-display text-base font-bold text-[#0d1b2a]">
-                            {cat.name}
-                          </h3>
-                          <span className="rounded-full bg-[#eef3fb] px-2 py-0.5 text-[0.65rem] font-bold text-[#2b66f2]">
-                            Camera Verified
-                          </span>
-                        </div>
-
-                        {/* Muscle Tags */}
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {cat.tags.map((tag) => {
-                            const isLowerAbs = tag.toLowerCase() === 'lower abs'
-                            return (
-                              <span
-                                key={tag}
-                                className={`rounded-md px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider ${
-                                  isLowerAbs
-                                    ? 'bg-rose-50 text-rose-700 border border-rose-200 shadow-xs'
-                                    : 'bg-[#0d1b2a08] text-[#5a6678]'
-                                }`}
-                              >
-                                {tag}
-                              </span>
-                            )
-                          })}
-                        </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {cat.tags.map((tag) => {
+                          const isLowerAbs = tag.toLowerCase() === 'lower abs'
+                          return (
+                            <span
+                              key={tag}
+                              className={cn(
+                                'rounded-md px-1.5 py-0.2 text-[0.62rem] font-bold uppercase tracking-wider',
+                                isLowerAbs
+                                  ? 'bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs'
+                                  : 'bg-[#0d1b2a08] text-[#5a6678]',
+                              )}
+                            >
+                              {tag}
+                            </span>
+                          )
+                        })}
                       </div>
                     </div>
-
-                    {/* Remove Button */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setValue(`exercises.${idx}.enabled` as const, false, {
-                          shouldValidate: true,
-                        })
-                      }
-                      className="self-end sm:self-center flex items-center gap-1.5 rounded-xl border border-[#0d1b2a14] px-2.5 py-1 text-xs font-semibold text-[#5a6678] hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
-                      title="Remove from routine"
-                    >
-                      <Trash2 className="size-3.5" /> Remove
-                    </button>
                   </div>
 
-                  {/* Sets & Reps Inline Config */}
-                  <div className="mt-4 border-t border-[#0d1b2a10] pt-3.5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    <div className="space-y-1">
-                      <Label
-                        htmlFor={`sets-${idx}`}
-                        className="text-[0.7rem] font-bold text-[#5a6678] uppercase tracking-wider"
-                      >
-                        Sets Per Day
-                      </Label>
-                      <Input
-                        id={`sets-${idx}`}
-                        type="number"
-                        min={1}
-                        max={20}
-                        {...register(`exercises.${idx}.targetSets` as const, {
-                          valueAsNumber: true,
-                        })}
-                        className="h-8 text-xs font-mono font-bold bg-transparent"
-                      />
-                    </div>
+                  {/* Compact Sets & Reps Inputs + Remove */}
+                  <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#0d1b2a08]">
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1">
+                        <Input
+                          id={`sets-${idx}`}
+                          type="number"
+                          min={1}
+                          max={20}
+                          aria-label={`${cat.name} sets`}
+                          {...register(`exercises.${idx}.targetSets` as const, {
+                            valueAsNumber: true,
+                          })}
+                          className="h-7.5 w-12 px-1 text-center text-xs font-mono font-bold bg-white border-[#0d1b2a18]"
+                        />
+                        <span className="text-[0.7rem] font-bold text-[#5a6678]">sets</span>
+                      </div>
+                      <span className="text-[#0d1b2a20]">×</span>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          id={`reps-${idx}`}
+                          type="number"
+                          min={1}
+                          max={500}
+                          aria-label={`${cat.name} reps`}
+                          {...register(`exercises.${idx}.targetReps` as const, {
+                            valueAsNumber: true,
+                          })}
+                          className="h-7.5 w-14 px-1 text-center text-xs font-mono font-bold bg-white border-[#0d1b2a18]"
+                        />
+                        <span className="text-[0.7rem] font-bold text-[#5a6678]">
+                          {cat.repsUnit}
+                        </span>
+                      </div>
 
-                    <div className="space-y-1">
-                      <Label
-                        htmlFor={`reps-${idx}`}
-                        className="text-[0.7rem] font-bold text-[#5a6678] uppercase tracking-wider"
-                      >
-                        Reps / Set ({cat.repsUnit})
-                      </Label>
-                      <Input
-                        id={`reps-${idx}`}
-                        type="number"
-                        min={1}
-                        max={500}
-                        {...register(`exercises.${idx}.targetReps` as const, {
-                          valueAsNumber: true,
-                        })}
-                        className="h-8 text-xs font-mono font-bold bg-transparent"
-                      />
-                    </div>
-
-                    {cat.type === 'custom_gesture' ? (
-                      <div className="space-y-1 col-span-2 sm:col-span-1">
-                        <Label
-                          htmlFor={`gesture-${idx}`}
-                          className="text-[0.7rem] font-bold text-[#5a6678] uppercase tracking-wider"
-                        >
-                          Gesture
-                        </Label>
+                      {cat.type === 'custom_gesture' ? (
                         <select
-                          id={`gesture-${idx}`}
-                          className="flex h-8 w-full rounded-2xl border border-[#0d1b2a1a] bg-transparent px-2 text-xs font-semibold text-[#0d1b2a] shadow-xs focus-visible:border-[#2b66f2] focus-visible:outline-none"
+                          className="h-7.5 rounded-xl border border-[#0d1b2a18] bg-white px-1.5 text-[0.7rem] font-semibold text-[#0d1b2a]"
                           {...register(`exercises.${idx}.customGesture` as const)}
                         >
                           {Object.entries(CUSTOM_GESTURE_LABELS).map(([val, label]) => (
@@ -487,51 +426,60 @@ export function SetupForm() {
                             </option>
                           ))}
                         </select>
-                      </div>
-                    ) : null}
+                      ) : null}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setValue(`exercises.${idx}.enabled` as const, false, {
+                          shouldValidate: true,
+                        })
+                      }
+                      className="p-1.5 rounded-lg text-[#5a6678] hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                      title="Remove exercise"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
                   </div>
                 </div>
               )
             })}
           </div>
 
-          {/* Plus Button: Opens the Bottom Drawer */}
+          {/* Plus Button to Open Bottom Drawer */}
           <button
             type="button"
             onClick={() => setIsDrawerOpen(true)}
-            className="group flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[#2b66f2]/30 bg-transparent p-4 text-sm font-bold text-[#2b66f2] hover:border-[#2b66f2] hover:bg-[#2b66f2]/5 transition-all cursor-pointer active:scale-98"
+            className="group flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#2b66f2]/30 bg-white/40 hover:bg-white hover:border-[#2b66f2] py-3 px-4 text-xs sm:text-sm font-bold text-[#2b66f2] transition-all cursor-pointer active:scale-98"
           >
-            <div className="grid size-7 place-items-center rounded-full bg-[#2b66f2] text-white shadow-xs group-hover:scale-110 transition-transform">
-              <Plus className="size-4 stroke-[3]" />
-            </div>
-            <span className="font-display">
-              Add Movements from Exercise Pool (Lying Leg Raises, Squats, Push-Ups...)
-            </span>
+            <Plus className="size-4 stroke-[2.5] group-hover:scale-110 transition-transform" />
+            <span>Add Movements from Exercise Pool</span>
           </button>
-        </div>
+        </section>
 
-        {/* Separator Line */}
-        <div className="border-t border-[#0d1b2a14]" />
+        {/* Divider Separator */}
+        <div className="border-t border-[#0d1b2a12]" />
 
-        {/* Section 4: Summary & Escrow Deposit (Merged with Background) */}
-        <div className="space-y-5">
+        {/* Step 4: Commitment Review & Escrow Deposit */}
+        <section className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="grid size-6 place-items-center rounded-full bg-[#2b66f2] text-white">
-                <Sparkles className="size-3.5" />
+              <span className="grid size-5.5 place-items-center rounded-full bg-[#2b66f2] text-white">
+                <Sparkles className="size-3" />
               </span>
               <h2 className="font-display text-base font-bold text-[#0d1b2a] sm:text-lg">
                 Commitment Summary & Guarantee
               </h2>
             </div>
-            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
               <ShieldCheck className="size-3.5" /> 100% Refundable
             </div>
           </div>
 
           {/* User-Requested Exact Statement */}
-          <div className="rounded-2xl border border-[#0d1b2a14] bg-transparent p-5 sm:p-6 space-y-3">
-            <p className="text-base sm:text-lg font-bold text-[#0d1b2a] leading-relaxed">
+          <div className="rounded-2xl border border-[#0d1b2a14] bg-white/70 p-4 sm:p-5 space-y-2.5 shadow-2xs">
+            <p className="text-sm sm:text-base font-bold text-[#0d1b2a] leading-relaxed">
               You are betting{' '}
               <span className="font-mono text-[#2b66f2]">{formatUSD(dailyStake)}</span> daily for{' '}
               <span className="font-mono text-[#2b66f2]">{totalDays} days</span>. Each day you fail
@@ -545,8 +493,8 @@ export function SetupForm() {
             </p>
 
             {/* Daily Exercise Sequence */}
-            <div className="mt-3 flex flex-wrap items-center gap-2 pt-2 border-t border-[#0d1b2a10]">
-              <span className="text-[0.7rem] font-bold text-[#5a6678] uppercase tracking-wider">
+            <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-[#0d1b2a0a]">
+              <span className="text-[0.65rem] font-bold text-[#5a6678] uppercase tracking-wider">
                 Daily Sequence:
               </span>
               {activeExercises.map((e, i) => {
@@ -554,7 +502,7 @@ export function SetupForm() {
                 return (
                   <span
                     key={e.exerciseType}
-                    className="inline-flex items-center gap-1 rounded-xl bg-[#eef3fb] px-2.5 py-1 font-mono text-xs font-bold text-[#2b66f2]"
+                    className="inline-flex items-center gap-1 rounded-lg bg-[#eef3fb] px-2 py-0.5 font-mono text-[0.7rem] font-bold text-[#2b66f2]"
                   >
                     <span>{i + 1}.</span>
                     <span>
@@ -566,18 +514,18 @@ export function SetupForm() {
             </div>
           </div>
 
-          {/* Escrow Pot Total Box */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-5">
+          {/* Escrow Pot Banner */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-4">
             <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">
+              <span className="text-[0.7rem] font-bold uppercase tracking-wider text-emerald-800">
                 Total Upfront Deposit (Refundable Escrow)
               </span>
-              <p className="mt-1 font-mono text-3xl font-extrabold text-[#0d1b2a]">
+              <p className="mt-0.5 font-mono text-2xl sm:text-3xl font-extrabold text-[#0d1b2a]">
                 {formatUSD(total)}
               </p>
-              <p className="mt-1 text-xs text-emerald-800">
-                {formatUSD(dailyStake)} × {totalDays} days held in secure vault. 100% refunded when
-                you honor your commitment.
+              <p className="text-[0.7rem] text-emerald-800">
+                {formatUSD(dailyStake)} × {totalDays} days in secure vault. 100% refunded when you
+                honor your commitment.
               </p>
             </div>
             <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 shrink-0">
@@ -585,26 +533,26 @@ export function SetupForm() {
             </div>
           </div>
 
-          {/* Start Date Offset Option */}
-          <div className="space-y-2 pt-1">
-            <Label className="text-xs font-bold text-[#5a6678] uppercase tracking-wider">
+          {/* Start Date Offset Radios */}
+          <div className="space-y-1.5">
+            <Label className="text-[0.7rem] font-bold text-[#5a6678] uppercase tracking-wider">
               Start Date
             </Label>
-            <div className="grid grid-cols-2 gap-3 max-w-sm">
-              <label className="flex items-center gap-2.5 rounded-2xl border border-[#0d1b2a14] bg-transparent p-3 cursor-pointer hover:border-[#2b66f2]/50">
+            <div className="grid grid-cols-2 gap-2.5 max-w-xs">
+              <label className="flex items-center gap-2 rounded-xl border border-[#0d1b2a14] bg-white/70 p-2.5 cursor-pointer hover:border-[#2b66f2]/50">
                 <input
                   type="radio"
                   value="0"
-                  className="accent-[#2b66f2] size-4 cursor-pointer"
+                  className="accent-[#2b66f2] size-3.5 cursor-pointer"
                   {...register('startDayOffset')}
                 />
                 <span className="text-xs font-bold text-[#0d1b2a]">Start Today</span>
               </label>
-              <label className="flex items-center gap-2.5 rounded-2xl border border-[#0d1b2a14] bg-transparent p-3 cursor-pointer hover:border-[#2b66f2]/50">
+              <label className="flex items-center gap-2 rounded-xl border border-[#0d1b2a14] bg-white/70 p-2.5 cursor-pointer hover:border-[#2b66f2]/50">
                 <input
                   type="radio"
                   value="1"
-                  className="accent-[#2b66f2] size-4 cursor-pointer"
+                  className="accent-[#2b66f2] size-3.5 cursor-pointer"
                   {...register('startDayOffset')}
                 />
                 <span className="text-xs font-bold text-[#0d1b2a]">Start Tomorrow</span>
@@ -620,26 +568,26 @@ export function SetupForm() {
           {submitError ? (
             <p
               role="alert"
-              className="rounded-2xl border border-rose-500/20 bg-rose-50 p-4 text-center text-xs font-semibold text-rose-700"
+              className="rounded-2xl border border-rose-500/20 bg-rose-50 p-3.5 text-center text-xs font-semibold text-rose-700"
             >
               {submitError}
             </p>
           ) : null}
 
-          {/* Checkout Button with Total Amount */}
+          {/* Checkout CTA */}
           <Button
             type="submit"
             variant="primary"
             size="lg"
-            className="w-full py-4 text-base shadow-md flex items-center justify-center gap-2 font-bold cursor-pointer"
+            className="w-full py-3.5 text-base shadow-sm flex items-center justify-center gap-2 font-bold cursor-pointer"
             disabled={isSubmitting || activeExercises.length === 0}
           >
             Lock In Commitment & Deposit {formatUSD(total)} <ArrowRight className="size-4" />
           </Button>
-        </div>
+        </section>
       </form>
 
-      {/* Bottom Drawer Component */}
+      {/* Bottom Movement Pool Drawer */}
       <ExerciseDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
