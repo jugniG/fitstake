@@ -15,9 +15,11 @@ export function Hero() {
         <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-16">
           {/* Left Column Text */}
           <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#0d1b2a14] bg-white px-3.5 py-1 text-xs font-bold tracking-wider text-[#5a6678] uppercase shadow-xs">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#2b66f2]/20 bg-[#2b66f2]/5 px-4 py-1.5 text-xs font-bold text-[#0d1b2a] shadow-xs">
               <span className="size-2 rounded-full bg-[#2b66f2] animate-pulse" />
-              <span>MORE ENERGY FOR WHAT MATTERS</span>
+              <span>
+                Finally, a fitness app that actually gives you a fit body by the end of the year.
+              </span>
             </div>
 
             <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-[#0d1b2a] sm:text-6xl lg:text-7xl leading-[1.08] sm:leading-[1.04]">
@@ -120,7 +122,7 @@ export function Hero() {
                       ✓ Parallel Depth: Knee Angle 96°
                     </p>
                     <p className="mt-0.5 font-mono text-[0.65rem] text-slate-300">
-                      SmartSpectra™ Exertion: Aerobic Zone
+                      Heart Rate Effort: Aerobic Zone
                     </p>
                   </div>
                 </div>
@@ -128,7 +130,7 @@ export function Hero() {
                 {/* Overlay Bottom Bar */}
                 <div className="flex items-center justify-between rounded-lg bg-black/60 px-3 py-1.5 text-xs font-mono backdrop-blur-md">
                   <span>SET: 2/3 · REP: 12/15</span>
-                  <span className="text-emerald-400">100% PRIVACY (RAM ONLY)</span>
+                  <span className="text-emerald-400">100% PRIVATE (ON-DEVICE)</span>
                 </div>
               </div>
 
@@ -155,7 +157,7 @@ export function Hero() {
 
               <div className="mt-4 flex items-center justify-between text-xs text-[#5a6678] pt-2 border-t border-[#0d1b2a10]">
                 <span className="flex items-center gap-1.5 font-medium">
-                  <Shield className="size-3.5 text-[#2b66f2]" /> Presage SmartSpectra™ Sensing
+                  <Shield className="size-3.5 text-[#2b66f2]" /> Real-time Effort & Form Check
                 </span>
                 <span className="flex items-center gap-1 text-emerald-700 font-bold">
                   <CheckCircle2 className="size-3.5" /> Zero Video Saved

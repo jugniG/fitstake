@@ -13,8 +13,8 @@ export function FinalCta() {
         </h2>
 
         <p className="mx-auto mt-6 max-w-lg text-base text-[#5a6678] sm:text-lg">
-          Lock in your workout commitment today. Move on camera, verify your effort with contactless
-          vitals, and reclaim 100% of your cash.
+          Lock in your workout commitment today. Move on camera, verify your reps daily, and reclaim
+          100% of your cash.
         </p>
 
         <div className="mt-8 flex justify-center">
@@ -27,7 +27,7 @@ export function FinalCta() {
         </div>
 
         <p className="mt-4 text-xs font-medium text-[#5a6678]">
-          Start your commitment · 100% on-device privacy · Audited Kelviq Escrow
+          Start your commitment · 100% on-device privacy · Secure Money-Back Escrow
         </p>
 
         {/* Bottom divider and links */}
@@ -39,9 +39,9 @@ export function FinalCta() {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-6 text-[0.75rem] font-medium">
-            <span>Presage SmartSpectra™ Vitals</span>
+            <span>Real-Time Effort Sensing</span>
             <span>·</span>
-            <span>MediaPipe Pose Kinematics</span>
+            <span>On-Device Form Tracking</span>
             <span>·</span>
             <span>100% Client-Side Privacy</span>
           </div>

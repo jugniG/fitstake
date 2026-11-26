@@ -17,9 +17,9 @@ const PILLARS = [
   },
   {
     tag: '03 / THE INTEGRITY',
-    title: 'Kinematic & Biometric Truth',
+    title: 'Honest Camera Verification',
     description:
-      'No self-reported honor system. On-device MediaPipe pose tracking enforces proper joint depth (squats < 110°), while Presage SmartSpectra™ contactless vitals measure cardiac response to verify real human effort.',
+      'No self-reported honor system. On-device camera tracking verifies your exercise form and checks real physical effort, so you can never cheat yourself.',
     icon: ShieldCheck,
   },
 ]

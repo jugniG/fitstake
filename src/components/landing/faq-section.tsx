@@ -9,7 +9,7 @@ const FAQS = [
   },
   {
     q: 'Is my camera video recorded, uploaded, or saved?',
-    a: 'Never. All vision processing (MediaPipe joint tracking and Presage SmartSpectra™ contactless vitals) runs 100% locally on your machine via WebAssembly. Frames exist in browser memory for milliseconds to verify angles and are immediately wiped. No video is ever saved to disk or transmitted over the internet.',
+    a: 'Never. All camera tracking runs 100% locally on your computer. Video frames are processed in real time and immediately discarded. No video is ever recorded, saved to disk, or sent across the internet.',
   },
   {
     q: 'What happens if I miss a day?',
@@ -17,11 +17,11 @@ const FAQS = [
   },
   {
     q: 'How does the refund reach my bank account?',
-    a: 'We use Kelviq merchant escrow infrastructure. When your commitment concludes, the total won-back amount is batched and refunded automatically back to the original credit/debit card you used at checkout.',
+    a: 'Your deposit is held safely in automated escrow. When your challenge finishes, 100% of your won-back balance is refunded straight back to the original payment card you used at checkout.',
   },
   {
     q: 'Do I need any special hardware or wearables?',
-    a: 'No smartwatches, chest straps, or sensors are needed. Any standard laptop webcam or smartphone camera is all you need. Presage SmartSpectra™ extracts physiological vitals directly from facial micro-luminance in the video stream.',
+    a: 'No smartwatches, chest straps, or extra gadgets needed. Any standard laptop webcam or phone camera is all you need. The camera tracks your reps and movement right on your screen.',
   },
 ]
 

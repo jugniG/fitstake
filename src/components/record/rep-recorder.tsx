@@ -518,7 +518,7 @@ export function RepRecorder({
         </span>
         <h1 className="font-display text-2xl font-extrabold text-[#0d1b2a]">Day {dayNumber}</h1>
         <p className="text-xs font-medium text-[#5a6678]">
-          {targetSets} sets × {targetReps} reps · On-device vision & SmartSpectra™ vitals
+          {targetSets} sets × {targetReps} reps · On-device camera form & effort tracking
         </p>
       </header>
 
@@ -544,14 +544,14 @@ export function RepRecorder({
           className="pointer-events-none absolute inset-0 h-full w-full object-cover -scale-x-100"
         />
 
-        {/* SmartSpectra Pre-Workout Readiness Scan Overlay */}
+        {/* Pre-Workout Readiness Scan Overlay */}
         {status === 'scanning' ? (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/85 p-6 text-center backdrop-blur-md">
             <div className="relative flex h-32 w-32 items-center justify-center rounded-full border-2 border-dashed border-rose-500/80 animate-pulse">
               <span className="text-4xl">❤️</span>
             </div>
             <p className="mt-4 font-mono text-[0.65rem] uppercase tracking-widest text-emerald-400">
-              SmartSpectra™ Vitals Calibration
+              Heart Rate & Effort Calibration
             </p>
             <h2 className="mt-1 font-display text-2xl font-bold text-white">
               Cardiovascular Baseline
@@ -560,7 +560,7 @@ export function RepRecorder({
               {vitals.pulseBpm} <span className="text-xs text-slate-400">BPM</span>
             </div>
             <p className="mb-5 max-w-xs text-xs text-slate-300">
-              Calibrating resting pulse & biological pulse waveform ({scanProgress}s)…
+              Calibrating resting pulse & camera sensor ({scanProgress}s)…
             </p>
             <Button
               variant="ghost"
@@ -677,8 +677,8 @@ export function RepRecorder({
                     : 'Hold your hand clearly in front of the camera.'}
             </p>
             <p className="mt-2 text-xs text-[#5a6678] font-medium">
-              🔒 100% On-Device Privacy: SmartSpectra™ contactless vitals & joint kinematics run
-              strictly in browser RAM. No video is ever saved or uploaded.
+              🔒 100% On-Device Privacy: Camera tracking and effort sensing run strictly on your
+              device. No video is ever saved or uploaded.
             </p>
           </div>
           <Button
@@ -694,7 +694,7 @@ export function RepRecorder({
 
       {status === 'loading' ? (
         <p role="status" className="text-muted">
-          Loading camera, pose models, and SmartSpectra sensor…
+          Loading camera and form tracking models…
         </p>
       ) : null}
 

@@ -12,12 +12,12 @@ const STEPS = [
   {
     num: '02',
     title: 'Stake real skin in the game',
-    desc: 'Deposit your total stake upfront into audited Kelviq escrow. No recurring subscription fees or traps.',
+    desc: 'Deposit your daily stake into a secure refund vault. Zero hidden subscriptions or traps.',
   },
   {
     num: '03',
     title: 'Step in front of the lens',
-    desc: '10-second readiness scan measures baseline vitals. MediaPipe pose tracking counts reps at true depth in RAM.',
+    desc: 'Step in front of your camera. Smart camera tracking counts your reps and checks real effort in 15 minutes at home.',
   },
   {
     num: '04',

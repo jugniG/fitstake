@@ -98,7 +98,7 @@ export function DashboardView({
           </p>
           <p className="mt-1 text-xs text-amber-800/80">
             {confirmingPayment
-              ? 'Kelviq is confirming the charge. This page refreshes automatically while the webhook arrives.'
+              ? 'Confirming your deposit. This page refreshes automatically once confirmed.'
               : challenge.kelviqCheckoutUrl
                 ? 'Your challenge is saved. Finish the checkout to open Day 1.'
                 : 'Your challenge is saved, but the payment link was not created.'}
@@ -127,7 +127,7 @@ export function DashboardView({
         <Card className="border-blue-200 bg-blue-50 p-5 text-blue-900">
           <p className="text-sm font-bold">Settling your refund…</p>
           <p className="mt-1 text-xs text-blue-800">
-            Kelviq escrow is issuing your automated refund. This page will update shortly.
+            Secure escrow is issuing your automated refund. This page will update shortly.
           </p>
         </Card>
       ) : null}
