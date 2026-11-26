@@ -24,7 +24,10 @@ function signBody(body: string, secret: string): string {
   return createHmac('sha256', secret).update(body).digest('base64url')
 }
 
-export function createWorkoutSessionToken(input: CreateWorkoutSessionInput, secret: string): string {
+export function createWorkoutSessionToken(
+  input: CreateWorkoutSessionInput,
+  secret: string,
+): string {
   if (!secret) throw new Error('A signing secret is required for workout sessions.')
   if (!Number.isInteger(input.dayNumber) || input.dayNumber < 1) {
     throw new Error('A positive day number is required for workout sessions.')

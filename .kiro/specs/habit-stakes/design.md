@@ -8,7 +8,7 @@
 Browser/React (TanStack Start) + Vercel serverless. Two trust domains:
 
 - **Client (browser):** camera capture, MediaPipe rep counting, UI. Cannot be fully trusted for
-  verification, so it only *proposes* a completion; the server *decides*.
+  verification, so it only _proposes_ a completion; the server _decides_.
 - **Server (Vercel serverless, TanStack server functions + API routes on Nitro):** Better Auth,
   Kelviq checkout creation, webhook verification, day-window computation, completion acceptance,
   the single-settlement refund, and a cron sweep. Postgres (Neon) via Drizzle is the source of
@@ -114,8 +114,8 @@ All money stored in **whole USD dollars** internally (Kelviq calls convert to ce
 ## 4. Auth — Better Auth (Google + magic-link)
 
 - `src/lib/auth.ts`: `betterAuth({ database: drizzleAdapter(db,...), secret: env.BETTER_AUTH_SECRET,
-  socialProviders: { google: { clientId, clientSecret } },
-  plugins: [magicLink({ sendMagicLink }), tanstackStartCookies()] })`.
+socialProviders: { google: { clientId, clientSecret } },
+plugins: [magicLink({ sendMagicLink }), tanstackStartCookies()] })`.
   `tanstackStartCookies()` is last (per Better Auth + TanStack guide).
 - `src/routes/api/auth/$.ts`: catch-all mounting `auth.handler` on GET/POST (confirmed pattern).
 - `src/lib/auth.functions.ts`: `getSession`/`ensureSession` server fns via `getRequestHeaders`.
@@ -180,6 +180,7 @@ local the UI preselects Tomorrow with an explanatory note.
   taxBehavior: "EXCLUSIVE",                               // tax added on top; pot = refundable order amount
   successUrl, metadata: { challengeId, userId }
 })` → store `checkoutSessionId`, redirect to `checkoutUrl`.
+
 > Correction vs. the original brief: a checkout session **requires** `planIdentifier` +
 > `chargePeriod`; `customAmount` overrides the plan price per challenge. We must create one
 > Kelviq product + one-time plan in the dashboard and put its identifier in env. `customAmount`
@@ -189,6 +190,7 @@ local the UI preselects Tomorrow with an explanatory note.
 with `validateEvent(body, env.KELVIQ_WEBHOOK_SECRET, headers)`; on `WebhookVerificationError`
 return 400. Idempotency: insert into `kelviq_event(eventId)`; on unique-violation, ack 202 and stop.
 Dispatch:
+
 - `checkout.completed` → activate: set `status=active`, `activatedAt` = event time, `timezone`
   from the challenge (captured at setup), compute+insert all `day` rows. Read `data.object.metadata`
   for `challengeId`/`userId`; fetch the order id (retrieve checkout session → order, or from the
@@ -200,17 +202,18 @@ Dispatch:
 
 **Refund / settlement (`kelviq/refund.ts` + `api/cron/settle.ts`):** after the final day's window
 ends, compute `wonBackBalance`. If >0:
+
 1. Atomic `UPDATE challenge SET status='settling' WHERE id=? AND status='active' RETURNING *` — only
    one caller wins (DB-level lock). Losers stop.
 2. `client.refunds.create({ orderId, amountUnits: wonBackBalance*100, reason:'REQUESTED_BY_CUSTOMER',
-   internalNote: 'habit-stakes settlement' })` → refund uuid.
+internalNote: 'habit-stakes settlement' })` → refund uuid.
 3. Store `settlementRefundId` (unique) + `settlementStatus=pending`, `status=settling`.
 4. On `refund.updated SUCCEEDED` webhook → `settlementStatus=settled`, `status=settled`.
-Recovery for a crash between steps 2–3: if `status=settling` with no `settlementRefundId`, list
-Kelviq refunds for the order to find the existing refund and store it (no second create).
-If `wonBackBalance==0`: set `settlementStatus=none`, `status=settled` (no refund call).
-Vercel Cron (`vercel.json` `crons: [{ path:'/api/cron/settle', schedule:'0 * * * *' }]`) runs the
-sweep hourly, guarded by `CRON_SECRET`; the dashboard also triggers a lazy check on load.
+   Recovery for a crash between steps 2–3: if `status=settling` with no `settlementRefundId`, list
+   Kelviq refunds for the order to find the existing refund and store it (no second create).
+   If `wonBackBalance==0`: set `settlementStatus=none`, `status=settled` (no refund call).
+   Vercel Cron (`vercel.json` `crons: [{ path:'/api/cron/settle', schedule:'0 * * * *' }]`) runs the
+   sweep hourly, guarded by `CRON_SECRET`; the dashboard also triggers a lazy check on load.
 
 ## 8. Workout verification (in-browser MediaPipe)
 
@@ -224,6 +227,7 @@ Engine (`vision/engine.ts`): `npm i @mediapipe/tasks-vision`; self-host the WASM
 Rep modules (`vision/exercises/*.ts`) implement a common `RepModule` interface
 (`{ init, onFrame(landmarks, ts): {repCounted, confidence, warn} }`) using a shared state machine in
 `rep-counter.ts` (extended→flexed→extended cycle with hysteresis + min-duration):
+
 - squat: knee angle (hip→knee→ankle); standing(>160°)→down(<140°)→standing = 1 rep.
 - push-up: elbow angle (shoulder→elbow→wrist); up(>160°)→down(<100°)→up = 1 rep.
 - jumping-jack: arm spread (wrist distance ÷ shoulder width, wrists above shoulders) + ankle

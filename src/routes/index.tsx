@@ -20,7 +20,9 @@ function IndexPage() {
     <div className="flex min-h-dvh flex-col items-center justify-center px-6 text-center">
       <BrandMark className="h-16 w-11 text-rust" />
       <p className="eyebrow mt-6">Habit-Stakes</p>
-      <h1 className="mt-2 font-display text-4xl font-medium text-bone">Lock your word with real stakes.</h1>
+      <h1 className="mt-2 font-display text-4xl font-medium text-bone">
+        Lock your word with real stakes.
+      </h1>
       <p className="mt-3 max-w-md text-sm leading-relaxed text-muted">
         Choose your workout, your daily stake and how many days. Pay the full pot upfront. Complete
         a day on camera and that day's stake moves into your won-back balance. Miss it and it's

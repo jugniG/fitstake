@@ -32,5 +32,12 @@ export { evaluatePushUp } from './exercises/push-up'
 export { evaluateJumpingJack } from './exercises/jumping-jack'
 export { evaluateHandGesture } from './exercises/custom-gesture'
 export { createLivenessGuard } from './liveness'
-export { closeVision, detectHand, detectPose, getHandLandmarker, getLandmarkerFor, getPoseLandmarker } from './engine'
+export {
+  closeVision,
+  detectHand,
+  detectPose,
+  getHandLandmarker,
+  getLandmarkerFor,
+  getPoseLandmarker,
+} from './engine'
 export type { VisionLandmarker } from './engine'

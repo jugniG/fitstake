@@ -11,8 +11,8 @@ Kelviq is the merchant of record. The Server API Key (`KELVIQ_SERVER_API_KEY`) a
 into client code.
 
 - **Checkout:** a one-time charge uses `client.checkout.createSession({ planIdentifier,
-  chargePeriod: 'ONE_TIME', customAmount, currencyCode: 'USD', taxBehavior: 'EXCLUSIVE',
-  metadata })`. `metadata: { challengeId, userId }` is the correlation channel — it round-trips on
+chargePeriod: 'ONE_TIME', customAmount, currencyCode: 'USD', taxBehavior: 'EXCLUSIVE',
+metadata })`. `metadata: { challengeId, userId }` is the correlation channel — it round-trips on
   `checkout.completed`. `customAmount` is major units (dollars). A product + one-time plan must
   exist in the Kelviq dashboard (`KELVIQ_COMMITMENT_PLAN_IDENTIFIER`).
 - **Order linking:** orders carry no challenge metadata, so we link by Kelviq `customer_id` plus

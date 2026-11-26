@@ -72,12 +72,14 @@ scaffolding is kept; the demo-specific logic and UI are removed.
 ## 5. Functional Requirements
 
 ### FR-1 Challenge configuration
+
 - The user selects `exerciseType` ∈ {squat, push-up, jumping-jack, custom gesture}, `targetReps > 0`,
   `targetSets > 0`, `dailyStakeAmount` (whole USD dollars, no cents), `totalDays ≥ 1`.
 - `totalCommitmentAmount = totalDays × dailyStakeAmount`, held in USD minor units (cents) internally.
 - The challenge is persisted in a `PENDING_CHARGE` state before checkout, owned by the signed-in user.
 
 ### FR-2 Kelviq upfront checkout
+
 - The server creates a one-time Kelviq checkout session: `customAmount = totalCommitment`,
   `currencyCode: "USD"`, `metadata: { challengeId, userId }`, `successUrl`.
 - The user is redirected to `checkoutUrl`; on return to `successUrl` the UI shows an
@@ -85,6 +87,7 @@ scaffolding is kept; the demo-specific logic and UI are removed.
 - The Kelviq Server API Key is never exposed to the client.
 
 ### FR-3 Webhooks
+
 - One endpoint receives Kelviq webhooks on the **raw** request body and verifies every delivery
   with `validateEvent` + `KELVIQ_WEBHOOK_SECRET`.
 - Idempotent by event `id` (reject duplicates).
@@ -96,6 +99,7 @@ scaffolding is kept; the demo-specific logic and UI are removed.
   signals partial vs full, not the amount).
 
 ### FR-4 Activation & timezone
+
 - The user's IANA timezone is captured from the browser at setup and **pinned** for the
   challenge's lifetime (so the calendar is consistent even if the user travels).
 - `activatedAt` is the server UTC from the verified `checkout.completed` event, never the
@@ -106,17 +110,19 @@ scaffolding is kept; the demo-specific logic and UI are removed.
   start day; before that day's local midnight, Day 1 is `LOCKED`.
 
 ### FR-5 Day lifecycle (local calendar, server-authoritative)
-- Day 1 is the user-chosen start day (Today or Tomorrow at activation); Day *d* is the *d*-th
+
+- Day 1 is the user-chosen start day (Today or Tomorrow at activation); Day _d_ is the _d_-th
   consecutive local calendar day from Day 1 in the pinned timezone.
 - Day 1 window = `[effective start, local-midnight ending Day 1]`, where the effective start is
   `activatedAt` if Day 1 = Today, or the local midnight beginning Day 1 if Day 1 = Tomorrow.
-- Day *d* > 1 window = `[local-midnight start, local-midnight end]` of that local day.
+- Day _d_ > 1 window = `[local-midnight start, local-midnight end]` of that local day.
 - Statuses: `LOCKED` (future day / before its window), `PENDING` (window open, not yet completed),
   `COMPLETED` (workout verified within the window), `FORFEITED` (window ended without completion).
 - All status and transition checks use **server UTC + the stored timezone**, never the client
   clock. `FORFEITED` is derived lazily on read; the dashboard always reflects current status.
 
 ### FR-6 Workout verification (in-browser MediaPipe)
+
 - Live camera only (`getUserMedia`); file, upload, and pre-recorded inputs are rejected.
 - We author a dedicated MediaPipe rep module for every supported exercise (v1 catalog, extensible):
   - squat → knee/hip-angle state machine (`PoseLandmarker`);
@@ -132,14 +138,16 @@ scaffolding is kept; the demo-specific logic and UI are removed.
   `COMPLETED` and `wonBackBalance += dailyStakeAmount`.
 
 ### FR-7 Ledger & dashboard
+
 - Display `totalCommitmentAmount`, `wonBackBalance` (safe to refund), `forfeitedBalance`,
   remaining days, and a per-day status list.
 - All amounts shown in USD.
 
 ### FR-8 Single settlement refund
+
 - After the final day's window ends (all days `COMPLETED` or `FORFEITED`):
   - if `wonBackBalance > 0`: one `client.refunds.create({ orderId, amountUnits: wonBackBalance×100,
-    reason: "REQUESTED_BY_CUSTOMER", internalNote })`;
+reason: "REQUESTED_BY_CUSTOMER", internalNote })`;
   - if `wonBackBalance == 0`: mark the challenge `SETTLED` with no refund and close it.
 - Strict per-challenge idempotency: a `settlement_status` of `PENDING → SETTLED` guarded by a
   unique row/lock; a challenge is refunded **at most once**. Kelviq's "remaining refundable
@@ -149,6 +157,7 @@ scaffolding is kept; the demo-specific logic and UI are removed.
 - The refund outcome is recorded from `refund.updated` (`status: SUCCEEDED`), idempotently.
 
 ### FR-9 Auth & users
+
 - Install and wire Better Auth (server route + client) on the existing
   `user`/`session`/`account`/`verification` tables.
 - Auth methods: **Google OAuth and email magic-link. No email/password.**

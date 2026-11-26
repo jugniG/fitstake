@@ -8,8 +8,7 @@ const connectionString = process.env.DATABASE_URL ?? ''
 // Hosted Postgres (Neon, Supabase) needs explicit SSL config; pg does not read sslmode
 // from the connection string. Local Postgres usually has SSL disabled.
 const isLocal = /(?:^|@)(?:localhost|127\.0\.0\.1|\[::1\])(?::|\/)/i.test(connectionString)
-const needsSsl =
-  !isLocal && (/sslmode=require|neon\.tech|supabase\.(com|co)/i.test(connectionString))
+const needsSsl = !isLocal && /sslmode=require|neon\.tech|supabase\.(com|co)/i.test(connectionString)
 
 const pool = new Pool({
   connectionString,

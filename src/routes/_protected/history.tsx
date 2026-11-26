@@ -32,7 +32,12 @@ function HistoryPage() {
     }
   }, [])
 
-  if (error) return <p role="alert" className="field-error">{error}</p>
+  if (error)
+    return (
+      <p role="alert" className="field-error">
+        {error}
+      </p>
+    )
   if (!data) return <p className="text-muted">Loading the ledger…</p>
   if (!data.challenge) return <p className="text-muted">No challenge yet.</p>
 

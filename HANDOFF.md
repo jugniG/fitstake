@@ -33,15 +33,15 @@ has **not** been migrated. Manual setup (Neon, Kelviq dashboard, Google OAuth, e
 
 The kickoff prompt contained several inaccuracies; these are the real, verified facts:
 
-1. **Kiro-InteractionKit is a separate *Python*/OpenCV desktop repo.** We did NOT run a Python
-sidecar (it can't run on Vercel serverless). We ported its gesture/pose *pattern* + the `.kiro`
+1. **Kiro-InteractionKit is a separate _Python_/OpenCV desktop repo.** We did NOT run a Python
+   sidecar (it can't run on Vercel serverless). We ported its gesture/pose _pattern_ + the `.kiro`
    DX into the browser stack using `@mediapipe/tasks-vision` (same MediaPipe model family).
 2. **Kelviq** — verified against `docs.kelviq.com`:
    - A checkout session **requires** `planIdentifier` + `chargePeriod` (we use `'ONE_TIME'`) plus
      `customAmount` (major units, dollars) + `currencyCode` + `taxBehavior`. A product + one-time
      plan must exist in the Kelviq dashboard → env `KELVIQ_COMMITMENT_PLAN_IDENTIFIER`.
    - Correlation channel is **`metadata`** (`{ challengeId, userId }`), which round-trips on
-     `checkout.completed`. `custom_fields_data` is a *different* field for customer-entered
+     `checkout.completed`. `custom_fields_data` is a _different_ field for customer-entered
      checkout form answers — we do NOT use it.
    - Real webhook events: `checkout.completed`, `order.created`, `order.updated`, `order.refunded`,
      `refund.created`, `refund.updated`. There is **no** `order.completed` (the brief was wrong).
@@ -62,7 +62,7 @@ sidecar (it can't run on Vercel serverless). We ported its gesture/pose *pattern
 5. **One active/pending challenge per user** — enforced. Needed because Kelviq orders don't carry our
    `challengeId`, so we link order → challenge by Kelviq `customer_id` + the one-challenge rule.
 6. **Client-side computer vision** — MediaPipe runs in the browser (CV can't run on Vercel
-   serverless). The client only *proposes* a completion; the server validates ownership, the open
+   serverless). The client only _proposes_ a completion; the server validates ownership, the open
    window (server time), and a plausible session duration. This is an accepted, documented
    trade-off, not full server-side CV.
 
@@ -127,6 +127,7 @@ vision test-on-save hook; route tree regenerated.
 **Verified:** `npx tsc --noEmit` clean; `npm test` → 33 passed (7 files: challenge math/windows/state/settlement, vision geometry/rep-counter/liveness).
 
 **Not done / pending:**
+
 - `npm run lint` and `npm run check` (Prettier) were **not** run — run them; fix with `npm run format` if needed.
 - DB **not migrated** — user must run `npm run db:migrate` against Neon.
 - **Runtime never verified** — dev server was never started (AGENTS.md rule). End-to-end flows

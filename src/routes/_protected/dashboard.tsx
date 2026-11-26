@@ -43,7 +43,11 @@ function DashboardPage() {
   }, [checkout])
 
   if (error) {
-    return <p role="alert" className="field-error">{error}</p>
+    return (
+      <p role="alert" className="field-error">
+        {error}
+      </p>
+    )
   }
   if (!data) {
     return <p className="text-muted">Opening the ledger…</p>

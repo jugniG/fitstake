@@ -48,12 +48,7 @@ function LoginPage() {
       <h1 className="mt-6 font-display text-3xl font-medium text-bone">Sign in</h1>
 
       <div className="mt-8 w-full max-w-sm space-y-4">
-        <Button
-          variant="secondary"
-          size="lg"
-          className="w-full"
-          onClick={() => void onGoogle()}
-        >
+        <Button variant="secondary" size="lg" className="w-full" onClick={() => void onGoogle()}>
           Continue with Google
         </Button>
 
@@ -83,7 +78,10 @@ function LoginPage() {
         </form>
 
         {sent ? (
-          <p role="status" className="border border-line bg-panel/50 px-3 py-2 text-xs text-bone-dim">
+          <p
+            role="status"
+            className="border border-line bg-panel/50 px-3 py-2 text-xs text-bone-dim"
+          >
             Check your email for the sign-in link.
           </p>
         ) : null}

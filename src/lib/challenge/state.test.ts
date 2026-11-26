@@ -11,7 +11,9 @@ const window = computeDayWindows({
 
 describe('rep/set day completion rules', () => {
   it('allows completing an open day within its window', () => {
-    expect(canCompleteDay('pending', window, new Date('2026-11-19T10:00:00Z'))).toEqual({ ok: true })
+    expect(canCompleteDay('pending', window, new Date('2026-11-19T10:00:00Z'))).toEqual({
+      ok: true,
+    })
   })
 
   it('refuses to complete the same day twice', () => {
@@ -47,14 +49,14 @@ describe('challenge resolution', () => {
   })
 
   it('is not resolved while a day is still pending', () => {
-    expect(
-      isChallengeFullyResolved([window], ['pending'], new Date('2026-11-19T10:00:00Z')),
-    ).toBe(false)
+    expect(isChallengeFullyResolved([window], ['pending'], new Date('2026-11-19T10:00:00Z'))).toBe(
+      false,
+    )
   })
 
   it('becomes resolved once a pending day lapses past its deadline (forfeiture rule)', () => {
-    expect(
-      isChallengeFullyResolved([window], ['pending'], new Date('2026-11-20T06:00:00Z')),
-    ).toBe(true)
+    expect(isChallengeFullyResolved([window], ['pending'], new Date('2026-11-20T06:00:00Z'))).toBe(
+      true,
+    )
   })
 })

@@ -48,7 +48,8 @@ export function SetupForm() {
   const exerciseType = watch('exerciseType')
   const dailyStake = watch('dailyStakeAmount')
   const totalDays = watch('totalDays')
-  const total = (Number.isFinite(dailyStake) ? dailyStake : 0) * (Number.isFinite(totalDays) ? totalDays : 0)
+  const total =
+    (Number.isFinite(dailyStake) ? dailyStake : 0) * (Number.isFinite(totalDays) ? totalDays : 0)
 
   async function onSubmit(values: SetupValues) {
     setSubmitError(null)
@@ -109,21 +110,40 @@ export function SetupForm() {
       <section className="space-y-4">
         <h2 className="font-display text-xl text-bone">Volume</h2>
         <div className="grid grid-cols-2 gap-4">
-          <NumberField label="Target sets" error={errors.targetSets?.message} {...register('targetSets', { valueAsNumber: true })} />
-          <NumberField label="Target reps per set" error={errors.targetReps?.message} {...register('targetReps', { valueAsNumber: true })} />
+          <NumberField
+            label="Target sets"
+            error={errors.targetSets?.message}
+            {...register('targetSets', { valueAsNumber: true })}
+          />
+          <NumberField
+            label="Target reps per set"
+            error={errors.targetReps?.message}
+            {...register('targetReps', { valueAsNumber: true })}
+          />
         </div>
       </section>
 
       <section className="space-y-4">
         <h2 className="font-display text-xl text-bone">Stake</h2>
         <div className="grid grid-cols-2 gap-4">
-          <NumberField label="Daily stake (USD)" prefix="$" error={errors.dailyStakeAmount?.message} {...register('dailyStakeAmount', { valueAsNumber: true })} />
-          <NumberField label="Total days" error={errors.totalDays?.message} {...register('totalDays', { valueAsNumber: true })} />
+          <NumberField
+            label="Daily stake (USD)"
+            prefix="$"
+            error={errors.dailyStakeAmount?.message}
+            {...register('dailyStakeAmount', { valueAsNumber: true })}
+          />
+          <NumberField
+            label="Total days"
+            error={errors.totalDays?.message}
+            {...register('totalDays', { valueAsNumber: true })}
+          />
         </div>
         <div className="border border-line bg-panel/50 px-4 py-3">
           <div className="flex items-baseline justify-between">
             <span className="eyebrow">Total commitment</span>
-            <span className="font-display text-2xl font-medium tabular-nums text-gold">{formatUSD(total)}</span>
+            <span className="font-display text-2xl font-medium tabular-nums text-gold">
+              {formatUSD(total)}
+            </span>
           </div>
           <p className="mt-1 text-xs text-muted">
             {formatUSD(dailyStake)} × {totalDays || 0} days, charged once upfront. Applicable tax is
@@ -151,7 +171,11 @@ export function SetupForm() {
         ) : null}
       </section>
 
-      {submitError ? <p role="alert" className="field-error">{submitError}</p> : null}
+      {submitError ? (
+        <p role="alert" className="field-error">
+          {submitError}
+        </p>
+      ) : null}
 
       <Button type="submit" variant="primary" size="lg" className="w-full" disabled={isSubmitting}>
         Pay {formatUSD(total)} and start

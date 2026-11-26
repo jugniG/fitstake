@@ -142,7 +142,11 @@ export const dayStatusEnum = appSchema.enum('DayStatus', [
   'forfeited',
 ])
 
-export const settlementStatusEnum = appSchema.enum('SettlementStatus', ['pending', 'settled', 'none'])
+export const settlementStatusEnum = appSchema.enum('SettlementStatus', [
+  'pending',
+  'settled',
+  'none',
+])
 
 export const challenge = appSchema.table(
   'challenge',

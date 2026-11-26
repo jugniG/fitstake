@@ -1,6 +1,11 @@
 import { and, desc, eq, inArray, isNull, or } from 'drizzle-orm'
 import { db, challenge, day, user, kelviqEvent } from '#/db'
-import { computeDayWindows, derivePendingStatus, isValidTimeZone, resolveStartDayOffset } from '#/lib/challenge'
+import {
+  computeDayWindows,
+  derivePendingStatus,
+  isValidTimeZone,
+  resolveStartDayOffset,
+} from '#/lib/challenge'
 import { isUniqueViolation } from './db-errors'
 
 export type KelviqObject = Record<string, unknown> & {
@@ -66,7 +71,8 @@ export async function handleKelviqEvent(
 
 async function activateChallenge(event: KelviqEvent, tx: DbTransaction): Promise<void> {
   const obj = event.data.object
-  const challengeId = typeof obj.metadata?.challengeId === 'string' ? obj.metadata.challengeId : null
+  const challengeId =
+    typeof obj.metadata?.challengeId === 'string' ? obj.metadata.challengeId : null
   const eventUserId = typeof obj.metadata?.userId === 'string' ? obj.metadata.userId : null
   if (!challengeId) {
     console.error('[kelviq] checkout.completed has no challengeId in metadata')
@@ -86,13 +92,17 @@ async function activateChallenge(event: KelviqEvent, tx: DbTransaction): Promise
   }
   if (challengeRow.status !== 'pending_charge') return // idempotent: already activated
   if (eventUserId && eventUserId !== challengeRow.userId) {
-    throw new Error(`checkout.completed metadata user ${eventUserId} does not own challenge ${challengeId}`)
+    throw new Error(
+      `checkout.completed metadata user ${eventUserId} does not own challenge ${challengeId}`,
+    )
   }
   if (!challengeRow.timezone || challengeRow.startDayOffset == null) {
     throw new Error(`challenge ${challengeId} is missing activation config`)
   }
   if (challengeRow.startDayOffset !== 0 && challengeRow.startDayOffset !== 1) {
-    throw new Error(`challenge ${challengeId} has an invalid startDayOffset: ${challengeRow.startDayOffset}`)
+    throw new Error(
+      `challenge ${challengeId} has an invalid startDayOffset: ${challengeRow.startDayOffset}`,
+    )
   }
   if (!isValidTimeZone(challengeRow.timezone)) {
     throw new Error(`challenge ${challengeId} has an invalid timezone: ${challengeRow.timezone}`)
@@ -118,7 +128,9 @@ async function activateChallenge(event: KelviqEvent, tx: DbTransaction): Promise
     totalDays: challengeRow.totalDays,
   })
   if (windows.length !== challengeRow.totalDays) {
-    throw new Error(`challenge ${challengeId} produced ${windows.length} windows, expected ${challengeRow.totalDays}`)
+    throw new Error(
+      `challenge ${challengeId} produced ${windows.length} windows, expected ${challengeRow.totalDays}`,
+    )
   }
 
   const customerId = typeof obj.customer_id === 'string' ? obj.customer_id : null
@@ -161,7 +173,10 @@ async function activateChallenge(event: KelviqEvent, tx: DbTransaction): Promise
   if (!eventOrderId && !challengeRow.kelviqOrderId) {
     const orderId = customerId ? await findStoredOrderId(tx, customerId) : null
     if (orderId) {
-      await tx.update(challenge).set({ kelviqOrderId: orderId }).where(eq(challenge.id, challengeId))
+      await tx
+        .update(challenge)
+        .set({ kelviqOrderId: orderId })
+        .where(eq(challenge.id, challengeId))
     } else {
       console.warn('[kelviq] no order id yet for challenge', challengeId)
     }

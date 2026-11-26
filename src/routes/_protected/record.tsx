@@ -31,7 +31,12 @@ function RecordPage() {
     }
   }, [])
 
-  if (error) return <p role="alert" className="field-error">{error}</p>
+  if (error)
+    return (
+      <p role="alert" className="field-error">
+        {error}
+      </p>
+    )
   if (!data) return <p className="text-muted">Opening the mirror…</p>
 
   const challenge = data.challenge
@@ -39,7 +44,9 @@ function RecordPage() {
     return (
       <div className="space-y-4">
         <h1 className="font-display text-2xl text-bone">No open day.</h1>
-        <p className="text-sm text-muted">You need an active challenge with an open day to record.</p>
+        <p className="text-sm text-muted">
+          You need an active challenge with an open day to record.
+        </p>
       </div>
     )
   }
@@ -49,7 +56,9 @@ function RecordPage() {
     return (
       <div className="space-y-4">
         <h1 className="font-display text-2xl text-bone">Today's window is closed.</h1>
-        <p className="text-sm text-muted">There's no open day right now. Come back when the next day opens.</p>
+        <p className="text-sm text-muted">
+          There's no open day right now. Come back when the next day opens.
+        </p>
       </div>
     )
   }

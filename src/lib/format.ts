@@ -14,7 +14,9 @@ export function formatClock(seconds: number): string {
 
 export function formatDate(iso: string): string {
   try {
-    return new Intl.DateTimeFormat('en-US', { month: 'short', day: '2-digit' }).format(new Date(iso))
+    return new Intl.DateTimeFormat('en-US', { month: 'short', day: '2-digit' }).format(
+      new Date(iso),
+    )
   } catch {
     return '—'
   }

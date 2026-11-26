@@ -17,7 +17,8 @@ export function cameraSupportFailure(): CameraFailure | null {
   if (!mediaDevices?.getUserMedia) {
     return {
       phase: 'unsupported',
-      message: 'This browser does not expose camera access. Try a current version of Chrome, Edge or Safari.',
+      message:
+        'This browser does not expose camera access. Try a current version of Chrome, Edge or Safari.',
     }
   }
   return null
@@ -44,12 +45,14 @@ export function describeCameraFailure(error: unknown): CameraFailure {
     case 'TrackStartError':
       return {
         phase: 'error',
-        message: 'The camera is already in use or could not be read. Close other camera apps and try again.',
+        message:
+          'The camera is already in use or could not be read. Close other camera apps and try again.',
       }
     case 'OverconstrainedError':
       return {
         phase: 'error',
-        message: 'The camera could not match the requested video settings. Try again or use another browser.',
+        message:
+          'The camera could not match the requested video settings. Try again or use another browser.',
       }
     case 'SecurityError':
       return {

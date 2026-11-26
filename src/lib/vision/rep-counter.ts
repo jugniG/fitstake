@@ -25,7 +25,13 @@ export function createRepCounter(opts: RepCounterOptions): RepCounter {
 
     const result = opts.evaluate(landmarks)
     if (!result.visible || result.confidence < minConfidence) {
-      return { phase, reps, repCounted: false, warning: !result.visible ? 'no-body' : 'low-confidence', confidence: result.confidence }
+      return {
+        phase,
+        reps,
+        repCounted: false,
+        warning: !result.visible ? 'no-body' : 'low-confidence',
+        confidence: result.confidence,
+      }
     }
 
     if (result.phase === phase) {
@@ -50,7 +56,13 @@ export function createRepCounter(opts: RepCounterOptions): RepCounter {
       return { phase, reps, repCounted: true, warning: null, confidence: result.confidence }
     }
     sawFlexed = false
-    return { phase, reps, repCounted: false, warning: 'rep-too-fast', confidence: result.confidence }
+    return {
+      phase,
+      reps,
+      repCounted: false,
+      warning: 'rep-too-fast',
+      confidence: result.confidence,
+    }
   }
 
   return {

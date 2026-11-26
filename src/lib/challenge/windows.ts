@@ -76,11 +76,19 @@ export function computeDayWindows(input: ComputeWindowsInput): DayWindow[] {
     const localDate = addDays(day1Local, dayNumber - 1)
     const localDateStr = format(localDate, 'yyyy-MM-dd')
     const startOfThisDayUtc = fromZonedTime(`${localDateStr}T00:00:00`, timezone)
-    const startOfNextDayUtc = fromZonedTime(`${format(addDays(localDate, 1), 'yyyy-MM-dd')}T00:00:00`, timezone)
+    const startOfNextDayUtc = fromZonedTime(
+      `${format(addDays(localDate, 1), 'yyyy-MM-dd')}T00:00:00`,
+      timezone,
+    )
     // Day 1 starting "today" runs from the activation instant; every other window starts at local midnight.
     const windowStartUtc =
       dayNumber === 1 && startDayOffset === 0 ? activatedAtUtc : startOfThisDayUtc
-    windows.push({ dayNumber, localDate: localDateStr, windowStartUtc, windowEndUtc: startOfNextDayUtc })
+    windows.push({
+      dayNumber,
+      localDate: localDateStr,
+      windowStartUtc,
+      windowEndUtc: startOfNextDayUtc,
+    })
   }
 
   return windows

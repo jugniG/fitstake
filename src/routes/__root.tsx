@@ -19,7 +19,8 @@ export const Route = createRootRoute({
       { title: 'Habit-Stakes — lock your word with real stakes' },
       {
         name: 'description',
-        content: 'Lock a commitment pot, win each day back with camera-verified workouts, settle once.',
+        content:
+          'Lock a commitment pot, win each day back with camera-verified workouts, settle once.',
       },
     ],
     links: [
@@ -49,7 +50,9 @@ function NotFound() {
     <div className="flex min-h-dvh flex-col items-center justify-center px-6 text-center">
       <BrandMark className="h-14 w-10 text-rust" />
       <p className="eyebrow mt-6">Missing page</p>
-      <h1 className="mt-2 font-display text-3xl font-medium text-bone">This page was never carved.</h1>
+      <h1 className="mt-2 font-display text-3xl font-medium text-bone">
+        This page was never carved.
+      </h1>
       <Link
         to="/dashboard"
         className="mt-6 border border-line-strong px-4 py-2.5 text-sm text-bone-dim transition-colors hover:border-bone/40 hover:text-bone"

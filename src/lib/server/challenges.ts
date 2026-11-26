@@ -32,11 +32,7 @@ const createChallengeSchema = z.object({
   dailyStakeAmount: z.number().int().min(1).max(100_000),
   totalDays: z.number().int().min(1).max(365),
   startDayOffset: z.union([z.literal(0), z.literal(1)]),
-  timezone: z
-    .string()
-    .min(1)
-    .max(64)
-    .refine(isValidTimeZone, 'Choose a valid IANA timezone.'),
+  timezone: z.string().min(1).max(64).refine(isValidTimeZone, 'Choose a valid IANA timezone.'),
 })
 
 export type CreateChallengeInput = z.infer<typeof createChallengeSchema>
@@ -99,7 +95,11 @@ export const createChallenge = createServerFn({ method: 'POST' })
       }
       try {
         const checkout = await beginCheckout(existing, sessionUser)
-        return { checkoutUrl: checkout.checkoutUrl, challengeId: existing.id, resumed: true as const }
+        return {
+          checkoutUrl: checkout.checkoutUrl,
+          challengeId: existing.id,
+          resumed: true as const,
+        }
       } catch (error) {
         console.error('[challenge] could not resume checkout:', error)
         throw new Error(
@@ -149,10 +149,7 @@ export const startChallengeCheckout = createServerFn({ method: 'POST' }).handler
   const session = await ensureSession()
   const sessionUser = session.user as SessionUser
   const existing = await db.query.challenge.findFirst({
-    where: and(
-      eq(challenge.userId, sessionUser.id),
-      eq(challenge.status, 'pending_charge'),
-    ),
+    where: and(eq(challenge.userId, sessionUser.id), eq(challenge.status, 'pending_charge')),
     orderBy: desc(challenge.createdAt),
   })
   if (!existing) throw new Error('There is no pending payment to resume.')
@@ -268,7 +265,11 @@ export const getDashboard = createServerFn({ method: 'GET' }).handler(async () =
     startDayOffset: challengeRow.startDayOffset,
   }
 
-  if (challengeRow.status === 'pending_charge' || !challengeRow.activatedAt || !challengeRow.timezone) {
+  if (
+    challengeRow.status === 'pending_charge' ||
+    !challengeRow.activatedAt ||
+    !challengeRow.timezone
+  ) {
     const pendingTotals = computeTotals(
       {
         dailyStakeAmount: challengeRow.dailyStakeAmount,
@@ -288,7 +289,9 @@ export const getDashboard = createServerFn({ method: 'GET' }).handler(async () =
 
   // Lazily persist lapsed days: pending/locked past their deadline become forfeited; the open day becomes pending.
   const forfeitNumbers = derived
-    .filter((d) => (d.row.status === 'locked' || d.row.status === 'pending') && d.status === 'forfeited')
+    .filter(
+      (d) => (d.row.status === 'locked' || d.row.status === 'pending') && d.status === 'forfeited',
+    )
     .map((d) => d.row.dayNumber)
   const openNumbers = derived
     .filter((d) => d.row.status === 'locked' && d.status === 'pending')
@@ -339,22 +342,21 @@ export const startWorkout = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const session = await ensureSession()
     const challengeRow = await db.query.challenge.findFirst({
-      where: and(
-        eq(challenge.userId, session.user.id),
-        eq(challenge.status, 'active'),
-      ),
+      where: and(eq(challenge.userId, session.user.id), eq(challenge.status, 'active')),
       with: { days: true },
     })
     if (!challengeRow) throw new Error('No active challenge to record against.')
     if (!challengeRow.timezone) throw new Error('This challenge has no pinned timezone.')
-    if (!env.BETTER_AUTH_SECRET) throw new Error('BETTER_AUTH_SECRET is not set; workouts cannot be verified.')
+    if (!env.BETTER_AUTH_SECRET)
+      throw new Error('BETTER_AUTH_SECRET is not set; workouts cannot be verified.')
 
     const dayRow = challengeRow.days.find((d) => d.dayNumber === data.dayNumber)
     if (!dayRow) throw new Error('Day not found for this challenge.')
     const now = new Date()
     const window = toDayWindow(dayRow)
     const check = canCompleteDay(currentDayStatus(dayRow.status, window, now), window, now)
-    if (!check.ok) throw new Error(`Day ${data.dayNumber} is not open for recording (${check.reason}).`)
+    if (!check.ok)
+      throw new Error(`Day ${data.dayNumber} is not open for recording (${check.reason}).`)
 
     const startedAtMs = Date.now()
     const token = createWorkoutSessionToken(
@@ -391,10 +393,12 @@ export const completeDay = createServerFn({ method: 'POST' })
     if (challengeRow.status === 'settling') {
       throw new Error('This challenge is already settling; no new completions are accepted.')
     }
-    if (!env.BETTER_AUTH_SECRET) throw new Error('BETTER_AUTH_SECRET is not set; workouts cannot be verified.')
+    if (!env.BETTER_AUTH_SECRET)
+      throw new Error('BETTER_AUTH_SECRET is not set; workouts cannot be verified.')
 
     const tokenPayload = verifyWorkoutSessionToken(data.sessionToken, env.BETTER_AUTH_SECRET)
-    if (!tokenPayload) throw new Error('The workout session is invalid or has expired. Start a new session.')
+    if (!tokenPayload)
+      throw new Error('The workout session is invalid or has expired. Start a new session.')
     if (
       tokenPayload.userId !== userId ||
       tokenPayload.challengeId !== challengeRow.id ||
@@ -405,7 +409,9 @@ export const completeDay = createServerFn({ method: 'POST' })
 
     const targetReps = challengeRow.targetSets * challengeRow.targetReps
     if (data.setsCompleted !== challengeRow.targetSets) {
-      throw new Error(`Completed sets (${data.setsCompleted}) do not match the target (${challengeRow.targetSets}).`)
+      throw new Error(
+        `Completed sets (${data.setsCompleted}) do not match the target (${challengeRow.targetSets}).`,
+      )
     }
     if (data.totalReps < targetReps) {
       throw new Error(`Completed reps (${data.totalReps}) are below the target (${targetReps}).`)

@@ -48,7 +48,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main id="main-content" className="mx-auto w-full max-w-2xl flex-1 px-4 pt-7 pb-32 sm:px-6 sm:pt-10">
+      <main
+        id="main-content"
+        className="mx-auto w-full max-w-2xl flex-1 px-4 pt-7 pb-32 sm:px-6 sm:pt-10"
+      >
         {children}
       </main>
 
@@ -79,7 +82,10 @@ function BottomNavigation({ pathname }: { pathname: string }) {
               )}
             >
               {active ? (
-                <span aria-hidden="true" className="absolute top-0 h-px w-9 bg-rust shadow-[0_0_10px_rgba(210,105,78,0.65)]" />
+                <span
+                  aria-hidden="true"
+                  className="absolute top-0 h-px w-9 bg-rust shadow-[0_0_10px_rgba(210,105,78,0.65)]"
+                />
               ) : null}
               <Icon
                 aria-hidden="true"

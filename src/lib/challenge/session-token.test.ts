@@ -26,9 +26,14 @@ describe('workout session token', () => {
     const token = createWorkoutSessionToken(BASE_INPUT, SECRET)
     const [body, signature] = token.split('.')
     const tamperedBody = Buffer.from(
-      JSON.stringify({ ...JSON.parse(Buffer.from(body, 'base64url').toString('utf8')), dayNumber: 4 }),
+      JSON.stringify({
+        ...JSON.parse(Buffer.from(body, 'base64url').toString('utf8')),
+        dayNumber: 4,
+      }),
     ).toString('base64url')
-    expect(verifyWorkoutSessionToken(`${tamperedBody}.${signature}`, SECRET, NOW + 5_000)).toBeNull()
+    expect(
+      verifyWorkoutSessionToken(`${tamperedBody}.${signature}`, SECRET, NOW + 5_000),
+    ).toBeNull()
   })
 
   it('rejects a token signed with a different secret', () => {
@@ -37,7 +42,10 @@ describe('workout session token', () => {
   })
 
   it('rejects an expired session', () => {
-    const token = createWorkoutSessionToken({ ...BASE_INPUT, startedAtMs: NOW - 5 * 60 * 60 * 1000 }, SECRET)
+    const token = createWorkoutSessionToken(
+      { ...BASE_INPUT, startedAtMs: NOW - 5 * 60 * 60 * 1000 },
+      SECRET,
+    )
     expect(verifyWorkoutSessionToken(token, SECRET, NOW)).toBeNull()
   })
 

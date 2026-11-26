@@ -44,15 +44,24 @@ describe('rep counter state machine', () => {
       { phase: 'a', confidence: 1, visible: true },
     ]
     const nows = [0, 100, 1000]
-    const rc = createRepCounter({ evaluate: queuedEval(queue), minPhaseMs: 200, minConfidence: 0.5 })
+    const rc = createRepCounter({
+      evaluate: queuedEval(queue),
+      minPhaseMs: 200,
+      minConfidence: 0.5,
+    })
     for (let i = 0; i < queue.length; i += 1) rc.onFrame(DUMMY, nows[i])
     expect(rc.reps).toBe(0)
   })
 
   it('counts multiple reps across separate cycles', () => {
     const queue: FrameEval[] = [
-      'a', 'b', 'b', 'a', // rep 1
-      'b', 'b', 'a', // rep 2
+      'a',
+      'b',
+      'b',
+      'a', // rep 1
+      'b',
+      'b',
+      'a', // rep 2
     ].map((phase) => ({ phase: phase as 'a' | 'b', confidence: 1, visible: true }))
     const nows = [0, 200, 500, 700, 900, 1200, 1400]
     const rc = createRepCounter({ evaluate: queuedEval(queue), minPhaseMs: 200 })

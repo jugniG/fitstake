@@ -17,16 +17,15 @@ type Props = {
 }
 
 type CameraStatus =
-  | 'idle'
-  | 'loading'
-  | 'live'
-  | 'submitting'
-  | 'done'
-  | 'denied'
-  | 'unsupported'
-  | 'error'
+  'idle' | 'loading' | 'live' | 'submitting' | 'done' | 'denied' | 'unsupported' | 'error'
 
-export function RepRecorder({ dayNumber, exerciseType, customGesture, targetSets, targetReps }: Props) {
+export function RepRecorder({
+  dayNumber,
+  exerciseType,
+  customGesture,
+  targetSets,
+  targetReps,
+}: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const navigate = useNavigate()
   const [status, setStatus] = useState<CameraStatus>('idle')
@@ -173,7 +172,9 @@ export function RepRecorder({ dayNumber, exerciseType, customGesture, targetSets
       ref.current.starting = false
       stopStream()
       setStatus('error')
-      setError('The camera opened, but the live preview could not play. Try again or use another browser.')
+      setError(
+        'The camera opened, but the live preview could not play. Try again or use another browser.',
+      )
       return
     }
 
@@ -217,7 +218,9 @@ export function RepRecorder({ dayNumber, exerciseType, customGesture, targetSets
 
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') {
-        interrupt('The page was hidden during the set. The take was stopped and no completion was submitted.')
+        interrupt(
+          'The page was hidden during the set. The take was stopped and no completion was submitted.',
+        )
       }
     }
     document.addEventListener('visibilitychange', onVisibility)
@@ -397,7 +400,9 @@ export function RepRecorder({ dayNumber, exerciseType, customGesture, targetSets
       ) : null}
 
       {status === 'loading' ? (
-        <p role="status" className="text-muted">Loading the camera and pose model…</p>
+        <p role="status" className="text-muted">
+          Loading the camera and pose model…
+        </p>
       ) : null}
 
       {live ? (
@@ -407,24 +412,40 @@ export function RepRecorder({ dayNumber, exerciseType, customGesture, targetSets
       ) : null}
 
       {warning && live ? (
-        <p role="status" className="border border-rust/30 bg-rust/[0.08] px-3 py-2 text-xs text-rust/90">
+        <p
+          role="status"
+          className="border border-rust/30 bg-rust/[0.08] px-3 py-2 text-xs text-rust/90"
+        >
           {warning}
         </p>
       ) : null}
 
       {status === 'submitting' ? (
-        <p role="status" className="text-muted">Saving the verified counts…</p>
+        <p role="status" className="text-muted">
+          Saving the verified counts…
+        </p>
       ) : null}
 
       {status === 'denied' || status === 'unsupported' || status === 'error' ? (
         <div className="space-y-3">
-          <p role="alert" className="field-error">{error}</p>
+          <p role="alert" className="field-error">
+            {error}
+          </p>
           {status !== 'unsupported' ? (
-            <Button variant="secondary" className="w-full" onClick={() => void begin()} disabled={busy}>
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={() => void begin()}
+              disabled={busy}
+            >
               Try again
             </Button>
           ) : null}
-          <Button variant="ghost" className="w-full" onClick={() => void navigate({ to: '/dashboard' })}>
+          <Button
+            variant="ghost"
+            className="w-full"
+            onClick={() => void navigate({ to: '/dashboard' })}
+          >
             Back to dashboard
           </Button>
         </div>

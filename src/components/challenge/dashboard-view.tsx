@@ -41,7 +41,8 @@ export function DashboardView({
         <p className="eyebrow">{statusLabel(challenge.status)}</p>
         <h1 className="font-display text-3xl font-medium text-bone">{exerciseLabel}</h1>
         <p className="text-sm text-muted">
-          {challenge.targetSets} sets × {challenge.targetReps} reps · {challenge.totalDays} days · {formatUSD(challenge.dailyStakeAmount)}/day
+          {challenge.targetSets} sets × {challenge.targetReps} reps · {challenge.totalDays} days ·{' '}
+          {formatUSD(challenge.dailyStakeAmount)}/day
         </p>
       </header>
 
@@ -106,10 +107,7 @@ export function DashboardView({
       {days.length > 0 ? <DayList days={days} /> : null}
 
       {challenge.status === 'settled' ? (
-        <Link
-          to="/setup"
-          className={buttonStyles({ variant: 'secondary', className: 'w-full' })}
-        >
+        <Link to="/setup" className={buttonStyles({ variant: 'secondary', className: 'w-full' })}>
           Start a new challenge
         </Link>
       ) : null}
@@ -139,7 +137,11 @@ function RetryPaymentButton() {
       <Button variant="secondary" className="w-full" onClick={() => void retry()} disabled={busy}>
         {busy ? 'Creating payment link…' : 'Retry payment link'}
       </Button>
-      {error ? <p role="alert" className="field-error">{error}</p> : null}
+      {error ? (
+        <p role="alert" className="field-error">
+          {error}
+        </p>
+      ) : null}
     </div>
   )
 }

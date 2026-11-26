@@ -21,12 +21,17 @@ export function DayList({ days }: { days: DashboardView['days'] }) {
       <h2 className="font-display text-xl text-bone">Daily ledger</h2>
       <ol className="space-y-2">
         {days.map((d) => (
-          <li key={d.dayNumber} className="flex items-center justify-between border border-line bg-panel/40 px-4 py-2.5">
+          <li
+            key={d.dayNumber}
+            className="flex items-center justify-between border border-line bg-panel/40 px-4 py-2.5"
+          >
             <span className="text-sm text-bone-dim">
               Day {d.dayNumber}
               <span className="ml-2 text-xs text-muted">{formatDate(d.windowEndUtc)}</span>
             </span>
-            <span className={`text-xs font-medium uppercase tracking-[0.16em] ${STATUS_TONE[d.status] ?? 'text-muted'}`}>
+            <span
+              className={`text-xs font-medium uppercase tracking-[0.16em] ${STATUS_TONE[d.status] ?? 'text-muted'}`}
+            >
               {STATUS_LABEL[d.status] ?? d.status}
             </span>
           </li>

@@ -2,7 +2,11 @@ import { and, asc, eq, isNull } from 'drizzle-orm'
 import { db, challenge, day } from '#/db'
 import { decideSettlement } from '#/lib/challenge'
 import type { DayStatus, DayWindow } from '#/lib/challenge'
-import { createSettlementRefund, findSettlementRefund, retrieveRefundStatus } from '#/lib/kelviq/refund'
+import {
+  createSettlementRefund,
+  findSettlementRefund,
+  retrieveRefundStatus,
+} from '#/lib/kelviq/refund'
 
 export type SettlementSweepResult = {
   settled: number
@@ -173,7 +177,9 @@ export async function settlePendingChallenges(now: Date): Promise<SettlementSwee
             )
             .returning({ id: challenge.id })
           if (released.length > 0) {
-            errors.push(`recover challenge ${challengeRow.id}: released stale lock after finding no refund`)
+            errors.push(
+              `recover challenge ${challengeRow.id}: released stale lock after finding no refund`,
+            )
           }
         }
         continue
@@ -191,7 +197,9 @@ export async function settlePendingChallenges(now: Date): Promise<SettlementSwee
           .update(challenge)
           .set({ status: 'active', settlementStatus: 'pending', settlementRefundId: null })
           .where(eq(challenge.id, challengeRow.id))
-        errors.push(`recover challenge ${challengeRow.id}: refund ${status.toLowerCase()}; will retry`)
+        errors.push(
+          `recover challenge ${challengeRow.id}: refund ${status.toLowerCase()}; will retry`,
+        )
       }
     } catch (error) {
       errors.push(`recover challenge ${challengeRow.id}: ${(error as Error).message}`)

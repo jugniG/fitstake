@@ -13,6 +13,10 @@ export function evaluateSquat(lm: Landmark[] | null): FrameEval {
   if (!side) return { phase: 'a', confidence: 0, visible: false }
   const [hip, knee, ankle] = side
   const angle = angleAt(lm[hip], lm[knee], lm[ankle])
-  const confidence = Math.min(lm[hip].visibility ?? 1, lm[knee].visibility ?? 1, lm[ankle].visibility ?? 1)
+  const confidence = Math.min(
+    lm[hip].visibility ?? 1,
+    lm[knee].visibility ?? 1,
+    lm[ankle].visibility ?? 1,
+  )
   return { phase: angle < 140 ? 'b' : 'a', confidence, visible: confidence > 0.5 }
 }

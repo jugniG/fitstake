@@ -13,6 +13,7 @@ counting runs in the browser via `@mediapipe/tasks-vision` (`PoseLandmarker` for
 Google CDN at runtime.
 
 To add a new exercise:
+
 1. Implement an `evaluate(lm: Landmark[] | null): FrameEval` in `exercises/<name>.ts` that returns
    `phase: 'a' | 'b'` (baseline → flexed), `confidence`, and `visible`. Reuse `angleAt` / `distance`
    from `geometry.ts`.

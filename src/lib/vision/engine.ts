@@ -43,10 +43,7 @@ export async function getHandLandmarker(): Promise<HandLandmarker> {
   return handLandmarker
 }
 
-function createPoseLandmarker(
-  fs: VisionFileset,
-  delegate: 'GPU' | 'CPU',
-): Promise<PoseLandmarker> {
+function createPoseLandmarker(fs: VisionFileset, delegate: 'GPU' | 'CPU'): Promise<PoseLandmarker> {
   return PoseLandmarker.createFromOptions(fs, {
     baseOptions: { modelAssetPath: POSE_MODEL, delegate },
     runningMode: 'VIDEO',
@@ -54,10 +51,7 @@ function createPoseLandmarker(
   })
 }
 
-function createHandLandmarker(
-  fs: VisionFileset,
-  delegate: 'GPU' | 'CPU',
-): Promise<HandLandmarker> {
+function createHandLandmarker(fs: VisionFileset, delegate: 'GPU' | 'CPU'): Promise<HandLandmarker> {
   return HandLandmarker.createFromOptions(fs, {
     baseOptions: { modelAssetPath: HAND_MODEL, delegate },
     runningMode: 'VIDEO',
@@ -71,13 +65,19 @@ export async function getLandmarkerFor(
   return exercise === 'custom_gesture' ? await getHandLandmarker() : await getPoseLandmarker()
 }
 
-export async function detectPose(video: HTMLVideoElement, nowMs: number): Promise<Landmark[] | null> {
+export async function detectPose(
+  video: HTMLVideoElement,
+  nowMs: number,
+): Promise<Landmark[] | null> {
   const landmarker = await getPoseLandmarker()
   const result = landmarker.detectForVideo(video, nowMs)
   return result.landmarks[0] ?? null
 }
 
-export async function detectHand(video: HTMLVideoElement, nowMs: number): Promise<Landmark[] | null> {
+export async function detectHand(
+  video: HTMLVideoElement,
+  nowMs: number,
+): Promise<Landmark[] | null> {
   const landmarker = await getHandLandmarker()
   const result = landmarker.detectForVideo(video, nowMs)
   return result.landmarks[0] ?? null
