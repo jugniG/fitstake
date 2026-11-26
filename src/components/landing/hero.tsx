@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { ArrowRight, Check, CheckCircle2, Shield, X } from 'lucide-react'
+import { BrandMark } from '#/components/brand-mark'
 
 export function Hero() {
   return (
@@ -82,12 +83,12 @@ export function Hero() {
 
           {/* Right Column Interactive Preview Card */}
           <div className="relative mx-auto w-full max-w-md lg:max-w-none">
-            <div className="relative rounded-3xl border border-[#0d1b2a14] bg-white p-6 shadow-xl transition-all">
+            <div className="animate-float animate-card-glow relative rounded-3xl border border-[#0d1b2a14] bg-white p-6 shadow-xl transition-all duration-300">
               {/* Card Header */}
               <div className="flex items-center justify-between border-b border-[#0d1b2a10] pb-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="grid size-9 place-items-center rounded-xl bg-[#eef3fb] text-[#2b66f2] font-bold text-xs">
-                    HS
+                  <div className="grid size-9 place-items-center rounded-xl bg-[#eef3fb] text-[#2b66f2] font-bold text-xs shadow-xs">
+                    <BrandMark className="size-5 text-[#2b66f2]" />
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-[#0d1b2a]">Deep Squats Challenge</h3>

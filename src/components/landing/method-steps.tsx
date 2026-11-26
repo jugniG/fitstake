@@ -44,10 +44,10 @@ export function MethodSteps() {
       <div className="mx-auto max-w-6xl px-5">
         <div className="mx-auto max-w-3xl text-center">
           <p className="inline-block rounded-full bg-[#eef3fb] px-3.5 py-1 text-xs font-bold tracking-wider text-[#5a6678] uppercase">
-            The 5-Step Habit-Stakes Method
+            The 5-Step StakeFit Method
           </p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0d1b2a] sm:text-5xl">
-            How the Habit-Stakes method works.
+            How the StakeFit method works.
           </h2>
           <p className="mt-3 text-sm text-[#5a6678] sm:text-base">
             From discovering your baseline to staking real skin in the game, optical form checks,
@@ -60,7 +60,7 @@ export function MethodSteps() {
           {STEPS.map((s, idx) => (
             <div
               key={idx}
-              className="flex flex-col justify-between rounded-3xl border border-[#0d1b2a14] bg-white p-5 shadow-xs transition-all hover:border-[#2b66f2]/40 hover:shadow-md"
+              className="card-hover-lift flex flex-col justify-between rounded-3xl border border-[#0d1b2a14] bg-white p-5 shadow-xs"
             >
               <div>
                 <span className="grid size-9 place-items-center rounded-2xl bg-[#2b66f2] font-mono text-xs font-bold text-white shadow-xs">
@@ -96,10 +96,10 @@ export function MethodSteps() {
                       key={val}
                       type="button"
                       onClick={() => setDailyStake(val)}
-                      className={`rounded-xl border px-3.5 py-1.5 font-mono text-xs font-bold transition-all ${
+                      className={`rounded-xl border px-3.5 py-1.5 font-mono text-xs font-bold transition-all duration-150 active:scale-95 ${
                         dailyStake === val
-                          ? 'border-[#2b66f2] bg-[#2b66f2] text-white shadow-xs'
-                          : 'border-[#0d1b2a14] bg-[#faf8f5] text-[#0d1b2a] hover:border-[#2b66f2]'
+                          ? 'border-[#2b66f2] bg-[#2b66f2] text-white shadow-xs scale-105'
+                          : 'border-[#0d1b2a14] bg-[#faf8f5] text-[#0d1b2a] hover:border-[#2b66f2] hover:bg-white'
                       }`}
                     >
                       {formatUSD(val)}
@@ -118,10 +118,10 @@ export function MethodSteps() {
                       key={val}
                       type="button"
                       onClick={() => setDurationDays(val)}
-                      className={`rounded-xl border px-3.5 py-1.5 font-mono text-xs font-bold transition-all ${
+                      className={`rounded-xl border px-3.5 py-1.5 font-mono text-xs font-bold transition-all duration-150 active:scale-95 ${
                         durationDays === val
-                          ? 'border-[#2b66f2] bg-[#2b66f2] text-white shadow-xs'
-                          : 'border-[#0d1b2a14] bg-[#faf8f5] text-[#0d1b2a] hover:border-[#2b66f2]'
+                          ? 'border-[#2b66f2] bg-[#2b66f2] text-white shadow-xs scale-105'
+                          : 'border-[#0d1b2a14] bg-[#faf8f5] text-[#0d1b2a] hover:border-[#2b66f2] hover:bg-white'
                       }`}
                     >
                       {val} Days

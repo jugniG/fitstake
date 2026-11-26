@@ -161,15 +161,16 @@
     border-radius: 9999px;
     font-weight: 700;
     transition:
-      transform 0.12s,
-      box-shadow 0.12s;
+      transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+      background-color 0.2s ease;
     box-shadow: 0 4px #1f4fc0;
     cursor: pointer;
     text-decoration: none;
   }
   .btn-quippy:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 5px #1f4fc0;
+    transform: translateY(-2px);
+    box-shadow: 0 6px #1f4fc0;
     color: #fff;
   }
   .btn-quippy:active {
@@ -190,6 +191,33 @@
     font-family: Georgia, 'Times New Roman', serif;
     font-style: italic;
     font-weight: 400;
+  }
+
+  /* StakeFit smooth animation & transition utilities */
+  .card-hover-lift {
+    transition:
+      transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.25s ease;
+  }
+  .card-hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      0 12px 30px -8px rgba(13, 27, 42, 0.08),
+      0 4px 6px -4px rgba(13, 27, 42, 0.04);
+    border-color: rgba(43, 102, 242, 0.35);
+  }
+
+  .animate-float {
+    animation: float-card 6s ease-in-out infinite;
+  }
+
+  .animate-pulse-subtle {
+    animation: pulse-subtle 3s ease-in-out infinite;
+  }
+
+  .animate-card-glow {
+    animation: card-glow 5s ease-in-out infinite;
   }
 
   .btn:active:not(:disabled) {
@@ -767,6 +795,42 @@
   50% {
     opacity: 0.55;
     transform: rotate(45deg) scale(0.82);
+  }
+}
+
+@keyframes float-card {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes pulse-subtle {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.88;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes card-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 10px 25px -5px rgba(43, 102, 242, 0.08),
+      0 8px 10px -6px rgba(43, 102, 242, 0.04);
+  }
+  50% {
+    box-shadow:
+      0 20px 35px -5px rgba(43, 102, 242, 0.16),
+      0 12px 14px -6px rgba(43, 102, 242, 0.08);
   }
 }
 

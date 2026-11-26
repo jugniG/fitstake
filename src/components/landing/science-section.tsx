@@ -12,7 +12,7 @@ const PILLARS = [
     tag: '02 / THE CONVENIENCE',
     title: 'The Zero-Friction Studio',
     description:
-      'Packing gym clothes, driving in traffic, and waiting for equipment adds 45 minutes of mental friction before you even lift a weight. Habit-Stakes runs on your laptop webcam. Turn it on in your living room and finish in 15 minutes.',
+      'Packing gym clothes, driving in traffic, and waiting for equipment adds 45 minutes of mental friction before you even lift a weight. StakeFit runs on your laptop webcam. Turn it on in your living room and finish in 15 minutes.',
     icon: Laptop,
   },
   {
@@ -51,7 +51,7 @@ export function ScienceSection() {
             return (
               <div
                 key={idx}
-                className="relative flex flex-col justify-between rounded-3xl border border-[#0d1b2a14] bg-white p-7 shadow-xs transition-all hover:border-[#2b66f2]/40 hover:shadow-md"
+                className="card-hover-lift relative flex flex-col justify-between rounded-3xl border border-[#0d1b2a14] bg-white p-7 shadow-xs"
               >
                 <div>
                   <div className="flex items-center justify-between">

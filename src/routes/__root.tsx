@@ -16,7 +16,7 @@ export const Route = createRootRoute({
       { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
       { name: 'theme-color', content: '#070807' },
       { name: 'color-scheme', content: 'dark' },
-      { title: 'Habit-Stakes — lock your word with real stakes' },
+      { title: 'StakeFit — lock your word with real stakes' },
       {
         name: 'description',
         content:
@@ -48,7 +48,7 @@ function RootDocument({ children }: { children: ReactNode }) {
 function NotFound() {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-6 text-center">
-      <BrandMark className="h-14 w-10 text-rust" />
+      <BrandMark className="size-12 text-rust" />
       <p className="eyebrow mt-6">Missing page</p>
       <h1 className="mt-2 font-display text-3xl font-medium text-bone">
         This page was never carved.

@@ -34,8 +34,8 @@ export function FinalCta() {
         <div className="mt-20 flex flex-col items-center justify-between gap-4 border-t border-[#0d1b2a14] pt-8 sm:flex-row text-xs text-[#5a6678]">
           <div className="flex items-center gap-2">
             <BrandMark className="size-5 text-[#2b66f2]" />
-            <span className="font-bold text-[#0d1b2a]">Habit-Stakes</span>
-            <span>© {new Date().getFullYear()} Sahil Gupta</span>
+            <span className="font-bold text-[#0d1b2a]">StakeFit</span>
+            <span>© {new Date().getFullYear()} StakeFit. All rights reserved.</span>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-6 text-[0.75rem] font-medium">

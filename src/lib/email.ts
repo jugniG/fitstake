@@ -20,7 +20,7 @@ export async function sendMagicLinkEmail(email: string, url: string): Promise<vo
     await resend.emails.send({
       from: env.RESEND_FROM,
       to: email,
-      subject: 'Sign in to Habit-Stakes',
+      subject: 'Sign in to StakeFit',
       text: `Open this link to sign in:\n${url}`,
       html: `<p>Open this link to sign in:</p><p><a href="${url}">${url}</a></p>`,
     })

@@ -8,13 +8,13 @@ export function NavHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-[#0d1b2a14] bg-[#faf8f5]/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
-        <Link to="/" className="flex items-center gap-2.5 transition-opacity hover:opacity-90">
-          <BrandMark className="h-7 w-5 text-[#2b66f2]" />
+        <Link
+          to="/"
+          className="group flex items-center gap-2.5 transition-transform duration-200 hover:scale-[1.02]"
+        >
+          <BrandMark className="size-6 text-[#2b66f2] transition-transform duration-300 group-hover:rotate-[-6deg]" />
           <span className="font-sans text-xl font-bold tracking-tight text-[#0d1b2a]">
-            Habit-Stakes
-          </span>
-          <span className="hidden sm:inline-block rounded-full bg-[#eef3fb] px-2.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-[#2b66f2]">
-            by Sahil
+            StakeFit
           </span>
         </Link>
 

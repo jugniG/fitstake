@@ -42,7 +42,7 @@ export function LifeReclaimed() {
             Life reclaimed
           </p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0d1b2a] sm:text-4xl">
-            What Habit-Stakes helps you reclaim.
+            What StakeFit helps you reclaim.
           </h2>
           <p className="mt-2 text-sm text-[#5a6678] sm:text-base">
             Five daily areas permanently transformed when your word is backed by stakes.
@@ -55,7 +55,7 @@ export function LifeReclaimed() {
             return (
               <div
                 key={idx}
-                className="flex flex-col justify-between rounded-3xl border border-[#0d1b2a14] bg-white p-5 shadow-xs transition-all hover:border-[#2b66f2]/40 hover:shadow-md"
+                className="card-hover-lift flex flex-col justify-between rounded-3xl border border-[#0d1b2a14] bg-white p-5 shadow-xs"
               >
                 <div>
                   <div

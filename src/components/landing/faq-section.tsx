@@ -3,7 +3,7 @@ import { Plus, Minus } from 'lucide-react'
 
 const FAQS = [
   {
-    q: 'How does Habit-Stakes work?',
+    q: 'How does StakeFit work?',
     a: 'Pick your daily exercise (e.g. Deep Squats 3×15), set your daily stake (e.g. $10/day), and deposit the pot upfront. Complete your daily reps in front of your camera before your local midnight cutoff. Each finished day locks that day’s stake into your Won-Back vault. At the end of your challenge, 100% of your won-back balance is refunded to your card.',
   },
   {

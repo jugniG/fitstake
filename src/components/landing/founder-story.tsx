@@ -4,7 +4,7 @@ export function FounderStory() {
   return (
     <section className="relative border-y border-[#0d1b2a14] bg-white/70 py-16 sm:py-20">
       <div className="mx-auto max-w-4xl px-5">
-        <div className="relative rounded-3xl border border-[#0d1b2a14] bg-white p-7 sm:p-10 shadow-xs">
+        <div className="card-hover-lift relative rounded-3xl border border-[#0d1b2a14] bg-white p-7 sm:p-10 shadow-xs">
           {/* Header row */}
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#0d1b2a10] pb-6">
             <div className="flex items-center gap-3">
@@ -51,19 +51,19 @@ export function FounderStory() {
             </p>
 
             <p>
-              So I built Habit-Stakes to engineer unbreakable consistency through financial stakes. It
-              completely removed the daily mental debate of whether I “feel like” working out. It’s now
-              been <strong className="text-[#0d1b2a]">10 consecutive days</strong> of pure, unbroken
-              consistency—knocking out{' '}
+              So I built StakeFit to engineer unbreakable consistency through financial stakes. It
+              completely removed the daily mental debate of whether I “feel like” working out. It’s
+              now been <strong className="text-[#0d1b2a]">10 consecutive days</strong> of pure,
+              unbroken consistency—knocking out{' '}
               <strong className="text-[#0d1b2a]">40 push-ups + 30 squats every single day</strong>{' '}
               right in front of my webcam without a single skip.
             </p>
 
             <p>
-              I don’t even go to a gym. Everything happens in my room in 15 minutes. That’s the secret
-              to staying consistent: zero commute friction combined with a hard midnight deadline.
-              Knowing that procrastinating past midnight forfeits real cash turns daily fitness from a
-              willpower struggle into an automatic, non-negotiable daily reflex.
+              I don’t even go to a gym. Everything happens in my room in 15 minutes. That’s the
+              secret to staying consistent: zero commute friction combined with a hard midnight
+              deadline. Knowing that procrastinating past midnight forfeits real cash turns daily
+              fitness from a willpower struggle into an automatic, non-negotiable daily reflex.
             </p>
           </div>
 

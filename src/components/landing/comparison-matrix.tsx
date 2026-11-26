@@ -47,10 +47,10 @@ export function ComparisonMatrix() {
             Comparison
           </p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0d1b2a] sm:text-4xl">
-            Habit-Stakes does what others can&apos;t.
+            StakeFit does what others can&apos;t.
           </h2>
           <p className="mt-2 text-sm text-[#5a6678] sm:text-base">
-            Default fitness apps send polite warnings. Habit-Stakes introduces real psychological
+            Default fitness apps send polite warnings. StakeFit introduces real psychological
             stakes.
           </p>
         </div>
@@ -64,7 +64,7 @@ export function ComparisonMatrix() {
                     Feature
                   </th>
                   <th scope="col" className="bg-[#2b66f2]/10 p-4 text-[#2b66f2] sm:p-5 font-bold">
-                    Habit-Stakes
+                    StakeFit
                   </th>
                   <th scope="col" className="p-4 text-[#5a6678] sm:p-5">
                     Gym Membership

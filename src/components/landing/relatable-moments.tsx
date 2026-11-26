@@ -54,7 +54,7 @@ export function RelatableMoments() {
             return (
               <div
                 key={idx}
-                className="group relative flex flex-col justify-between rounded-3xl border border-[#0d1b2a14] bg-white p-6 shadow-xs transition-all hover:border-[#2b66f2]/40 hover:shadow-md"
+                className="card-hover-lift group relative flex flex-col justify-between rounded-3xl border border-[#0d1b2a14] bg-white p-6 shadow-xs"
               >
                 <div>
                   <div className="flex items-center justify-between rounded-2xl bg-[#faf8f5] p-3">

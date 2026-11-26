@@ -25,10 +25,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 border-b border-line bg-void/[0.88] backdrop-blur-md">
         <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <Link to="/dashboard" className="group flex min-w-0 items-center gap-3">
-            <BrandMark className="h-9 w-7 text-rust transition-colors group-hover:text-bone" />
+            <BrandMark className="size-8 text-rust transition-colors group-hover:text-bone" />
             <span className="min-w-0">
               <span className="block truncate font-display text-[1.15rem] font-medium leading-none tracking-[0.01em] text-bone">
-                Habit-Stakes
+                StakeFit
               </span>
               <span className="mt-1 block truncate text-[0.58rem] uppercase tracking-[0.24em] text-muted">
                 {session?.user.email ?? 'Signed out'}
