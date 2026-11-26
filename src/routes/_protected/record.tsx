@@ -71,6 +71,7 @@ function RecordPage() {
   return (
     <RepRecorder
       dayNumber={openDay.dayNumber}
+      routine={challenge.routine}
       exerciseType={challenge.exerciseType}
       customGesture={challenge.customGesture}
       targetSets={challenge.targetSets}

@@ -11,6 +11,13 @@ export type DayStatus = 'locked' | 'pending' | 'completed' | 'forfeited'
 
 export type SettlementStatus = 'pending' | 'settled' | 'none'
 
+export type RoutineExercise = {
+  exerciseType: ExerciseType
+  customGesture?: CustomGesture | null
+  targetSets: number
+  targetReps: number
+}
+
 export type ChallengeConfig = {
   exerciseType: ExerciseType
   customGesture: CustomGesture | null

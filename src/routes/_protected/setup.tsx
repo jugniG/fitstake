@@ -16,8 +16,9 @@ function SetupPage() {
           Lock in your workout commitment.
         </h1>
         <p className="text-sm leading-relaxed text-[#5a6678]">
-          Pick your movement, your daily stake ($5–$50), and duration. Deposit your pot upfront via
-          audited escrow, then win back 100% of every dollar day by day on camera.
+          Choose your duration, daily stake amount, and daily exercises (push-ups, squats, jumping
+          jacks). Deposit your pot into secure escrow, then win back 100% of your money day by day
+          on camera.
         </p>
       </header>
       <SetupForm />

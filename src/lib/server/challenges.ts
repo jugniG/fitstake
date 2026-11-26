@@ -1,14 +1,22 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { isValidTimeZone } from '#/lib/challenge'
-import type { DayStatus, ExerciseType, SettlementStatus } from '#/lib/challenge'
+import type { DayStatus, ExerciseType, RoutineExercise, SettlementStatus } from '#/lib/challenge'
 import * as server from './challenges.server'
 
-const createChallengeSchema = z.object({
+export const routineExerciseSchema = z.object({
   exerciseType: z.enum(['squat', 'push_up', 'jumping_jack', 'custom_gesture']),
-  customGesture: z.enum(['pinch', 'fist', 'open_hand']).nullable(),
-  targetReps: z.number().int().min(1).max(1000),
-  targetSets: z.number().int().min(1).max(100),
+  customGesture: z.enum(['pinch', 'fist', 'open_hand']).nullable().optional(),
+  targetSets: z.number().int().min(1).max(50),
+  targetReps: z.number().int().min(1).max(500),
+})
+
+const createChallengeSchema = z.object({
+  exercises: z.array(routineExerciseSchema).min(1).optional(),
+  exerciseType: z.enum(['squat', 'push_up', 'jumping_jack', 'custom_gesture']).optional(),
+  customGesture: z.enum(['pinch', 'fist', 'open_hand']).nullable().optional(),
+  targetReps: z.number().int().min(1).max(1000).optional(),
+  targetSets: z.number().int().min(1).max(100).optional(),
   dailyStakeAmount: z.number().int().min(1).max(100_000),
   totalDays: z.number().int().min(1).max(365),
   startDayOffset: z.union([z.literal(0), z.literal(1)]),
@@ -34,6 +42,7 @@ export type DashboardView = {
     kelviqCheckoutUrl: string | null
     kelviqOrderId: string | null
     startDayOffset: number | null
+    routine: RoutineExercise[]
   } | null
   days: Array<{
     dayNumber: number

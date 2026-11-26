@@ -16,7 +16,7 @@ import {
   verifyWorkoutSessionToken,
   WORKOUT_SESSION_MAX_MS,
 } from '#/lib/challenge/session-token'
-import type { DayWindow } from '#/lib/challenge'
+import type { DayWindow, RoutineExercise } from '#/lib/challenge'
 import { settleChallenge } from '#/lib/server/settle'
 import type { CreateChallengeInput, DashboardView } from './challenges'
 
@@ -89,22 +89,40 @@ export async function createChallengeImpl(data: CreateChallengeInput) {
   }
 
   const total = totalCommitmentAmount(data)
+  const exercises =
+    data.exercises && data.exercises.length > 0
+      ? data.exercises
+      : [
+          {
+            exerciseType: data.exerciseType ?? 'squat',
+            customGesture: data.customGesture ?? null,
+            targetSets: data.targetSets ?? 3,
+            targetReps: data.targetReps ?? 15,
+          },
+        ]
+  const primaryExercise = exercises[0]
+  const totalSets = exercises.reduce((sum, e) => sum + e.targetSets, 0)
+  const totalReps = exercises.reduce((sum, e) => sum + e.targetSets * e.targetReps, 0)
+  const averageReps = Math.ceil(totalReps / Math.max(1, totalSets))
+  const serializedRoutine = JSON.stringify(exercises)
+
   let created: ChallengeRow
   try {
     ;[created] = await db
       .insert(challenge)
       .values({
         userId: sessionUser.id,
-        exerciseType: data.exerciseType,
-        customGesture: data.customGesture,
-        targetReps: data.targetReps,
-        targetSets: data.targetSets,
+        exerciseType: primaryExercise.exerciseType,
+        customGesture: primaryExercise.customGesture ?? null,
+        targetReps: averageReps,
+        targetSets: totalSets,
         dailyStakeAmount: data.dailyStakeAmount,
         totalDays: data.totalDays,
         totalCommitmentAmount: total,
         status: 'pending_charge',
         startDayOffset: data.startDayOffset,
         timezone: data.timezone,
+        kelviqCustomerId: serializedRoutine,
       })
       .returning()
   } catch (error) {
@@ -188,6 +206,28 @@ export async function getDashboardImpl(): Promise<DashboardView> {
     return { challenge: null, days: [], totals: zeroTotals() } satisfies DashboardView
   }
 
+  let routine: RoutineExercise[] = []
+  if (challengeRow.kelviqCustomerId) {
+    try {
+      const parsed = JSON.parse(challengeRow.kelviqCustomerId)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        routine = parsed
+      }
+    } catch {
+      // not JSON
+    }
+  }
+  if (routine.length === 0) {
+    routine = [
+      {
+        exerciseType: challengeRow.exerciseType,
+        customGesture: challengeRow.customGesture ?? null,
+        targetSets: challengeRow.targetSets,
+        targetReps: challengeRow.targetReps,
+      },
+    ]
+  }
+
   const challengeView: DashboardView['challenge'] = {
     id: challengeRow.id,
     exerciseType: challengeRow.exerciseType,
@@ -204,6 +244,7 @@ export async function getDashboardImpl(): Promise<DashboardView> {
     kelviqCheckoutUrl: challengeRow.kelviqCheckoutUrl,
     kelviqOrderId: challengeRow.kelviqOrderId,
     startDayOffset: challengeRow.startDayOffset,
+    routine,
   }
 
   if (
@@ -362,22 +403,38 @@ export async function completeDayImpl(data: {
     throw new Error('This workout session does not belong to this day.')
   }
 
-  const targetReps = challengeRow.targetSets * challengeRow.targetReps
-  if (data.setsCompleted !== challengeRow.targetSets) {
+  let routine: RoutineExercise[] = []
+  if (challengeRow.kelviqCustomerId) {
+    try {
+      const parsed = JSON.parse(challengeRow.kelviqCustomerId)
+      if (Array.isArray(parsed) && parsed.length > 0) routine = parsed
+    } catch {
+      // ignore
+    }
+  }
+
+  const expectedSets =
+    routine.length > 0 ? routine.reduce((sum, e) => sum + e.targetSets, 0) : challengeRow.targetSets
+  const expectedReps =
+    routine.length > 0
+      ? routine.reduce((sum, e) => sum + e.targetSets * e.targetReps, 0)
+      : challengeRow.targetSets * challengeRow.targetReps
+
+  if (data.setsCompleted < expectedSets) {
     throw new Error(
-      `Completed sets (${data.setsCompleted}) do not match the target (${challengeRow.targetSets}).`,
+      `Completed sets (${data.setsCompleted}) do not match the target (${expectedSets}).`,
     )
   }
-  if (data.totalReps < targetReps) {
-    throw new Error(`Completed reps (${data.totalReps}) are below the target (${targetReps}).`)
+  if (data.totalReps < expectedReps) {
+    throw new Error(`Completed reps (${data.totalReps}) are below the target (${expectedReps}).`)
   }
 
   const nowMs = Date.now()
   const elapsedMs = nowMs - tokenPayload.startedAtMs
-  const minDurationSeconds = Math.ceil(targetReps * MIN_SECONDS_PER_REP)
+  const minDurationSeconds = Math.ceil(expectedReps * MIN_SECONDS_PER_REP)
   const durationSeconds = Math.floor(elapsedMs / 1000)
   if (elapsedMs < minDurationSeconds * 1000) {
-    throw new Error(`Session too short for ${targetReps} reps (minimum ${minDurationSeconds}s).`)
+    throw new Error(`Session too short for ${expectedReps} reps (minimum ${minDurationSeconds}s).`)
   }
   if (elapsedMs > WORKOUT_SESSION_MAX_MS) {
     throw new Error('The workout session expired. Start a new session.')
@@ -393,11 +450,14 @@ export async function completeDayImpl(data: {
     throw new Error(`Cannot record a workout for day ${data.dayNumber}: ${check.reason}.`)
   }
 
+  const exerciseSummary =
+    routine.length > 1 ? routine.map((r) => r.exerciseType).join('+') : challengeRow.exerciseType
+
   await db.transaction(async (tx) => {
     await tx.insert(workoutVerification).values({
       challengeId: challengeRow.id,
       dayNumber: data.dayNumber,
-      exercise: challengeRow.exerciseType,
+      exercise: exerciseSummary,
       setsCompleted: data.setsCompleted,
       totalReps: data.totalReps,
       confidence: String(data.confidence),

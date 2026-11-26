@@ -3,7 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { buildRepCounter, createLivenessGuard, getLandmarkerFor } from '#/lib/vision'
 import type { Landmark, VisionLandmarker } from '#/lib/vision'
 import { CUSTOM_GESTURE_LABELS, EXERCISE_LABELS } from '#/lib/challenge'
-import type { CustomGesture, ExerciseType } from '#/lib/challenge'
+import type { CustomGesture, ExerciseType, RoutineExercise } from '#/lib/challenge'
 import { completeDay, startWorkout } from '#/lib/server/challenges'
 import { cameraSupportFailure, describeCameraFailure } from '#/lib/camera'
 import { formatClock } from '#/lib/format'
@@ -14,10 +14,11 @@ import { Button } from '#/components/ui/button'
 
 type Props = {
   dayNumber: number
-  exerciseType: ExerciseType
-  customGesture: CustomGesture | null
-  targetSets: number
-  targetReps: number
+  routine?: RoutineExercise[]
+  exerciseType?: ExerciseType
+  customGesture?: CustomGesture | null
+  targetSets?: number
+  targetReps?: number
 }
 
 type CameraStatus =
@@ -26,6 +27,7 @@ type CameraStatus =
   | 'scanning'
   | 'live'
   | 'resting'
+  | 'transition'
   | 'submitting'
   | 'done'
   | 'denied'
@@ -34,14 +36,28 @@ type CameraStatus =
 
 export function RepRecorder({
   dayNumber,
+  routine,
   exerciseType,
   customGesture,
   targetSets,
   targetReps,
 }: Props) {
+  const routineList: RoutineExercise[] =
+    routine && routine.length > 0
+      ? routine
+      : [
+          {
+            exerciseType: exerciseType ?? 'squat',
+            customGesture: customGesture ?? null,
+            targetSets: targetSets ?? 3,
+            targetReps: targetReps ?? 15,
+          },
+        ]
+
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const navigate = useNavigate()
+  const [currentExerciseIdx, setCurrentExerciseIdx] = useState(0)
   const [status, setStatus] = useState<CameraStatus>('idle')
   const [reps, setReps] = useState(0)
   const [sets, setSets] = useState(0)
@@ -49,6 +65,7 @@ export function RepRecorder({
   const [error, setError] = useState<string | null>(null)
   const [justCountedRep, setJustCountedRep] = useState(false)
   const [restSeconds, setRestSeconds] = useState(30)
+  const [transitionSeconds, setTransitionSeconds] = useState(15)
   const [scanProgress, setScanProgress] = useState(8)
   const [vitals, setVitals] = useState<SmartSpectraReading>({
     pulseBpm: 72,
@@ -64,20 +81,36 @@ export function RepRecorder({
     isError: false,
   })
 
+  const currentExercise = routineList[currentExerciseIdx] ?? routineList[0]
+  const currentTargetSets = currentExercise.targetSets
+  const currentTargetReps = currentExercise.targetReps
+  const isPortrait =
+    currentExercise.exerciseType === 'squat' || currentExercise.exerciseType === 'jumping_jack'
+  const isCustomGesture = currentExercise.exerciseType === 'custom_gesture'
+  const exerciseTitle =
+    currentExercise.exerciseType === 'custom_gesture'
+      ? `${EXERCISE_LABELS.custom_gesture} (${CUSTOM_GESTURE_LABELS[currentExercise.customGesture ?? 'pinch']})`
+      : EXERCISE_LABELS[currentExercise.exerciseType]
+
   const mountedRef = useRef<boolean>(true)
   const ref = useRef({
-    repCounter: buildRepCounter(exerciseType, customGesture),
+    currentIdx: 0,
+    repCounter: buildRepCounter(routineList[0].exerciseType, routineList[0].customGesture),
     liveness: createLivenessGuard(),
     landmarker: null as VisionLandmarker | null,
     sensor: new SmartSpectraSensor(),
     startMs: 0,
     sets: 0,
+    totalSetsCompleted: 0,
+    totalRepsCompleted: 0,
     minConf: 1,
     running: false,
     starting: false,
     resting: false,
+    transitioning: false,
     restTimer: 0 as unknown as ReturnType<typeof setInterval>,
     scanTimer: 0 as unknown as ReturnType<typeof setInterval>,
+    transitionTimer: 0 as unknown as ReturnType<typeof setInterval>,
     pulseTimer: 0 as unknown as ReturnType<typeof setTimeout>,
     raf: 0,
     stream: null as MediaStream | null,
@@ -102,6 +135,7 @@ export function RepRecorder({
       cancelAnimationFrame(current.raf)
       clearInterval(current.restTimer)
       clearInterval(current.scanTimer)
+      clearInterval(current.transitionTimer)
       clearTimeout(current.pulseTimer)
       detachCameraListeners(current)
       const stream = current.stream
@@ -126,8 +160,10 @@ export function RepRecorder({
     const current = ref.current
     current.running = false
     current.resting = false
+    current.transitioning = false
     clearInterval(current.restTimer)
     clearInterval(current.scanTimer)
+    clearInterval(current.transitionTimer)
     clearTimeout(current.pulseTimer)
     cancelAnimationFrame(current.raf)
     detachCameraListeners(current)
@@ -201,8 +237,67 @@ export function RepRecorder({
     setStatus('live')
   }
 
-  const isPortrait = exerciseType === 'squat' || exerciseType === 'jumping_jack'
-  const isCustomGesture = exerciseType === 'custom_gesture'
+  function startExerciseTransition() {
+    ref.current.resting = false
+    ref.current.transitioning = true
+    setStatus('transition')
+    setTransitionSeconds(15)
+    clearInterval(ref.current.transitionTimer)
+
+    const canvas = canvasRef.current
+    if (canvas) {
+      const ctx = canvas.getContext('2d')
+      ctx?.clearRect(0, 0, canvas.width, canvas.height)
+    }
+
+    ref.current.transitionTimer = setInterval(() => {
+      setTransitionSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(ref.current.transitionTimer)
+          void advanceToNextExercise()
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
+  async function advanceToNextExercise() {
+    clearInterval(ref.current.transitionTimer)
+    const nextIdx = ref.current.currentIdx + 1
+    if (nextIdx >= routineList.length) {
+      void finish()
+      return
+    }
+
+    ref.current.currentIdx = nextIdx
+    setCurrentExerciseIdx(nextIdx)
+
+    const nextExercise = routineList[nextIdx]
+    ref.current.repCounter = buildRepCounter(nextExercise.exerciseType, nextExercise.customGesture)
+    ref.current.repCounter.reset()
+    ref.current.sets = 0
+    ref.current.lastReps = 0
+    setSets(0)
+    setReps(0)
+
+    const prevExercise = routineList[nextIdx - 1]
+    const needsNewLandmarker =
+      (prevExercise.exerciseType === 'custom_gesture') !==
+      (nextExercise.exerciseType === 'custom_gesture')
+
+    if (needsNewLandmarker) {
+      try {
+        ref.current.landmarker = await getLandmarkerFor(nextExercise.exerciseType)
+      } catch (e) {
+        console.error('[record] landmarker switch failed:', e)
+      }
+    }
+
+    ref.current.transitioning = false
+    ref.current.resting = false
+    setStatus('live')
+  }
 
   async function begin() {
     if (ref.current.running || ref.current.starting) return
@@ -219,13 +314,13 @@ export function RepRecorder({
     }
 
     try {
-      ref.current.landmarker = await getLandmarkerFor(exerciseType)
+      ref.current.landmarker = await getLandmarkerFor(currentExercise.exerciseType)
     } catch (cause) {
       console.error('[record] pose model failed to load:', cause)
       ref.current.starting = false
       if (!isMounted()) return
       setStatus('error')
-      setError('The pose model could not load. Check your connection, then try again.')
+      setError('The tracking model could not load. Check your connection, then try again.')
       return
     }
     if (!isMounted()) return
@@ -337,6 +432,8 @@ export function RepRecorder({
     ref.current.liveness.reset()
     ref.current.sensor.reset()
     ref.current.sets = 0
+    ref.current.totalSetsCompleted = 0
+    ref.current.totalRepsCompleted = 0
     ref.current.minConf = 1
     ref.current.lastElapsed = -1
     ref.current.lastReps = -1
@@ -345,6 +442,7 @@ export function RepRecorder({
     ref.current.running = true
     ref.current.starting = false
     ref.current.resting = false
+    ref.current.transitioning = false
     setReps(0)
     setSets(0)
     setElapsed(0)
@@ -367,19 +465,18 @@ export function RepRecorder({
       setElapsed(nextElapsed)
     }
 
-    // SmartSpectra contactless vitals analysis (rPPG & exertion tracking)
     const reading = current.sensor.processFrame(
       video,
       nowMs,
-      current.resting,
-      reps + sets * targetReps,
+      current.resting || current.transitioning,
+      current.totalRepsCompleted + reps,
     )
     if (nowMs - current.lastVitalsTime > 400) {
       current.lastVitalsTime = nowMs
       setVitals(reading)
     }
 
-    if (current.resting) return
+    if (current.resting || current.transitioning) return
 
     let landmarks: Landmark[] | null = null
     try {
@@ -390,7 +487,6 @@ export function RepRecorder({
       return
     }
 
-    // Draw skeleton on canvas overlay
     const canvas = canvasRef.current
     if (canvas && video.videoWidth > 0 && video.videoHeight > 0) {
       if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
@@ -418,10 +514,16 @@ export function RepRecorder({
       current.minConf = result.confidence
     }
 
-    // Update feedback text every 250ms to prevent jitter
     if (nowMs - current.lastFeedbackTime > 250) {
       current.lastFeedbackTime = nowMs
-      setFeedback(getExerciseFeedback(exerciseType, customGesture, landmarks, result.warning))
+      setFeedback(
+        getExerciseFeedback(
+          currentExercise.exerciseType,
+          currentExercise.customGesture ?? null,
+          landmarks,
+          result.warning,
+        ),
+      )
     }
 
     if (result.repCounted) {
@@ -429,16 +531,24 @@ export function RepRecorder({
       clearTimeout(current.pulseTimer)
       current.pulseTimer = setTimeout(() => setJustCountedRep(false), 500)
 
-      if (current.repCounter.reps >= targetReps) {
+      if (current.repCounter.reps >= currentTargetReps) {
         current.sets += 1
+        current.totalSetsCompleted += 1
+        current.totalRepsCompleted += currentTargetReps
         setSets(current.sets)
-        if (current.sets < targetSets) {
+
+        if (current.sets < currentTargetSets) {
           current.repCounter.reset()
           current.lastReps = 0
           setReps(0)
           startRestPeriod()
         } else {
-          void finish()
+          // Check if there are more exercises in routine
+          if (current.currentIdx < routineList.length - 1) {
+            startExerciseTransition()
+          } else {
+            void finish()
+          }
         }
       }
     }
@@ -448,8 +558,10 @@ export function RepRecorder({
     if (!ref.current.running) return
     ref.current.running = false
     ref.current.resting = false
+    ref.current.transitioning = false
     clearInterval(ref.current.restTimer)
     clearInterval(ref.current.scanTimer)
+    clearInterval(ref.current.transitionTimer)
     cancelAnimationFrame(ref.current.raf)
     detachCameraListeners(ref.current)
     const stream = ref.current.stream
@@ -465,14 +577,15 @@ export function RepRecorder({
     }
 
     setStatus('submitting')
-    const totalReps = ref.current.sets * targetReps
+    const totalReps = ref.current.totalRepsCompleted
+    const totalSets = ref.current.totalSetsCompleted
     const biometricsSummary = ref.current.sensor.getSummary()
 
     try {
       await completeDay({
         data: {
           dayNumber,
-          setsCompleted: ref.current.sets,
+          setsCompleted: totalSets,
           totalReps,
           confidence: Math.max(0, ref.current.minConf),
           sessionToken: token,
@@ -494,7 +607,7 @@ export function RepRecorder({
     return (
       <div className="rounded-3xl border border-emerald-500/20 bg-emerald-50 p-8 text-center space-y-3">
         <h1 className="font-display text-2xl font-extrabold text-emerald-900">
-          Workout recorded & verified!
+          All exercises recorded & verified!
         </h1>
         <p className="text-sm font-medium text-emerald-800">
           Day {dayNumber} complete. Returning to your dashboard…
@@ -504,22 +617,33 @@ export function RepRecorder({
   }
 
   const busy = status === 'loading' || status === 'submitting'
-  const isLive = status === 'live' || status === 'resting'
-  const exerciseTitle =
-    exerciseType === 'custom_gesture'
-      ? `${EXERCISE_LABELS.custom_gesture} (${CUSTOM_GESTURE_LABELS[customGesture ?? 'pinch']})`
-      : EXERCISE_LABELS[exerciseType]
+  const isLive = status === 'live' || status === 'resting' || status === 'transition'
 
   return (
     <div className="space-y-5">
-      <header className="space-y-1">
+      <header className="space-y-2">
         <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#2b66f2]">
           Camera Verification
         </span>
         <h1 className="font-display text-2xl font-extrabold text-[#0d1b2a]">Day {dayNumber}</h1>
-        <p className="text-xs font-medium text-[#5a6678]">
-          {targetSets} sets × {targetReps} reps · On-device camera form & effort tracking
-        </p>
+        {/* Sequence Progress Pills */}
+        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+          {routineList.map((item, idx) => (
+            <span
+              key={idx}
+              className={`rounded-full px-3 py-1 font-mono text-xs font-bold transition-all ${
+                idx === currentExerciseIdx
+                  ? 'bg-[#2b66f2] text-white shadow-xs'
+                  : idx < currentExerciseIdx
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : 'bg-[#faf8f5] border border-[#0d1b2a14] text-[#5a6678]'
+              }`}
+            >
+              {idx < currentExerciseIdx ? '✓ ' : ''}
+              {EXERCISE_LABELS[item.exerciseType]}: {item.targetSets}×{item.targetReps}
+            </span>
+          ))}
+        </div>
       </header>
 
       <div
@@ -544,7 +668,7 @@ export function RepRecorder({
           className="pointer-events-none absolute inset-0 h-full w-full object-cover -scale-x-100"
         />
 
-        {/* Pre-Workout Readiness Scan Overlay */}
+        {/* Pre-Workout Readiness Scan Overlay (Only once at start) */}
         {status === 'scanning' ? (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/85 p-6 text-center backdrop-blur-md">
             <div className="relative flex h-32 w-32 items-center justify-center rounded-full border-2 border-dashed border-rose-500/80 animate-pulse">
@@ -573,7 +697,7 @@ export function RepRecorder({
           </div>
         ) : null}
 
-        {/* Top HUD: Exercise Title, SmartSpectra Vitals, Set, & Time */}
+        {/* Top HUD: Current Exercise Title, Vitals, Set, & Clock */}
         {isLive || status === 'submitting' ? (
           <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -584,10 +708,12 @@ export function RepRecorder({
                   }`}
                 />
                 <span className="font-mono text-xs font-semibold uppercase tracking-wider text-white">
-                  {exerciseTitle}
+                  {routineList.length > 1
+                    ? `[${currentExerciseIdx + 1}/${routineList.length}] ${exerciseTitle}`
+                    : exerciseTitle}
                 </span>
               </div>
-              {/* SmartSpectra Heart Rate Pill */}
+              {/* Heart Rate Pill */}
               <div className="flex items-center gap-1.5 rounded-full border border-white/20 bg-black/75 px-2.5 py-1 backdrop-blur-md">
                 <span className="text-xs text-rose-400 animate-pulse">❤️</span>
                 <span className="font-mono text-xs font-semibold text-white">
@@ -601,7 +727,7 @@ export function RepRecorder({
 
             <div className="flex items-center gap-2">
               <span className="rounded-full border border-white/20 bg-black/75 px-2.5 py-1 font-mono text-xs text-white/90 backdrop-blur-md">
-                Set {Math.min(sets + 1, targetSets)}/{targetSets}
+                Set {Math.min(sets + 1, currentTargetSets)}/{currentTargetSets}
               </span>
               <span className="rounded-full border border-white/20 bg-black/75 px-2.5 py-1 font-mono text-xs text-white/70 backdrop-blur-md">
                 {formatClock(elapsed)}
@@ -622,21 +748,20 @@ export function RepRecorder({
               {reps}
             </span>
             <span className="font-mono text-sm font-medium text-white/60 sm:text-base">
-              / {targetReps} reps
+              / {currentTargetReps} reps
             </span>
           </div>
         ) : null}
 
-        {/* Rest Break Overlay between sets with SmartSpectra Heart Rate Recovery */}
+        {/* Rest Break Overlay between sets of the same exercise */}
         {status === 'resting' ? (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/85 p-6 text-center backdrop-blur-md">
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-emerald-400">
-              Set {sets} of {targetSets} Complete!
+            <p className="font-mono text-xs uppercase tracking-[0.2em] text-emerald-400 font-bold">
+              Set {sets} of {currentTargetSets} Complete!
             </p>
             <h2 className="mt-1 font-display text-3xl font-bold text-white">Take a Breather</h2>
             <div className="my-2 font-mono text-5xl font-bold text-[#2b66f2]">{restSeconds}s</div>
 
-            {/* SmartSpectra Heart Rate Recovery Gauge */}
             <div className="my-3 w-full max-w-xs rounded-xl border border-white/20 bg-white/10 p-3 text-left">
               <div className="flex items-center justify-between text-xs">
                 <span className="flex items-center gap-1.5 text-slate-300">
@@ -661,20 +786,86 @@ export function RepRecorder({
             </Button>
           </div>
         ) : null}
+
+        {/* Exercise Transition Overlay (Between multiple exercises) */}
+        {status === 'transition' ? (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/85 p-6 text-center backdrop-blur-md">
+            <span className="text-4xl">🎉</span>
+            <p className="mt-2 font-mono text-xs uppercase tracking-[0.2em] text-emerald-400 font-bold">
+              Exercise {currentExerciseIdx + 1} of {routineList.length} Complete!
+            </p>
+            <h2 className="mt-1 font-display text-2xl sm:text-3xl font-extrabold text-white">
+              {exerciseTitle} Finished
+            </h2>
+            <p className="text-xs text-slate-300">
+              All {currentTargetSets} sets × {currentTargetReps} reps verified!
+            </p>
+
+            {/* Next Exercise Card Preview */}
+            {routineList[currentExerciseIdx + 1] ? (
+              <div className="my-4 w-full max-w-sm rounded-2xl border border-white/20 bg-white/10 p-4 text-left space-y-1.5">
+                <span className="font-mono text-[0.65rem] uppercase tracking-wider text-[#2b66f2] bg-[#2b66f2]/20 px-2 py-0.5 rounded-full font-bold">
+                  Up Next: Exercise {currentExerciseIdx + 2} of {routineList.length}
+                </span>
+                <p className="font-display text-base font-bold text-white">
+                  {EXERCISE_LABELS[routineList[currentExerciseIdx + 1].exerciseType]}
+                </p>
+                <p className="text-xs text-slate-300 font-mono">
+                  Target: {routineList[currentExerciseIdx + 1].targetSets} sets ×{' '}
+                  {routineList[currentExerciseIdx + 1].targetReps} reps
+                </p>
+                <p className="text-[0.7rem] text-slate-400 pt-1">
+                  {routineList[currentExerciseIdx + 1].exerciseType === 'squat'
+                    ? 'Tip: Step back so your hips, knees, and ankles are visible.'
+                    : routineList[currentExerciseIdx + 1].exerciseType === 'push_up'
+                      ? 'Tip: Position camera side-on to check full depth.'
+                      : routineList[currentExerciseIdx + 1].exerciseType === 'jumping_jack'
+                        ? 'Tip: Ensure overhead arm reach fits in frame.'
+                        : 'Tip: Hold hand clearly in front of camera.'}
+                </p>
+              </div>
+            ) : null}
+
+            <div className="flex items-center gap-2 mb-4 font-mono text-xs font-bold text-[#2b66f2]">
+              Next exercise starts in:{' '}
+              <span className="text-base text-white">{transitionSeconds}s</span>
+            </div>
+
+            <Button
+              variant="primary"
+              size="lg"
+              className="py-3 px-6 text-sm font-bold shadow-md"
+              onClick={() => void advanceToNextExercise()}
+            >
+              Start {EXERCISE_LABELS[routineList[currentExerciseIdx + 1]?.exerciseType ?? 'squat']}{' '}
+              Now →
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       {status === 'idle' ? (
         <div className="space-y-4">
-          <div className="space-y-2 rounded-2xl border border-[#0d1b2a14] bg-white p-5 text-sm leading-relaxed text-[#5a6678] shadow-xs">
-            <p className="font-bold text-[#0d1b2a] mb-1">Camera setup instructions:</p>
-            <p>
-              {exerciseType === 'squat'
-                ? 'Position your camera so hips, knees, and ankles are clearly visible. Turn slightly 45° so parallel knee flexion can be detected.'
-                : exerciseType === 'push_up'
-                  ? 'Position camera to your side so your shoulders, back, hips, and knees are visible.'
-                  : exerciseType === 'jumping_jack'
-                    ? 'Stand back far enough that your full body and overhead reach fit in the frame.'
-                    : 'Hold your hand clearly in front of the camera.'}
+          <div className="space-y-3 rounded-2xl border border-[#0d1b2a14] bg-white p-5 text-sm leading-relaxed text-[#5a6678] shadow-xs">
+            <p className="font-bold text-[#0d1b2a] mb-1">Today's exercise sequence:</p>
+            <div className="space-y-2">
+              {routineList.map((item, idx) => (
+                <div key={idx} className="flex items-center gap-2.5">
+                  <span className="size-6 rounded-full bg-[#2b66f2]/10 text-[#2b66f2] font-mono text-xs font-bold grid place-items-center">
+                    {idx + 1}
+                  </span>
+                  <span className="text-[#0d1b2a] font-bold">
+                    {EXERCISE_LABELS[item.exerciseType]}:
+                  </span>
+                  <span className="font-mono text-xs font-semibold text-[#5a6678]">
+                    {item.targetSets} sets × {item.targetReps} reps
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-xs text-[#5a6678]">
+              Your camera will guide you through each exercise one by one with real-time rep
+              detection and rest breaks.
             </p>
             <p className="mt-2 text-xs text-[#5a6678] font-medium">
               🔒 100% On-Device Privacy: Camera tracking and effort sensing run strictly on your
@@ -684,7 +875,7 @@ export function RepRecorder({
           <Button
             variant="primary"
             size="lg"
-            className="w-full py-4 text-base shadow-md"
+            className="w-full py-4 text-base shadow-md font-bold"
             onClick={() => void begin()}
           >
             Open camera and begin Day {dayNumber}

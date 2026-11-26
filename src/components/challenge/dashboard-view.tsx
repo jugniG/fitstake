@@ -67,12 +67,29 @@ export function DashboardView({
 
         <div className="mt-4">
           <h1 className="font-display text-3xl font-extrabold tracking-tight text-[#0d1b2a]">
-            {exerciseLabel}
+            {challenge.routine.length > 1 ? 'Daily Multi-Movement Routine' : exerciseLabel}
           </h1>
-          <p className="mt-1 text-sm font-medium text-[#5a6678]">
-            {challenge.targetSets} sets × {challenge.targetReps} reps · {challenge.totalDays} days ·{' '}
-            {formatUSD(challenge.dailyStakeAmount)}/day
-          </p>
+          {challenge.routine.length > 1 ? (
+            <div className="mt-2.5 flex flex-wrap items-center gap-2">
+              {challenge.routine.map((item, idx) => (
+                <span
+                  key={idx}
+                  className="rounded-xl border border-[#0d1b2a14] bg-[#faf8f5] px-3 py-1 font-mono text-xs font-bold text-[#0d1b2a]"
+                >
+                  {idx + 1}. {EXERCISE_LABELS[item.exerciseType]}: {item.targetSets} sets ×{' '}
+                  {item.targetReps} reps
+                </span>
+              ))}
+              <span className="text-xs font-medium text-[#5a6678] ml-1">
+                · {challenge.totalDays} days · {formatUSD(challenge.dailyStakeAmount)}/day
+              </span>
+            </div>
+          ) : (
+            <p className="mt-1 text-sm font-medium text-[#5a6678]">
+              {challenge.targetSets} sets × {challenge.targetReps} reps · {challenge.totalDays} days
+              · {formatUSD(challenge.dailyStakeAmount)}/day
+            </p>
+          )}
         </div>
 
         {challenge.status === 'active' && hasOpenDay ? (
