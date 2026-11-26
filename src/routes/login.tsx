@@ -11,6 +11,7 @@ export const Route = createFileRoute('/login')({
 function LoginPage() {
   const navigate = useNavigate()
   const { data: session, isPending } = useSession()
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -33,7 +34,11 @@ function LoginPage() {
   async function onMagicLink(event: React.FormEvent) {
     event.preventDefault()
     setError(null)
-    const { error: err } = await sendMagicLinkEmail(email.trim(), '/dashboard')
+    const { error: err } = await sendMagicLinkEmail(
+      email.trim(),
+      name.trim() || undefined,
+      '/dashboard',
+    )
     if (err) {
       console.error('[login] magic-link failed:', err)
       setError(err.message ?? 'Could not send the sign-in link.')
@@ -59,6 +64,18 @@ function LoginPage() {
         </div>
 
         <form onSubmit={onMagicLink} className="space-y-3 text-left">
+          <label htmlFor="name" className="field-label">
+            Name <span className="text-xs text-faint">(optional for returning users)</span>
+          </label>
+          <input
+            id="name"
+            type="text"
+            autoComplete="name"
+            className="field-input"
+            placeholder="Alex Doe"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
           <label htmlFor="email" className="field-label">
             Email
           </label>

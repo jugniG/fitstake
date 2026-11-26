@@ -12,6 +12,7 @@ const config = defineConfig({
   // server/client environments into the .output/server + .output/public layout
   // Vercel's TanStack Start preset deploys.
   plugins: [tailwindcss(), nitro(), tanstackStart(), viteReact()],
+  server: { allowedHosts: ['*', '11a3-152-59-99-225.ngrok-free.app'] },
 })
 
 export default config

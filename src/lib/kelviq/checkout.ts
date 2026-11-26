@@ -10,6 +10,7 @@ export async function createCommitmentCheckout(args: {
   challengeId: string
   userId: string
   customerId: string
+  userName?: string
   amountDollars: number
 }): Promise<CommitmentCheckout> {
   if (!env.KELVIQ_COMMITMENT_PLAN_IDENTIFIER) {
@@ -25,6 +26,10 @@ export async function createCommitmentCheckout(args: {
     // The pot is the refundable base amount; any tax is calculated on top and shown at checkout.
     taxBehavior: 'EXCLUSIVE',
     successUrl: `${env.APP_URL}/dashboard?checkout=return`,
-    metadata: { challengeId: args.challengeId, userId: args.userId },
+    metadata: {
+      challengeId: args.challengeId,
+      userId: args.userId,
+      ...(args.userName ? { customerName: args.userName } : {}),
+    },
   })
 }

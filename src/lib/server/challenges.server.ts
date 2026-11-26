@@ -27,10 +27,16 @@ type SessionUser = { id: string; email: string; name: string }
 type ChallengeRow = typeof challenge.$inferSelect
 
 async function beginCheckout(challengeRow: ChallengeRow, sessionUser: SessionUser) {
+  const resolvedName = sessionUser.name.trim() || sessionUser.email.split('@')[0] || 'Athlete'
+
+  if (!sessionUser.name.trim()) {
+    await db.update(user).set({ name: resolvedName }).where(eq(user.id, sessionUser.id))
+  }
+
   const customer = await ensureKelviqCustomer({
     userId: sessionUser.id,
     email: sessionUser.email,
-    name: sessionUser.name,
+    name: resolvedName,
   })
   await db.update(user).set({ kelviqCustomerId: customer.id }).where(eq(user.id, sessionUser.id))
 
@@ -38,6 +44,7 @@ async function beginCheckout(challengeRow: ChallengeRow, sessionUser: SessionUse
     challengeId: challengeRow.id,
     userId: sessionUser.id,
     customerId: customer.customerId,
+    userName: resolvedName,
     amountDollars: challengeRow.totalCommitmentAmount,
   })
   await db

@@ -9,8 +9,8 @@ export function signInWithGoogle(callbackURL = '/dashboard') {
   return authClient.signIn.social({ provider: 'google', callbackURL })
 }
 
-export function sendMagicLinkEmail(email: string, callbackURL = '/dashboard') {
-  return authClient.signIn.magicLink({ email, callbackURL })
+export function sendMagicLinkEmail(email: string, name?: string, callbackURL = '/dashboard') {
+  return authClient.signIn.magicLink({ email, name, callbackURL })
 }
 
 export function signOut() {
