@@ -10,7 +10,7 @@ import { Check, Plus, Trash2, X } from 'lucide-react'
 export interface CatalogExerciseItem {
   type: ExerciseType
   name: string
-  category: 'core' | 'lower' | 'upper' | 'cardio' | 'desk'
+  category: 'core' | 'lower' | 'upper'
   tags: string[]
   primaryTag: string
   description: string
@@ -20,18 +20,6 @@ export interface CatalogExerciseItem {
 }
 
 export const EXERCISE_CATALOG: CatalogExerciseItem[] = [
-  {
-    type: 'leg_raise',
-    name: 'Lying Leg Raises',
-    category: 'core',
-    tags: ['Lower Abs', 'Hip Flexors', 'Core Stability'],
-    primaryTag: 'Lower Abs',
-    description:
-      'Torso flat on workout mat, legs elevate to 90°. Directly isolates the lower abdominal wall and pelvis stabilizers.',
-    defaultSets: 3,
-    defaultReps: 12,
-    repsUnit: 'reps',
-  },
   {
     type: 'push_up',
     name: 'Chest Push-Ups',
@@ -57,28 +45,16 @@ export const EXERCISE_CATALOG: CatalogExerciseItem[] = [
     repsUnit: 'reps',
   },
   {
-    type: 'jumping_jack',
-    name: 'Jumping Jacks',
-    category: 'cardio',
-    tags: ['Cardio & Aerobic', 'Calves & Shoulders', 'Full Body Burn'],
-    primaryTag: 'Cardio',
+    type: 'leg_raise',
+    name: 'Lying Leg Raises',
+    category: 'core',
+    tags: ['Lower Abs', 'Hip Flexors', 'Core Stability'],
+    primaryTag: 'Lower Abs',
     description:
-      'Explosive overhead arm reach with wide foot hop. Tracks continuous cardiovascular cadence and stamina.',
+      'Torso flat on workout mat, legs elevate to 90°. Directly isolates the lower abdominal wall and pelvis stabilizers.',
     defaultSets: 3,
-    defaultReps: 20,
+    defaultReps: 12,
     repsUnit: 'reps',
-  },
-  {
-    type: 'custom_gesture',
-    name: 'Desk Hand Gestures',
-    category: 'desk',
-    tags: ['Wrist & Forearms', 'Sedentary Friendly', 'Micro-Break'],
-    primaryTag: 'Desk Friendly',
-    description:
-      'Precision optical hand tracking for desk-bound workers. Detects finger pinches or fist flexions directly at your screen.',
-    defaultSets: 3,
-    defaultReps: 15,
-    repsUnit: 'gestures',
   },
 ]
 
@@ -197,12 +173,10 @@ export function ExerciseDrawer({
         {/* Category Filter Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto px-6 py-3 border-b border-[#0d1b2a08] bg-[#faf8f5]/60 shrink-0 scrollbar-none">
           {[
-            { id: 'all', label: 'All Pool' },
+            { id: 'all', label: 'All Exercises (3)' },
+            { id: 'upper', label: 'Chest & Arms' },
+            { id: 'lower', label: 'Quads & Glutes' },
             { id: 'core', label: 'Lower Abs & Core' },
-            { id: 'upper', label: 'Upper Body' },
-            { id: 'lower', label: 'Lower Body' },
-            { id: 'cardio', label: 'Cardio' },
-            { id: 'desk', label: 'Desk Micro-Break' },
           ].map((cat) => (
             <button
               key={cat.id}
