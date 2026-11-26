@@ -331,9 +331,9 @@ export function RepRecorder({
         video: isPortrait
           ? {
               facingMode: { ideal: 'user' },
-              aspectRatio: { ideal: 3 / 4 },
-              width: { ideal: 960 },
-              height: { ideal: 1280 },
+              aspectRatio: { ideal: 4 / 3 },
+              width: { ideal: 1280 },
+              height: { ideal: 960 },
             }
           : {
               facingMode: { ideal: 'user' },
@@ -646,10 +646,112 @@ export function RepRecorder({
         </div>
       </header>
 
+      {/* Helping messages, instructions, and feedback placed ABOVE the camera component */}
+      {status === 'idle' ? (
+        <div className="space-y-4">
+          <div className="space-y-3 rounded-2xl border border-[#0d1b2a14] bg-white p-5 text-sm leading-relaxed text-[#5a6678] shadow-xs">
+            <p className="font-bold text-[#0d1b2a] mb-1">Today's exercise sequence:</p>
+            <div className="space-y-2">
+              {routineList.map((item, idx) => (
+                <div key={idx} className="flex items-center gap-2.5">
+                  <span className="size-6 rounded-full bg-[#2b66f2]/10 text-[#2b66f2] font-mono text-xs font-bold grid place-items-center">
+                    {idx + 1}
+                  </span>
+                  <span className="text-[#0d1b2a] font-bold">
+                    {EXERCISE_LABELS[item.exerciseType]}:
+                  </span>
+                  <span className="font-mono text-xs font-semibold text-[#5a6678]">
+                    {item.targetSets} sets × {item.targetReps} reps
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-xs text-[#5a6678]">
+              Your camera will guide you through each exercise one by one with real-time rep
+              detection and rest breaks.
+            </p>
+            <p className="mt-2 text-xs text-[#5a6678] font-medium">
+              🔒 100% On-Device Privacy: Camera tracking and effort sensing run strictly on your
+              device. No video is ever saved or uploaded.
+            </p>
+          </div>
+          <Button
+            variant="primary"
+            size="lg"
+            className="w-full py-4 text-base shadow-md font-bold"
+            onClick={() => void begin()}
+          >
+            Open camera and begin Day {dayNumber}
+          </Button>
+        </div>
+      ) : null}
+
+      {/* Real-time form feedback pill (Displayed above camera during live sets) */}
+      {status === 'live' && feedback.message ? (
+        <div
+          role="status"
+          className={`flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-xs sm:text-sm font-semibold transition-colors shadow-xs ${
+            feedback.isError
+              ? 'border-amber-500/40 bg-amber-50 text-amber-900'
+              : 'border-emerald-500/30 bg-emerald-50 text-emerald-900'
+          }`}
+        >
+          <span className="shrink-0 text-base">{feedback.isError ? '⚠️' : '✓'}</span>
+          <span>{feedback.message}</span>
+        </div>
+      ) : null}
+
+      {status === 'loading' ? (
+        <p
+          role="status"
+          className="rounded-2xl border border-[#0d1b2a14] bg-white p-3.5 text-center text-xs font-semibold text-[#5a6678] shadow-xs"
+        >
+          Loading camera and form tracking models…
+        </p>
+      ) : null}
+
+      {status === 'submitting' ? (
+        <p
+          role="status"
+          className="rounded-2xl border border-[#2b66f2]/20 bg-[#2b66f2]/5 p-3.5 text-center text-xs font-semibold text-[#2b66f2] shadow-xs"
+        >
+          Saving verified reps and biometric recovery summary…
+        </p>
+      ) : null}
+
+      {status === 'denied' || status === 'unsupported' || status === 'error' ? (
+        <div className="space-y-3">
+          <p
+            role="alert"
+            className="rounded-2xl border border-rose-500/20 bg-rose-50 p-4 text-center text-xs font-semibold text-rose-700 shadow-xs"
+          >
+            {error}
+          </p>
+          {status !== 'unsupported' ? (
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={() => void begin()}
+              disabled={busy}
+            >
+              Try again
+            </Button>
+          ) : null}
+          <Button
+            variant="ghost"
+            className="w-full"
+            onClick={() => void navigate({ to: '/dashboard' })}
+          >
+            Back to dashboard
+          </Button>
+        </div>
+      ) : null}
+
+      {/* Camera Component */}
       <div
         className={`relative mx-auto overflow-hidden rounded-3xl border border-[#0d1b2a20] bg-[#0d1b2a] shadow-2xl ${
           isPortrait
-            ? 'aspect-[3/4] max-w-sm sm:max-w-md'
+            ? 'aspect-[3/4] max-w-md sm:max-w-lg'
             : isCustomGesture
               ? 'aspect-square max-w-md'
               : 'aspect-[16/9] max-w-2xl'
@@ -843,97 +945,6 @@ export function RepRecorder({
           </div>
         ) : null}
       </div>
-
-      {status === 'idle' ? (
-        <div className="space-y-4">
-          <div className="space-y-3 rounded-2xl border border-[#0d1b2a14] bg-white p-5 text-sm leading-relaxed text-[#5a6678] shadow-xs">
-            <p className="font-bold text-[#0d1b2a] mb-1">Today's exercise sequence:</p>
-            <div className="space-y-2">
-              {routineList.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-2.5">
-                  <span className="size-6 rounded-full bg-[#2b66f2]/10 text-[#2b66f2] font-mono text-xs font-bold grid place-items-center">
-                    {idx + 1}
-                  </span>
-                  <span className="text-[#0d1b2a] font-bold">
-                    {EXERCISE_LABELS[item.exerciseType]}:
-                  </span>
-                  <span className="font-mono text-xs font-semibold text-[#5a6678]">
-                    {item.targetSets} sets × {item.targetReps} reps
-                  </span>
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 text-xs text-[#5a6678]">
-              Your camera will guide you through each exercise one by one with real-time rep
-              detection and rest breaks.
-            </p>
-            <p className="mt-2 text-xs text-[#5a6678] font-medium">
-              🔒 100% On-Device Privacy: Camera tracking and effort sensing run strictly on your
-              device. No video is ever saved or uploaded.
-            </p>
-          </div>
-          <Button
-            variant="primary"
-            size="lg"
-            className="w-full py-4 text-base shadow-md font-bold"
-            onClick={() => void begin()}
-          >
-            Open camera and begin Day {dayNumber}
-          </Button>
-        </div>
-      ) : null}
-
-      {status === 'loading' ? (
-        <p role="status" className="text-muted">
-          Loading camera and form tracking models…
-        </p>
-      ) : null}
-
-      {/* Real-time form feedback pill */}
-      {status === 'live' && feedback.message ? (
-        <div
-          role="status"
-          className={`flex items-center gap-2 rounded border px-3.5 py-2.5 text-xs transition-colors ${
-            feedback.isError
-              ? 'border-amber-500/40 bg-amber-500/10 text-amber-200'
-              : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-          }`}
-        >
-          <span className="shrink-0">{feedback.isError ? '⚠️' : '✓'}</span>
-          <span>{feedback.message}</span>
-        </div>
-      ) : null}
-
-      {status === 'submitting' ? (
-        <p role="status" className="text-muted">
-          Saving verified reps and biometric recovery summary…
-        </p>
-      ) : null}
-
-      {status === 'denied' || status === 'unsupported' || status === 'error' ? (
-        <div className="space-y-3">
-          <p role="alert" className="field-error">
-            {error}
-          </p>
-          {status !== 'unsupported' ? (
-            <Button
-              variant="secondary"
-              className="w-full"
-              onClick={() => void begin()}
-              disabled={busy}
-            >
-              Try again
-            </Button>
-          ) : null}
-          <Button
-            variant="ghost"
-            className="w-full"
-            onClick={() => void navigate({ to: '/dashboard' })}
-          >
-            Back to dashboard
-          </Button>
-        </div>
-      ) : null}
     </div>
   )
 }

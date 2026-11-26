@@ -9,7 +9,7 @@ import { DayList } from './day-list'
 import { Button, buttonStyles } from '#/components/ui/button'
 import { Card } from '#/components/ui/card'
 import { Badge } from '#/components/ui/badge'
-import { Video, ArrowRight, ShieldCheck, Flame } from 'lucide-react'
+import { Video, ArrowRight, ShieldCheck, Flame, CheckCircle2 } from 'lucide-react'
 
 export function DashboardView({
   data,
@@ -99,11 +99,21 @@ export function DashboardView({
               className={buttonStyles({
                 variant: 'primary',
                 size: 'lg',
-                className: 'w-full py-3.5 text-base flex items-center justify-center gap-2',
+                className:
+                  'w-full py-4 text-base flex items-center justify-center gap-2 font-bold shadow-md',
               })}
             >
-              <Video className="size-5" /> Record Today's Workout
+              <Video className="size-5" /> Open Camera & Record Today's Workout
             </Link>
+          </div>
+        ) : null}
+
+        {challenge.status === 'active' && !hasOpenDay ? (
+          <div className="mt-6">
+            <div className="flex items-center justify-center gap-2.5 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 py-3.5 px-4 text-emerald-800 font-bold text-sm">
+              <CheckCircle2 className="size-5 text-emerald-600" />
+              <span>Today's Workout Complete · Next window opens at midnight</span>
+            </div>
           </div>
         ) : null}
       </Card>
