@@ -484,3 +484,25 @@ export async function completeDayImpl(data: {
 
   return { ok: true as const, dayNumber: data.dayNumber }
 }
+
+export async function updateRoutineImpl(newRoutine: RoutineExercise[]) {
+  const session = await ensureSession()
+  const sessionUser = session.user as SessionUser
+
+  const active = await db.query.challenge.findFirst({
+    where: and(eq(challenge.userId, sessionUser.id), inArray(challenge.status, [...ACTIVE_STATES])),
+    orderBy: desc(challenge.createdAt),
+  })
+
+  if (!active) {
+    throw new Error('No active challenge found to update.')
+  }
+
+  const serialized = JSON.stringify(newRoutine)
+  await db
+    .update(challenge)
+    .set({ kelviqCustomerId: serialized })
+    .where(eq(challenge.id, active.id))
+
+  return { success: true, routine: newRoutine }
+}

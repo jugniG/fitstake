@@ -2,14 +2,27 @@ import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { DashboardView } from '#/lib/server/challenges'
 import { EXERCISE_LABELS, CUSTOM_GESTURE_LABELS } from '#/lib/challenge'
+import type { CustomGesture, ExerciseType, RoutineExercise } from '#/lib/challenge'
 import { formatUSD } from '#/lib/format'
-import { startChallengeCheckout } from '#/lib/server/challenges'
+import { startChallengeCheckout, updateRoutine } from '#/lib/server/challenges'
 import { MoneySummary } from './money-summary'
-import { DayList } from './day-list'
+import { ChallengeCalendar } from './challenge-calendar'
+import { ExerciseDrawer, EXERCISE_CATALOG } from './exercise-drawer'
+import type { CatalogExerciseItem } from './exercise-drawer'
+import { ExerciseMascot } from './exercise-mascots'
 import { Button, buttonStyles } from '#/components/ui/button'
 import { Card } from '#/components/ui/card'
 import { Badge } from '#/components/ui/badge'
-import { Video, ArrowRight, ShieldCheck, Flame, CheckCircle2 } from 'lucide-react'
+import {
+  Video,
+  ArrowRight,
+  ShieldCheck,
+  Flame,
+  CheckCircle2,
+  SlidersHorizontal,
+  Check,
+} from 'lucide-react'
+import { cn } from '#/lib/utils'
 
 export function DashboardView({
   data,
@@ -19,6 +32,26 @@ export function DashboardView({
   confirmingPayment?: boolean
 }) {
   const { challenge, days, totals } = data
+
+  const [currentRoutine, setCurrentRoutine] = useState<RoutineExercise[]>(() => {
+    if (challenge?.routine && challenge.routine.length > 0) {
+      return challenge.routine
+    }
+    if (challenge) {
+      return [
+        {
+          exerciseType: challenge.exerciseType,
+          customGesture: challenge.customGesture,
+          targetSets: challenge.targetSets,
+          targetReps: challenge.targetReps,
+        },
+      ]
+    }
+    return []
+  })
+
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [routineSavedToast, setRoutineSavedToast] = useState(false)
 
   if (!challenge) {
     return (
@@ -48,8 +81,62 @@ export function DashboardView({
       : EXERCISE_LABELS[challenge.exerciseType]
   const hasOpenDay = days.some((day) => day.status === 'pending')
 
+  const persistRoutine = async (next: RoutineExercise[]) => {
+    try {
+      localStorage.setItem('stakefit:active-routine', JSON.stringify(next))
+      await updateRoutine({ data: { routine: next } })
+      setRoutineSavedToast(true)
+      window.setTimeout(() => setRoutineSavedToast(false), 2500)
+    } catch (err) {
+      console.error('[dashboard] failed to persist updated routine:', err)
+    }
+  }
+
+  const handleToggleExercise = (cat: CatalogExerciseItem) => {
+    const exists = currentRoutine.some((r) => r.exerciseType === cat.type)
+    let next: RoutineExercise[]
+    if (exists) {
+      if (currentRoutine.length <= 1) return // Keep at least 1 exercise
+      next = currentRoutine.filter((r) => r.exerciseType !== cat.type)
+    } else {
+      next = [
+        ...currentRoutine,
+        {
+          exerciseType: cat.type,
+          customGesture: cat.type === 'custom_gesture' ? 'pinch' : null,
+          targetSets: cat.defaultSets,
+          targetReps: cat.defaultReps,
+        },
+      ]
+    }
+    setCurrentRoutine(next)
+    void persistRoutine(next)
+  }
+
+  const handleUpdateExercise = (
+    type: ExerciseType,
+    sets: number,
+    reps: number,
+    gesture?: CustomGesture | null,
+  ) => {
+    const next = currentRoutine.map((r) => {
+      if (r.exerciseType === type) {
+        return {
+          ...r,
+          targetSets: sets,
+          targetReps: reps,
+          ...(gesture !== undefined ? { customGesture: gesture } : {}),
+        }
+      }
+      return r
+    })
+    setCurrentRoutine(next)
+    void persistRoutine(next)
+  }
+
   return (
     <div className="space-y-6">
+      {/* Active Challenge Header Card */}
       <Card className="p-6 sm:p-7">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#0d1b2a10] pb-4">
           <div className="flex items-center gap-2">
@@ -67,11 +154,11 @@ export function DashboardView({
 
         <div className="mt-4">
           <h1 className="font-display text-3xl font-extrabold tracking-tight text-[#0d1b2a]">
-            {challenge.routine.length > 1 ? 'Daily Multi-Movement Routine' : exerciseLabel}
+            {currentRoutine.length > 1 ? 'Daily Multi-Movement Routine' : exerciseLabel}
           </h1>
-          {challenge.routine.length > 1 ? (
+          {currentRoutine.length > 1 ? (
             <div className="mt-2.5 flex flex-wrap items-center gap-2">
-              {challenge.routine.map((item, idx) => (
+              {currentRoutine.map((item, idx) => (
                 <span
                   key={idx}
                   className="rounded-xl border border-[#0d1b2a14] bg-[#faf8f5] px-3 py-1 font-mono text-xs font-bold text-[#0d1b2a]"
@@ -144,12 +231,6 @@ export function DashboardView({
 
       <MoneySummary totals={totals} challenge={challenge} />
 
-      {challenge.status === 'active' && !hasOpenDay ? (
-        <Card className="border-[#0d1b2a14] bg-white p-5 text-center text-sm font-medium text-[#5a6678]">
-          ✓ Today's workout is complete! Next daily window opens at midnight in your timezone.
-        </Card>
-      ) : null}
-
       {challenge.status === 'settling' ? (
         <Card className="border-blue-200 bg-blue-50 p-5 text-blue-900">
           <p className="text-sm font-bold">Settling your refund…</p>
@@ -178,7 +259,103 @@ export function DashboardView({
         </div>
       ) : null}
 
-      <DayList days={days} />
+      {/* User Requested: Interactive Calendar Component with Month Turners & Status on each day */}
+      <ChallengeCalendar days={days} dailyStakeAmount={challenge.dailyStakeAmount} />
+
+      {/* User Requested: Below calendar show the set of exercises chosen with Edit option */}
+      <Card className="p-6 sm:p-7 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#0d1b2a10] pb-4">
+          <div>
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#2b66f2]">
+              Daily Movements
+            </span>
+            <h2 className="mt-0.5 font-display text-xl font-extrabold text-[#0d1b2a] sm:text-2xl">
+              Your Chosen Exercises
+            </h2>
+            <p className="text-xs text-[#5a6678]">
+              Tracked sequentially one by one on camera every workout day.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {routineSavedToast ? (
+              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full animate-fade-in">
+                <Check className="size-3.5" /> Saved
+              </span>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsDrawerOpen(true)}
+              className="flex items-center gap-1.5 font-bold cursor-pointer"
+            >
+              <SlidersHorizontal className="size-3.5" /> Edit Routine
+            </Button>
+          </div>
+        </div>
+
+        {/* Grid of chosen exercises */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {currentRoutine.map((item, idx) => {
+            const cat = EXERCISE_CATALOG.find((c) => c.type === item.exerciseType)
+            return (
+              <div
+                key={item.exerciseType}
+                className="flex items-start gap-3.5 rounded-2xl border border-[#0d1b2a14] bg-[#faf8f5]/60 p-4 transition-all hover:border-[#2b66f2]/40 hover:bg-white"
+              >
+                <div className="size-14 rounded-xl border border-[#0d1b2a10] bg-white p-1 grid place-items-center shrink-0">
+                  <ExerciseMascot type={item.exerciseType} className="size-full" />
+                </div>
+                <div className="min-w-0 space-y-1 flex-1">
+                  <div className="flex items-center justify-between gap-1">
+                    <h3 className="font-display text-base font-bold text-[#0d1b2a] truncate">
+                      {cat?.name ?? EXERCISE_LABELS[item.exerciseType]}
+                    </h3>
+                    <span className="shrink-0 rounded-full bg-[#eef3fb] px-2 py-0.5 font-mono text-[0.65rem] font-bold text-[#2b66f2]">
+                      #{idx + 1}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1">
+                    {cat?.tags.map((tag) => {
+                      const isLowerAbs = tag.toLowerCase() === 'lower abs'
+                      return (
+                        <span
+                          key={tag}
+                          className={cn(
+                            'rounded-md px-1.5 py-0.2 text-[0.6rem] font-bold uppercase tracking-wider',
+                            isLowerAbs
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs'
+                              : 'bg-[#0d1b2a08] text-[#5a6678]',
+                          )}
+                        >
+                          {tag}
+                        </span>
+                      )
+                    })}
+                  </div>
+
+                  <div className="pt-1 flex items-center justify-between text-xs font-mono font-bold text-[#0d1b2a]">
+                    <span>Target:</span>
+                    <span className="text-[#2b66f2] bg-[#2b66f2]/10 px-2 py-0.5 rounded-md">
+                      {item.targetSets} sets × {item.targetReps} reps
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </Card>
+
+      {/* Bottom Drawer for Editing Routine */}
+      <ExerciseDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        routine={currentRoutine}
+        onToggleExercise={handleToggleExercise}
+        onUpdateExercise={handleUpdateExercise}
+      />
     </div>
   )
 }

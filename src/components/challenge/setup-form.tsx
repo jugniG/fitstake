@@ -83,7 +83,6 @@ export function SetupForm() {
 
   const activeExercises = exercises.filter((e) => e.enabled)
 
-  // Label for duration summary
   const durationLabel =
     totalDays === 7
       ? '7 days'
@@ -167,25 +166,54 @@ export function SetupForm() {
 
   return (
     <>
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-7 pt-1">
+      {/* Commitment Terms Status Summary Pill */}
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#0d1b2a14] bg-white/70 px-4 py-3 sm:px-5 backdrop-blur-sm shadow-2xs">
+        <div className="flex items-center gap-2.5">
+          <span className="relative flex size-2.5">
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex size-2.5 rounded-full bg-emerald-600" />
+          </span>
+          <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#0d1b2a]">
+            Commitment Terms
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 font-mono text-xs font-semibold text-[#5a6678]">
+          <span className="font-bold text-[#0d1b2a]">{totalDays}d</span>
+          <span>/</span>
+          <span className="font-bold text-[#2b66f2]">{formatUSD(dailyStake)}/day</span>
+          <span>/</span>
+          <span className="font-bold text-[#0d1b2a]">{activeExercises.length} movements</span>
+          <span>/</span>
+          <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-bold text-emerald-800">
+            Pot: {formatUSD(total)}
+          </span>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-10 sm:space-y-12">
         {/* Step 1: Duration Horizon */}
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="font-mono text-[0.7rem] font-bold uppercase tracking-wider text-[#2b66f2]">
-                Step 01
+        <section className="space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#2b66f2]/10 font-mono text-xs font-bold text-[#2b66f2] ring-1 ring-[#2b66f2]/20">
+                1
               </span>
-              <h2 className="font-display text-lg font-bold text-[#0d1b2a] sm:text-xl">
-                How long do you want to be consistent?
-              </h2>
+              <div>
+                <h2 className="font-display text-lg font-bold text-[#0d1b2a] sm:text-xl">
+                  How long do you want to be consistent?
+                </h2>
+                <p className="mt-0.5 text-xs text-[#5a6678]">
+                  Choose your horizon. Consistency is locked day by day.
+                </p>
+              </div>
             </div>
-            <span className="rounded-full bg-[#2b66f2]/10 px-2.5 py-0.5 font-mono text-xs font-bold text-[#2b66f2]">
-              {totalDays} days
+            <span className="shrink-0 rounded-full bg-[#2b66f2]/10 px-3 py-1 font-mono text-xs font-bold text-[#2b66f2]">
+              {totalDays} Days Selected
             </span>
           </div>
 
-          {/* Compact 4-Tile Duration Grid */}
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          {/* 4-Tile Duration Grid */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 pt-1">
             {DURATION_PRESETS.map((preset) => {
               const isSelected = totalDays === preset.days
               return (
@@ -194,22 +222,29 @@ export function SetupForm() {
                   type="button"
                   onClick={() => setValue('totalDays', preset.days, { shouldValidate: true })}
                   className={cn(
-                    'relative flex flex-col items-start rounded-2xl border p-3.5 text-left transition-all cursor-pointer active:scale-98',
+                    'relative flex flex-col items-start rounded-2xl border p-4 text-left transition-all cursor-pointer active:scale-98',
                     isSelected
-                      ? 'border-[#2b66f2] bg-[#2b66f2]/8 shadow-xs ring-1 ring-[#2b66f2]'
-                      : 'border-[#0d1b2a14] bg-white/70 hover:bg-white hover:border-[#0d1b2a24]',
+                      ? 'border-[#2b66f2] bg-white shadow-sm ring-2 ring-[#2b66f2]'
+                      : 'border-[#0d1b2a14] bg-white/70 hover:bg-white hover:border-[#0d1b2a24] hover:shadow-2xs',
                   )}
                 >
-                  <span className="rounded-full bg-[#eef3fb] px-2 py-0.5 text-[0.65rem] font-bold text-[#2b66f2]">
+                  <span
+                    className={cn(
+                      'rounded-full px-2 py-0.5 text-[0.65rem] font-bold tracking-wide',
+                      isSelected
+                        ? 'bg-[#2b66f2]/10 text-[#2b66f2]'
+                        : 'bg-[#0d1b2a08] text-[#5a6678]',
+                    )}
+                  >
                     {preset.badge}
                   </span>
-                  <p className="mt-2 font-display text-base font-bold text-[#0d1b2a] leading-tight">
+                  <p className="mt-2.5 font-display text-base sm:text-lg font-bold text-[#0d1b2a] leading-tight">
                     {preset.label}
                   </p>
-                  <p className="text-[0.7rem] text-[#5a6678]">{preset.subtitle}</p>
+                  <p className="mt-0.5 text-[0.72rem] text-[#5a6678]">{preset.subtitle}</p>
                   {isSelected ? (
-                    <span className="absolute top-2.5 right-2.5 grid size-4.5 place-items-center rounded-full bg-[#2b66f2] text-white">
-                      <Check className="size-3 stroke-[3]" />
+                    <span className="absolute top-3 right-3 grid size-5 place-items-center rounded-full bg-[#2b66f2] text-white shadow-xs">
+                      <Check className="size-3.5 stroke-[3]" />
                     </span>
                   ) : null}
                 </button>
@@ -217,17 +252,19 @@ export function SetupForm() {
             })}
           </div>
 
-          {/* Subtle Inline Custom Duration */}
-          <div className="flex items-center gap-2 pt-0.5 text-xs text-[#5a6678]">
-            <span className="font-semibold">Or custom duration:</span>
-            <div className="relative flex items-center w-20">
+          {/* Custom Duration Input */}
+          <div className="flex items-center gap-2.5 pt-1.5 text-xs text-[#5a6678]">
+            <span className="font-semibold uppercase tracking-wider text-[0.7rem] text-[#0d1b2a]">
+              Or custom duration:
+            </span>
+            <div className="relative flex items-center w-24">
               <Input
                 id="customDuration"
                 type="number"
                 min={1}
                 max={365}
                 {...register('totalDays', { valueAsNumber: true })}
-                className="h-7.5 px-2 text-center text-xs font-mono font-bold bg-white/80 border-[#0d1b2a18]"
+                className="h-8 px-2 text-center text-xs font-mono font-bold bg-white border-[#0d1b2a18] rounded-xl focus:border-[#2b66f2]"
               />
             </div>
             <span>days (1–365)</span>
@@ -239,48 +276,56 @@ export function SetupForm() {
           ) : null}
         </section>
 
-        {/* Divider Separator */}
-        <div className="border-t border-[#0d1b2a12]" />
+        {/* Clean Divider Line */}
+        <div className="border-t border-[#0d1b2a14]" />
 
         {/* Step 2: Daily Stake */}
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="font-mono text-[0.7rem] font-bold uppercase tracking-wider text-[#2b66f2]">
-                Step 02
+        <section className="space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#2b66f2]/10 font-mono text-xs font-bold text-[#2b66f2] ring-1 ring-[#2b66f2]/20">
+                2
               </span>
-              <h2 className="font-display text-lg font-bold text-[#0d1b2a] sm:text-xl">
-                How much can you stake daily on yourself?
-              </h2>
-              <p className="text-xs text-[#5a6678]">
-                An amount at risk each day you don&apos;t record your workout.
-              </p>
+              <div>
+                <h2 className="font-display text-lg font-bold text-[#0d1b2a] sm:text-xl">
+                  How much can you stake daily on yourself?
+                </h2>
+                <p className="mt-0.5 text-xs text-[#5a6678]">
+                  Choose an amount that stings enough to guarantee you won&apos;t skip.
+                </p>
+              </div>
             </div>
-            <span className="font-mono text-sm font-bold text-[#2b66f2] bg-[#2b66f2]/10 px-3 py-1 rounded-full">
+            <span className="shrink-0 rounded-full bg-[#2b66f2]/10 px-3 py-1 font-mono text-xs font-bold text-[#2b66f2]">
               {formatUSD(dailyStake)} / day
             </span>
           </div>
 
-          {/* Integrated Inline Amount Picker */}
-          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+          {/* Integrated Presets & Custom Stake Picker */}
+          <div className="flex flex-wrap items-center gap-2.5 pt-1">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#5a6678] mr-1">
+              Presets:
+            </span>
             {STAKE_PRESETS.map((val) => (
               <button
                 key={val}
                 type="button"
                 onClick={() => setValue('dailyStakeAmount', val, { shouldValidate: true })}
                 className={cn(
-                  'rounded-xl border px-3.5 py-1.5 font-mono text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-95',
+                  'rounded-xl px-4 py-2 font-mono text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-95',
                   dailyStake === val
-                    ? 'border-[#2b66f2] bg-[#2b66f2] text-white shadow-xs'
-                    : 'border-[#0d1b2a14] bg-white/70 hover:bg-white text-[#0d1b2a]',
+                    ? 'border border-[#2b66f2] bg-[#2b66f2] text-white shadow-xs'
+                    : 'border border-[#0d1b2a14] bg-white/70 hover:bg-white text-[#0d1b2a] hover:border-[#0d1b2a24]',
                 )}
               >
                 ${val}
               </button>
             ))}
 
-            <div className="flex items-center gap-1.5">
-              <div className="relative flex items-center w-24">
+            <div className="flex items-center gap-1.5 ml-1">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#5a6678]">
+                Custom:
+              </span>
+              <div className="relative flex items-center w-28">
                 <span className="absolute left-2.5 text-xs font-bold text-[#5a6678] pointer-events-none">
                   $
                 </span>
@@ -289,8 +334,8 @@ export function SetupForm() {
                   type="number"
                   min={1}
                   max={10000}
-                  placeholder="Custom"
-                  className="h-8.5 pl-6 pr-2 text-xs font-mono font-bold bg-white/80 border-[#0d1b2a18]"
+                  placeholder="Amount"
+                  className="h-8.5 pl-6 pr-2 text-center text-xs font-mono font-bold bg-white border-[#0d1b2a18] rounded-xl focus:border-[#2b66f2]"
                   {...register('dailyStakeAmount', { valueAsNumber: true })}
                 />
               </div>
@@ -304,39 +349,42 @@ export function SetupForm() {
           ) : null}
         </section>
 
-        {/* Divider Separator */}
-        <div className="border-t border-[#0d1b2a12]" />
+        {/* Clean Divider Line */}
+        <div className="border-t border-[#0d1b2a14]" />
 
         {/* Step 3: Exercise Routine */}
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="font-mono text-[0.7rem] font-bold uppercase tracking-wider text-[#2b66f2]">
-                Step 03
+        <section className="space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#2b66f2]/10 font-mono text-xs font-bold text-[#2b66f2] ring-1 ring-[#2b66f2]/20">
+                3
               </span>
-              <h2 className="font-display text-lg font-bold text-[#0d1b2a] sm:text-xl">
-                Choose exercises you want to perform daily
-              </h2>
-              <p className="text-xs text-[#5a6678]">
-                Your camera tracks each exercise sequentially in real time.
-              </p>
+              <div>
+                <h2 className="font-display text-lg font-bold text-[#0d1b2a] sm:text-xl">
+                  Choose exercises you want to perform daily
+                </h2>
+                <p className="mt-0.5 text-xs text-[#5a6678]">
+                  Pick movements from the pool. On workout day, your camera tracks each exercise
+                  sequentially.
+                </p>
+              </div>
             </div>
-            <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 font-mono text-xs font-bold text-emerald-800">
-              {activeExercises.length} in routine
+            <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 font-mono text-xs font-bold text-emerald-800">
+              {activeExercises.length} in Routine
             </span>
           </div>
 
           {errors.exercises ? (
             <p
               role="alert"
-              className="text-xs font-semibold text-rose-600 bg-rose-50 p-2.5 rounded-xl border border-rose-200"
+              className="rounded-xl border border-rose-200 bg-rose-50 p-2.5 text-xs font-semibold text-rose-600"
             >
               {errors.exercises.message}
             </p>
           ) : null}
 
-          {/* Compact Active Routine Rows */}
-          <div className="space-y-2 pt-0.5">
+          {/* Active Routine Cards */}
+          <div className="space-y-2.5 pt-1">
             {EXERCISE_CATALOG.map((cat, idx) => {
               const isEnabled = exercises[idx]?.enabled ?? false
               if (!isEnabled) return null
@@ -344,10 +392,10 @@ export function SetupForm() {
               return (
                 <div
                   key={cat.type}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl border border-[#0d1b2a14] bg-white/70 hover:bg-white transition-all shadow-2xs"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl border border-[#0d1b2a14] bg-white/70 hover:bg-white transition-all shadow-2xs"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="size-13 rounded-xl border border-[#0d1b2a10] bg-white p-1 grid place-items-center shrink-0">
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="size-13 rounded-xl border border-[#0d1b2a10] bg-white p-1 grid place-items-center shrink-0 shadow-2xs">
                       <ExerciseMascot type={cat.type} className="size-full" />
                     </div>
                     <div className="min-w-0 space-y-0.5">
@@ -355,7 +403,7 @@ export function SetupForm() {
                         <h3 className="font-display text-sm sm:text-base font-bold text-[#0d1b2a] truncate">
                           {cat.name}
                         </h3>
-                        <span className="rounded-full bg-[#eef3fb] px-1.5 py-0.2 text-[0.6rem] font-bold text-[#2b66f2]">
+                        <span className="rounded-full bg-[#eef3fb] px-2 py-0.2 font-mono text-[0.62rem] font-bold text-[#2b66f2]">
                           Camera Verified
                         </span>
                       </div>
@@ -380,8 +428,8 @@ export function SetupForm() {
                     </div>
                   </div>
 
-                  {/* Compact Sets & Reps Inputs + Remove */}
-                  <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#0d1b2a08]">
+                  {/* Compact Sets & Reps Inputs + Remove Button */}
+                  <div className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#0d1b2a08]">
                     <div className="flex items-center gap-1.5">
                       <div className="flex items-center gap-1">
                         <Input
@@ -393,11 +441,11 @@ export function SetupForm() {
                           {...register(`exercises.${idx}.targetSets` as const, {
                             valueAsNumber: true,
                           })}
-                          className="h-7.5 w-12 px-1 text-center text-xs font-mono font-bold bg-white border-[#0d1b2a18]"
+                          className="h-8 w-13 px-1 text-center text-xs font-mono font-bold bg-white border-[#0d1b2a18] rounded-lg"
                         />
                         <span className="text-[0.7rem] font-bold text-[#5a6678]">sets</span>
                       </div>
-                      <span className="text-[#0d1b2a20]">×</span>
+                      <span className="text-[#0d1b2a24]">×</span>
                       <div className="flex items-center gap-1">
                         <Input
                           id={`reps-${idx}`}
@@ -408,7 +456,7 @@ export function SetupForm() {
                           {...register(`exercises.${idx}.targetReps` as const, {
                             valueAsNumber: true,
                           })}
-                          className="h-7.5 w-14 px-1 text-center text-xs font-mono font-bold bg-white border-[#0d1b2a18]"
+                          className="h-8 w-15 px-1 text-center text-xs font-mono font-bold bg-white border-[#0d1b2a18] rounded-lg"
                         />
                         <span className="text-[0.7rem] font-bold text-[#5a6678]">
                           {cat.repsUnit}
@@ -417,7 +465,7 @@ export function SetupForm() {
 
                       {cat.type === 'custom_gesture' ? (
                         <select
-                          className="h-7.5 rounded-xl border border-[#0d1b2a18] bg-white px-1.5 text-[0.7rem] font-semibold text-[#0d1b2a]"
+                          className="h-8 rounded-lg border border-[#0d1b2a18] bg-white px-1.5 text-[0.7rem] font-semibold text-[#0d1b2a]"
                           {...register(`exercises.${idx}.customGesture` as const)}
                         >
                           {Object.entries(CUSTOM_GESTURE_LABELS).map(([val, label]) => (
@@ -439,7 +487,7 @@ export function SetupForm() {
                       className="p-1.5 rounded-lg text-[#5a6678] hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                       title="Remove exercise"
                     >
-                      <Trash2 className="size-3.5" />
+                      <Trash2 className="size-4" />
                     </button>
                   </div>
                 </div>
@@ -451,22 +499,22 @@ export function SetupForm() {
           <button
             type="button"
             onClick={() => setIsDrawerOpen(true)}
-            className="group flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#2b66f2]/30 bg-white/40 hover:bg-white hover:border-[#2b66f2] py-3 px-4 text-xs sm:text-sm font-bold text-[#2b66f2] transition-all cursor-pointer active:scale-98"
+            className="group flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#2b66f2]/30 bg-white/40 hover:bg-white hover:border-[#2b66f2] py-3.5 px-4 text-xs sm:text-sm font-bold text-[#2b66f2] transition-all cursor-pointer active:scale-98 shadow-2xs"
           >
             <Plus className="size-4 stroke-[2.5] group-hover:scale-110 transition-transform" />
             <span>Add Movements from Exercise Pool</span>
           </button>
         </section>
 
-        {/* Divider Separator */}
-        <div className="border-t border-[#0d1b2a12]" />
+        {/* Clean Divider Line */}
+        <div className="border-t border-[#0d1b2a14]" />
 
         {/* Step 4: Commitment Review & Escrow Deposit */}
-        <section className="space-y-4">
+        <section className="space-y-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="grid size-5.5 place-items-center rounded-full bg-[#2b66f2] text-white">
-                <Sparkles className="size-3" />
+              <span className="grid size-6 place-items-center rounded-full bg-[#2b66f2] text-white shadow-xs">
+                <Sparkles className="size-3.5" />
               </span>
               <h2 className="font-display text-base font-bold text-[#0d1b2a] sm:text-lg">
                 Commitment Summary & Guarantee
@@ -493,7 +541,7 @@ export function SetupForm() {
             </p>
 
             {/* Daily Exercise Sequence */}
-            <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-[#0d1b2a0a]">
+            <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-[#0d1b2a0a]">
               <span className="text-[0.65rem] font-bold text-[#5a6678] uppercase tracking-wider">
                 Daily Sequence:
               </span>
@@ -515,7 +563,7 @@ export function SetupForm() {
           </div>
 
           {/* Escrow Pot Banner */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-4 sm:p-5">
             <div>
               <span className="text-[0.7rem] font-bold uppercase tracking-wider text-emerald-800">
                 Total Upfront Deposit (Refundable Escrow)
@@ -523,7 +571,7 @@ export function SetupForm() {
               <p className="mt-0.5 font-mono text-2xl sm:text-3xl font-extrabold text-[#0d1b2a]">
                 {formatUSD(total)}
               </p>
-              <p className="text-[0.7rem] text-emerald-800">
+              <p className="text-[0.72rem] text-emerald-800 mt-0.5">
                 {formatUSD(dailyStake)} × {totalDays} days in secure vault. 100% refunded when you
                 honor your commitment.
               </p>
@@ -539,7 +587,7 @@ export function SetupForm() {
               Start Date
             </Label>
             <div className="grid grid-cols-2 gap-2.5 max-w-xs">
-              <label className="flex items-center gap-2 rounded-xl border border-[#0d1b2a14] bg-white/70 p-2.5 cursor-pointer hover:border-[#2b66f2]/50">
+              <label className="flex items-center gap-2 rounded-xl border border-[#0d1b2a14] bg-white/70 p-2.5 cursor-pointer hover:border-[#2b66f2]/50 hover:bg-white transition-all">
                 <input
                   type="radio"
                   value="0"
@@ -548,7 +596,7 @@ export function SetupForm() {
                 />
                 <span className="text-xs font-bold text-[#0d1b2a]">Start Today</span>
               </label>
-              <label className="flex items-center gap-2 rounded-xl border border-[#0d1b2a14] bg-white/70 p-2.5 cursor-pointer hover:border-[#2b66f2]/50">
+              <label className="flex items-center gap-2 rounded-xl border border-[#0d1b2a14] bg-white/70 p-2.5 cursor-pointer hover:border-[#2b66f2]/50 hover:bg-white transition-all">
                 <input
                   type="radio"
                   value="1"
@@ -579,7 +627,7 @@ export function SetupForm() {
             type="submit"
             variant="primary"
             size="lg"
-            className="w-full py-3.5 text-base shadow-sm flex items-center justify-center gap-2 font-bold cursor-pointer"
+            className="w-full py-4 text-base shadow-sm flex items-center justify-center gap-2 font-bold cursor-pointer"
             disabled={isSubmitting || activeExercises.length === 0}
           >
             Lock In Commitment & Deposit {formatUSD(total)} <ArrowRight className="size-4" />

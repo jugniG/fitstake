@@ -126,3 +126,13 @@ export const completeDay = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     return server.completeDayImpl(data)
   })
+
+const updateRoutineSchema = z.object({
+  routine: z.array(routineExerciseSchema).min(1),
+})
+
+export const updateRoutine = createServerFn({ method: 'POST' })
+  .validator((data: { routine: RoutineExercise[] }) => updateRoutineSchema.parse(data))
+  .handler(async ({ data }) => {
+    return server.updateRoutineImpl(data.routine)
+  })
