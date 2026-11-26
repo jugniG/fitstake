@@ -7,6 +7,11 @@ interface MascotProps {
 
 /**
  * Human Mascot performing Deep Squat
+ * Biomechanically accurate athletic squat:
+ * - Neutral spine angled ~50° forward, matching shin angle for center-of-mass balance over midfoot
+ * - Femur at parallel depth (hip crease level with knee)
+ * - Rounded natural glute contour without awkward shelf protrusion
+ * - Arms extended forward in counter-balance
  */
 export function MascotSquat({ className }: MascotProps) {
   return (
@@ -17,58 +22,62 @@ export function MascotSquat({ className }: MascotProps) {
       className={cn('shrink-0', className)}
       aria-label="Human mascot doing deep squats"
     >
-      {/* Soft ground mat / shadow */}
-      <ellipse cx="60" cy="110" rx="42" ry="6" fill="#0d1b2a" fillOpacity="0.08" />
+      {/* Ground contact shadow */}
+      <ellipse cx="62" cy="110" rx="38" ry="5.5" fill="#0d1b2a" fillOpacity="0.08" />
 
-      {/* Motion trail / kinetic depth arrow */}
+      {/* Kinetic depth guide: vertical dashed guide at parallel line */}
       <path
-        d="M26 62 L26 78 M26 78 L22 74 M26 78 L30 74"
+        d="M26 66 L26 78 M26 78 L23 74 M26 78 L29 74"
         stroke="#2b66f2"
-        strokeWidth="2.5"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeDasharray="2 3"
       />
 
       {/* Head with athletic headband */}
-      <circle cx="70" cy="36" r="11" fill="#fed7aa" />
-      <path d="M60 34 C63 32 75 32 80 34" stroke="#2b66f2" strokeWidth="3" strokeLinecap="round" />
-      {/* Friendly eye dot */}
-      <circle cx="74" cy="36" r="1.5" fill="#0d1b2a" />
-
-      {/* Torso in athletic forward squat tilt */}
+      <circle cx="71" cy="31" r="10" fill="#fed7aa" />
       <path
-        d="M66 46 L50 68 L36 70"
+        d="M62 29 C65 27 75 27 80 29"
         stroke="#2b66f2"
-        strokeWidth="11"
+        strokeWidth="2.5"
         strokeLinecap="round"
-        strokeLinejoin="round"
       />
+      {/* Focused eye looking forward */}
+      <circle cx="75" cy="31" r="1.3" fill="#0d1b2a" />
 
-      {/* Arms extended forward for balance */}
+      {/* Torso: Natural athletic angle from hip (44, 70) to shoulder (64, 46) */}
+      <path d="M44 70 L64 46" stroke="#2b66f2" strokeWidth="11" strokeLinecap="round" />
+
+      {/* Natural athletic shorts / glute & thigh contour */}
+      <path d="M44 68 C37 70 37 76 42 79 L68 79 C74 79 77 75 74 70 L66 67 Z" fill="#0d1b2a" />
+
+      {/* Thigh (femur) line from hip (44, 73) to knee (74, 74) */}
+      <path d="M44 73 L74 74" stroke="#0d1b2a" strokeWidth="9" strokeLinecap="round" />
+
+      {/* Shin / Calf: Natural forward angle from ankle (56, 103) to knee (74, 74) */}
+      <path d="M56 103 L74 74" stroke="#0d1b2a" strokeWidth="8" strokeLinecap="round" />
+
+      {/* Athletic sneaker with grip */}
       <path
-        d="M62 52 L82 56 L94 56"
+        d="M50 106 C50 102 54 100 60 100 L76 103 C78 103 80 105 80 107 C80 108 78 109 74 109 L52 109 C50.5 109 50 108 50 106 Z"
+        fill="#2b66f2"
+      />
+      <rect x="52" y="107" width="26" height="2" rx="1" fill="#0d1b2a" fillOpacity="0.25" />
+
+      {/* Arms extended forward in counter-balance */}
+      <path
+        d="M62 48 L78 54 L92 52"
         stroke="#fed7aa"
-        strokeWidth="6"
+        strokeWidth="5.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-
-      {/* Legs in deep parallel squat: hip at 36,70 -> knee at 64,72 -> ankle at 62,106 -> foot at 74,106 */}
-      <path
-        d="M36 70 L66 70 L62 104 L74 106"
-        stroke="#0d1b2a"
-        strokeWidth="10"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {/* Athletic sneaker */}
-      <rect x="58" y="102" width="22" height="7" rx="3.5" fill="#2b66f2" />
 
       {/* Parallel depth checkmark badge */}
-      <circle cx="94" cy="28" r="8" fill="#10b981" fillOpacity="0.15" />
+      <circle cx="96" cy="24" r="8" fill="#10b981" fillOpacity="0.15" />
       <path
-        d="M91 28 L93.5 30.5 L97.5 25.5"
+        d="M93 24 L95.5 26.5 L99.5 21.5"
         stroke="#059669"
         strokeWidth="2"
         strokeLinecap="round"
