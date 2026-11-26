@@ -16,118 +16,132 @@ export type SettlementSweepResult = {
 
 const STALE_SETTLEMENT_MS = 60 * 60 * 1000
 
-// Run by the Vercel Cron sweep. Settles each challenge whose days are all resolved, issuing a
-// single idempotent refund of the won-back balance. The lock is acquired before the external
-// call; recovery uses the refund list, never a blind retry, to avoid refunding twice.
+// Settles a single challenge if all days are concluded or resolved.
+// Used for immediate final-day settlement and lazy dashboard settlement without a cron.
+export async function settleChallenge(
+  challengeId: string,
+  now = new Date(),
+): Promise<'settled' | 'refunded' | 'wait' | 'already_settling' | 'error'> {
+  const challengeRow = await db.query.challenge.findFirst({
+    where: and(eq(challenge.id, challengeId), eq(challenge.status, 'active')),
+  })
+
+  if (!challengeRow || challengeRow.settlementStatus !== 'pending') return 'wait'
+
+  const days = await db
+    .select()
+    .from(day)
+    .where(eq(day.challengeId, challengeRow.id))
+    .orderBy(asc(day.dayNumber))
+
+  if (days.length !== challengeRow.totalDays) {
+    console.error(
+      `[settle] challenge ${challengeRow.id}: ledger has ${days.length} days, expected ${challengeRow.totalDays}; refusing to settle`,
+    )
+    return 'error'
+  }
+
+  const windows: DayWindow[] = days.map((d) => ({
+    dayNumber: d.dayNumber,
+    localDate: d.localDate,
+    windowStartUtc: d.windowStartUtc,
+    windowEndUtc: d.windowEndUtc,
+  }))
+  const storedStatuses: DayStatus[] = days.map((d) => d.status)
+
+  const decision = decideSettlement({
+    windows,
+    storedStatuses,
+    dailyStakeAmount: challengeRow.dailyStakeAmount,
+    nowUtc: now,
+    expectedDayCount: challengeRow.totalDays,
+  })
+
+  if (decision.action === 'wait') return 'wait'
+
+  if (decision.action === 'close') {
+    const closed = await db
+      .update(challenge)
+      .set({ status: 'settled', settlementStatus: 'none', settledAt: now })
+      .where(and(eq(challenge.id, challengeRow.id), eq(challenge.status, 'active')))
+      .returning({ id: challenge.id })
+    return closed.length > 0 ? 'settled' : 'already_settling'
+  }
+
+  if (!challengeRow.kelviqOrderId) {
+    console.error(`[settle] challenge ${challengeRow.id}: no Kelviq order id yet; leaving active`)
+    return 'error'
+  }
+
+  const acquired = await db
+    .update(challenge)
+    .set({ status: 'settling' })
+    .where(
+      and(
+        eq(challenge.id, challengeRow.id),
+        eq(challenge.status, 'active'),
+        eq(challenge.settlementStatus, 'pending'),
+      ),
+    )
+    .returning({ id: challenge.id })
+
+  if (acquired.length === 0) return 'already_settling'
+
+  try {
+    const existing = await findSettlementRefund({
+      orderId: challengeRow.kelviqOrderId,
+      challengeId: challengeRow.id,
+    })
+    if (existing) {
+      await db
+        .update(challenge)
+        .set({ settlementRefundId: existing.refundId })
+        .where(eq(challenge.id, challengeRow.id))
+      if (existing.status === 'SUCCEEDED') {
+        await db
+          .update(challenge)
+          .set({ status: 'settled', settlementStatus: 'settled', settledAt: now })
+          .where(eq(challenge.id, challengeRow.id))
+        return 'settled'
+      }
+      return 'refunded'
+    }
+
+    const refund = await createSettlementRefund({
+      orderId: challengeRow.kelviqOrderId,
+      amountUnits: decision.amountUnits,
+      challengeId: challengeRow.id,
+    })
+    await db
+      .update(challenge)
+      .set({ settlementRefundId: refund.refundId })
+      .where(eq(challenge.id, challengeRow.id))
+    return 'refunded'
+  } catch (error) {
+    console.error('[settle] refund call failed; leaving challenge in settling:', error)
+    return 'error'
+  }
+}
+
+// Settles each challenge whose days are all resolved, issuing a single idempotent refund of the won-back balance.
 export async function settlePendingChallenges(now: Date): Promise<SettlementSweepResult> {
   const errors: string[] = []
   let settled = 0
   let refunded = 0
 
   const active = await db
-    .select()
+    .select({ id: challenge.id })
     .from(challenge)
     .where(and(eq(challenge.status, 'active'), eq(challenge.settlementStatus, 'pending')))
 
-  for (const challengeRow of active) {
+  for (const row of active) {
     try {
-      const days = await db
-        .select()
-        .from(day)
-        .where(eq(day.challengeId, challengeRow.id))
-        .orderBy(asc(day.dayNumber))
-      if (days.length !== challengeRow.totalDays) {
-        errors.push(
-          `challenge ${challengeRow.id}: ledger has ${days.length} days, expected ${challengeRow.totalDays}; refusing to settle`,
-        )
-        continue
-      }
-
-      const windows: DayWindow[] = days.map((d) => ({
-        dayNumber: d.dayNumber,
-        localDate: d.localDate,
-        windowStartUtc: d.windowStartUtc,
-        windowEndUtc: d.windowEndUtc,
-      }))
-      const storedStatuses: DayStatus[] = days.map((d) => d.status)
-
-      const decision = decideSettlement({
-        windows,
-        storedStatuses,
-        dailyStakeAmount: challengeRow.dailyStakeAmount,
-        nowUtc: now,
-        expectedDayCount: challengeRow.totalDays,
-      })
-      if (decision.action === 'wait') continue
-
-      if (decision.action === 'close') {
-        const closed = await db
-          .update(challenge)
-          .set({ status: 'settled', settlementStatus: 'none', settledAt: now })
-          .where(and(eq(challenge.id, challengeRow.id), eq(challenge.status, 'active')))
-          .returning({ id: challenge.id })
-        if (closed.length > 0) settled++
-        continue
-      }
-
-      if (!challengeRow.kelviqOrderId) {
-        errors.push(`challenge ${challengeRow.id}: no Kelviq order id yet; leaving active`)
-        continue
-      }
-
-      const acquired = await db
-        .update(challenge)
-        .set({ status: 'settling' })
-        .where(
-          and(
-            eq(challenge.id, challengeRow.id),
-            eq(challenge.status, 'active'),
-            eq(challenge.settlementStatus, 'pending'),
-          ),
-        )
-        .returning({ id: challenge.id })
-      if (acquired.length === 0) continue // another caller is already settling
-
-      try {
-        const existing = await findSettlementRefund({
-          orderId: challengeRow.kelviqOrderId,
-          challengeId: challengeRow.id,
-        })
-        if (existing) {
-          await db
-            .update(challenge)
-            .set({ settlementRefundId: existing.refundId })
-            .where(eq(challenge.id, challengeRow.id))
-          if (existing.status === 'SUCCEEDED') {
-            await db
-              .update(challenge)
-              .set({ status: 'settled', settlementStatus: 'settled', settledAt: now })
-              .where(eq(challenge.id, challengeRow.id))
-            settled++
-          } else {
-            refunded++
-          }
-          continue
-        }
-
-        const refund = await createSettlementRefund({
-          orderId: challengeRow.kelviqOrderId,
-          amountUnits: decision.amountUnits,
-          challengeId: challengeRow.id,
-        })
-        await db
-          .update(challenge)
-          .set({ settlementRefundId: refund.refundId })
-          .where(eq(challenge.id, challengeRow.id))
-        refunded++
-      } catch (error) {
-        // Do not release the lock here: the refund may have been created before the error.
-        // The recovery pass below checks the refund list before deciding what happened.
-        console.error('[settle] refund call failed; leaving challenge in settling:', error)
-        errors.push(`challenge ${challengeRow.id}: refund failed: ${(error as Error).message}`)
-      }
+      const result = await settleChallenge(row.id, now)
+      if (result === 'settled') settled++
+      else if (result === 'refunded') refunded++
+      else if (result === 'error') errors.push(`challenge ${row.id}: settlement failed`)
     } catch (error) {
-      errors.push(`challenge ${challengeRow.id}: ${(error as Error).message}`)
+      errors.push(`challenge ${row.id}: ${(error as Error).message}`)
     }
   }
 
@@ -137,6 +151,7 @@ export async function settlePendingChallenges(now: Date): Promise<SettlementSwee
     .select()
     .from(challenge)
     .where(and(eq(challenge.status, 'settling'), eq(challenge.settlementStatus, 'pending')))
+
   for (const challengeRow of settling) {
     try {
       if (!challengeRow.settlementRefundId) {

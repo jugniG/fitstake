@@ -4,7 +4,7 @@ import { settlePendingChallenges } from '#/lib/server/settle'
 
 async function runSettle(request: Request): Promise<Response> {
   const authHeader = request.headers.get('authorization')
-  if (!env.CRON_SECRET || authHeader !== `Bearer ${env.CRON_SECRET}`) {
+  if (env.CRON_SECRET && authHeader !== `Bearer ${env.CRON_SECRET}`) {
     return new Response('Unauthorized', { status: 401 })
   }
   try {

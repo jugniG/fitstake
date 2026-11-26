@@ -17,6 +17,7 @@ import {
   WORKOUT_SESSION_MAX_MS,
 } from '#/lib/challenge/session-token'
 import type { DayWindow } from '#/lib/challenge'
+import { settleChallenge } from '#/lib/server/settle'
 import type { CreateChallengeInput, DashboardView } from './challenges'
 
 const ACTIVE_STATES = ['pending_charge', 'active', 'settling'] as const
@@ -258,6 +259,24 @@ export async function getDashboardImpl(): Promise<DashboardView> {
     { completed, forfeited },
   )
 
+  // Lazy settlement check: if challenge is active and all days are resolved or final deadline passed
+  if (challengeRow.status === 'active') {
+    try {
+      const settleResult = await settleChallenge(challengeRow.id, now)
+      if (settleResult === 'settled' || settleResult === 'refunded') {
+        const updated = await db.query.challenge.findFirst({
+          where: eq(challenge.id, challengeRow.id),
+        })
+        if (updated) {
+          challengeView.status = updated.status
+          challengeView.settlementStatus = updated.settlementStatus
+        }
+      }
+    } catch (err) {
+      console.error('[dashboard] lazy settlement failed:', err)
+    }
+  }
+
   const daysView: DashboardView['days'] = derived.map((d) => ({
     dayNumber: d.row.dayNumber,
     localDate: d.row.localDate,
@@ -380,6 +399,15 @@ export async function completeDayImpl(data: {
       .set({ status: 'completed', completedAt: now })
       .where(and(eq(day.challengeId, challengeRow.id), eq(day.dayNumber, data.dayNumber)))
   })
+
+  // Immediate settlement if this was the final day of the challenge
+  if (data.dayNumber === challengeRow.totalDays) {
+    try {
+      await settleChallenge(challengeRow.id, now)
+    } catch (err) {
+      console.error('[challenge] immediate settlement on final day failed:', err)
+    }
+  }
 
   return { ok: true as const, dayNumber: data.dayNumber }
 }
