@@ -8,6 +8,8 @@ import { completeDay, startWorkout } from '#/lib/server/challenges'
 import { cameraSupportFailure, describeCameraFailure } from '#/lib/camera'
 import { formatClock } from '#/lib/format'
 import { drawSkeleton, getExerciseFeedback } from '#/lib/vision/drawer'
+import { SmartSpectraSensor } from '#/lib/vision/smartspectra'
+import type { SmartSpectraReading } from '#/lib/vision/smartspectra'
 import { Button } from '#/components/ui/button'
 
 type Props = {
@@ -21,6 +23,7 @@ type Props = {
 type CameraStatus =
   | 'idle'
   | 'loading'
+  | 'scanning'
   | 'live'
   | 'resting'
   | 'submitting'
@@ -46,6 +49,16 @@ export function RepRecorder({
   const [error, setError] = useState<string | null>(null)
   const [justCountedRep, setJustCountedRep] = useState(false)
   const [restSeconds, setRestSeconds] = useState(30)
+  const [scanProgress, setScanProgress] = useState(8)
+  const [vitals, setVitals] = useState<SmartSpectraReading>({
+    pulseBpm: 72,
+    breathingRate: 16,
+    hrvMs: 55,
+    livenessScore: 0.95,
+    exertionZone: 'Resting',
+    signalQuality: 'Good',
+    timestampMs: 0,
+  })
   const [feedback, setFeedback] = useState<{ message: string; isError: boolean }>({
     message: 'Looking for your body…',
     isError: false,
@@ -56,6 +69,7 @@ export function RepRecorder({
     repCounter: buildRepCounter(exerciseType, customGesture),
     liveness: createLivenessGuard(),
     landmarker: null as VisionLandmarker | null,
+    sensor: new SmartSpectraSensor(),
     startMs: 0,
     sets: 0,
     minConf: 1,
@@ -63,6 +77,7 @@ export function RepRecorder({
     starting: false,
     resting: false,
     restTimer: 0 as unknown as ReturnType<typeof setInterval>,
+    scanTimer: 0 as unknown as ReturnType<typeof setInterval>,
     pulseTimer: 0 as unknown as ReturnType<typeof setTimeout>,
     raf: 0,
     stream: null as MediaStream | null,
@@ -73,6 +88,7 @@ export function RepRecorder({
     lastElapsed: -1,
     lastReps: -1,
     lastFeedbackTime: 0,
+    lastVitalsTime: 0,
   })
 
   const isMounted = () => mountedRef.current
@@ -85,6 +101,7 @@ export function RepRecorder({
       current.running = false
       cancelAnimationFrame(current.raf)
       clearInterval(current.restTimer)
+      clearInterval(current.scanTimer)
       clearTimeout(current.pulseTimer)
       detachCameraListeners(current)
       const stream = current.stream
@@ -110,6 +127,7 @@ export function RepRecorder({
     current.running = false
     current.resting = false
     clearInterval(current.restTimer)
+    clearInterval(current.scanTimer)
     clearTimeout(current.pulseTimer)
     cancelAnimationFrame(current.raf)
     detachCameraListeners(current)
@@ -126,6 +144,30 @@ export function RepRecorder({
     ref.current.starting = false
     setStatus('error')
     setError(reason)
+  }
+
+  function startReadinessScan() {
+    setStatus('scanning')
+    setScanProgress(8)
+    clearInterval(ref.current.scanTimer)
+
+    ref.current.scanTimer = setInterval(() => {
+      setScanProgress((prev) => {
+        if (prev <= 1) {
+          clearInterval(ref.current.scanTimer)
+          finishReadinessScan()
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
+  function finishReadinessScan() {
+    clearInterval(ref.current.scanTimer)
+    const reading = ref.current.sensor.processFrame(videoRef.current, performance.now())
+    ref.current.sensor.setBaseline(reading.pulseBpm, reading.breathingRate, reading.hrvMs)
+    setStatus('live')
   }
 
   function startRestPeriod() {
@@ -293,18 +335,20 @@ export function RepRecorder({
 
     ref.current.repCounter.reset()
     ref.current.liveness.reset()
+    ref.current.sensor.reset()
     ref.current.sets = 0
     ref.current.minConf = 1
     ref.current.lastElapsed = -1
     ref.current.lastReps = -1
     ref.current.lastFeedbackTime = 0
+    ref.current.lastVitalsTime = 0
     ref.current.running = true
     ref.current.starting = false
     ref.current.resting = false
     setReps(0)
     setSets(0)
     setElapsed(0)
-    setStatus('live')
+    startReadinessScan()
     loop()
   }
 
@@ -312,8 +356,6 @@ export function RepRecorder({
     const current = ref.current
     if (!current.running) return
     current.raf = requestAnimationFrame(loop)
-
-    if (current.resting) return
 
     const video = videoRef.current
     if (!video || video.readyState < 2 || !current.landmarker) return
@@ -324,6 +366,20 @@ export function RepRecorder({
       current.lastElapsed = nextElapsed
       setElapsed(nextElapsed)
     }
+
+    // SmartSpectra contactless vitals analysis (rPPG & exertion tracking)
+    const reading = current.sensor.processFrame(
+      video,
+      nowMs,
+      current.resting,
+      reps + sets * targetReps,
+    )
+    if (nowMs - current.lastVitalsTime > 400) {
+      current.lastVitalsTime = nowMs
+      setVitals(reading)
+    }
+
+    if (current.resting) return
 
     let landmarks: Landmark[] | null = null
     try {
@@ -393,6 +449,7 @@ export function RepRecorder({
     ref.current.running = false
     ref.current.resting = false
     clearInterval(ref.current.restTimer)
+    clearInterval(ref.current.scanTimer)
     cancelAnimationFrame(ref.current.raf)
     detachCameraListeners(ref.current)
     const stream = ref.current.stream
@@ -409,6 +466,8 @@ export function RepRecorder({
 
     setStatus('submitting')
     const totalReps = ref.current.sets * targetReps
+    const biometricsSummary = ref.current.sensor.getSummary()
+
     try {
       await completeDay({
         data: {
@@ -417,6 +476,7 @@ export function RepRecorder({
           totalReps,
           confidence: Math.max(0, ref.current.minConf),
           sessionToken: token,
+          biometrics: biometricsSummary,
         },
       })
       if (!isMounted()) return
@@ -451,7 +511,7 @@ export function RepRecorder({
       <header className="space-y-1">
         <h1 className="font-display text-2xl text-bone">Day {dayNumber}</h1>
         <p className="text-xs text-muted">
-          {targetSets} sets × {targetReps} reps · live camera counting, no video saved
+          {targetSets} sets × {targetReps} reps · live camera counting & SmartSpectra vitals
         </p>
       </header>
 
@@ -477,19 +537,54 @@ export function RepRecorder({
           className="pointer-events-none absolute inset-0 h-full w-full object-cover -scale-x-100"
         />
 
-        {/* Top HUD: Exercise Title, Set, & Time */}
+        {/* SmartSpectra Pre-Workout Readiness Scan Overlay */}
+        {status === 'scanning' ? (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/85 p-6 text-center backdrop-blur-md">
+            <div className="relative flex h-32 w-32 items-center justify-center rounded-full border-2 border-dashed border-rose-500/80 animate-pulse">
+              <span className="text-4xl">❤️</span>
+            </div>
+            <p className="mt-4 font-mono text-[0.65rem] uppercase tracking-widest text-emerald-400">
+              SmartSpectra™ Vitals Calibration
+            </p>
+            <h2 className="mt-1 font-display text-2xl font-medium text-bone">
+              Cardiovascular Baseline
+            </h2>
+            <div className="my-2 font-mono text-3xl font-bold text-bone">
+              {vitals.pulseBpm} <span className="text-xs text-muted">BPM</span>
+            </div>
+            <p className="mb-5 max-w-xs text-xs text-muted">
+              Calibrating resting pulse & biological pulse waveform ({scanProgress}s)…
+            </p>
+            <Button variant="ghost" size="sm" onClick={finishReadinessScan}>
+              Skip Calibration & Start Set 1
+            </Button>
+          </div>
+        ) : null}
+
+        {/* Top HUD: Exercise Title, SmartSpectra Vitals, Set, & Time */}
         {isLive || status === 'submitting' ? (
           <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex items-center justify-between">
-            <div className="flex items-center gap-2 rounded-full border border-line/60 bg-black/75 px-3 py-1 backdrop-blur-md">
-              <span
-                className={`h-2 w-2 rounded-full ${
-                  feedback.isError ? 'animate-pulse bg-amber-400' : 'bg-emerald-400'
-                }`}
-              />
-              <span className="font-mono text-xs font-semibold uppercase tracking-wider text-bone">
-                {exerciseTitle}
-              </span>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 rounded-full border border-line/60 bg-black/75 px-3 py-1 backdrop-blur-md">
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    feedback.isError ? 'animate-pulse bg-amber-400' : 'bg-emerald-400'
+                  }`}
+                />
+                <span className="font-mono text-xs font-semibold uppercase tracking-wider text-bone">
+                  {exerciseTitle}
+                </span>
+              </div>
+              {/* SmartSpectra Heart Rate Pill */}
+              <div className="flex items-center gap-1.5 rounded-full border border-line/60 bg-black/75 px-2.5 py-1 backdrop-blur-md">
+                <span className="text-xs text-rose-400 animate-pulse">❤️</span>
+                <span className="font-mono text-xs font-semibold text-bone">{vitals.pulseBpm}</span>
+                <span className="text-[0.65rem] uppercase text-bone/60 font-mono">
+                  {vitals.exertionZone}
+                </span>
+              </div>
             </div>
+
             <div className="flex items-center gap-2">
               <span className="rounded-full border border-line/60 bg-black/75 px-2.5 py-1 font-mono text-xs text-bone/90 backdrop-blur-md">
                 Set {Math.min(sets + 1, targetSets)}/{targetSets}
@@ -518,15 +613,33 @@ export function RepRecorder({
           </div>
         ) : null}
 
-        {/* Rest Break Overlay between sets */}
+        {/* Rest Break Overlay between sets with SmartSpectra Heart Rate Recovery */}
         {status === 'resting' ? (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/85 p-6 text-center backdrop-blur-md">
             <p className="font-mono text-xs uppercase tracking-[0.2em] text-emerald-400">
               Set {sets} of {targetSets} Complete!
             </p>
-            <h2 className="mt-2 font-display text-3xl font-medium text-bone">Take a Breather</h2>
-            <div className="my-4 font-mono text-5xl font-bold text-rust">{restSeconds}s</div>
-            <p className="mb-6 max-w-xs text-xs text-muted">
+            <h2 className="mt-1 font-display text-3xl font-medium text-bone">Take a Breather</h2>
+            <div className="my-2 font-mono text-5xl font-bold text-rust">{restSeconds}s</div>
+
+            {/* SmartSpectra Heart Rate Recovery Gauge */}
+            <div className="my-3 w-full max-w-xs rounded-lg border border-line/60 bg-panel/60 p-3 text-left">
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-muted">
+                  <span className="text-xs text-rose-400">❤️</span> Recovery Pulse
+                </span>
+                <span className="font-mono font-bold text-bone">{vitals.pulseBpm} BPM</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between text-[0.65rem] text-faint font-mono">
+                <span>Peak: {ref.current.sensor.getSummary().peakBpm} BPM</span>
+                <span className="text-emerald-400 font-medium">
+                  -{Math.max(0, ref.current.sensor.getSummary().peakBpm - vitals.pulseBpm)} BPM
+                  recovery
+                </span>
+              </div>
+            </div>
+
+            <p className="mb-5 max-w-xs text-xs text-muted">
               Catch your breath. Set {sets + 1} begins automatically when the timer runs out.
             </p>
             <Button variant="primary" size="lg" onClick={resumeAfterRest}>
@@ -549,8 +662,8 @@ export function RepRecorder({
                     : 'Hold your hand clearly in front of the camera.'}
             </p>
             <p className="text-xs text-muted">
-              Live joint tracking is drawn on screen so you can verify your positioning. No video is
-              ever recorded or stored.
+              SmartSpectra™ contactless vitals & joint tracking are active. No video is ever
+              recorded or stored.
             </p>
           </div>
           <Button variant="primary" size="lg" className="w-full" onClick={() => void begin()}>
@@ -561,7 +674,7 @@ export function RepRecorder({
 
       {status === 'loading' ? (
         <p role="status" className="text-muted">
-          Loading the camera and pose model…
+          Loading camera, pose models, and SmartSpectra sensor…
         </p>
       ) : null}
 
@@ -582,7 +695,7 @@ export function RepRecorder({
 
       {status === 'submitting' ? (
         <p role="status" className="text-muted">
-          Saving the verified counts…
+          Saving verified reps and biometric recovery summary…
         </p>
       ) : null}
 

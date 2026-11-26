@@ -86,6 +86,14 @@ const completeDaySchema = z.object({
   totalReps: z.number().int().min(1),
   confidence: z.number().min(0).max(1),
   sessionToken: z.string().min(1),
+  biometrics: z
+    .object({
+      baselineBpm: z.number(),
+      peakBpm: z.number(),
+      recoveryBpmDrop: z.number(),
+      cardioExertionScore: z.number(),
+    })
+    .optional(),
 })
 
 export const completeDay = createServerFn({ method: 'POST' })
@@ -96,6 +104,12 @@ export const completeDay = createServerFn({ method: 'POST' })
       totalReps: number
       confidence: number
       sessionToken: string
+      biometrics?: {
+        baselineBpm: number
+        peakBpm: number
+        recoveryBpmDrop: number
+        cardioExertionScore: number
+      }
     }) => completeDaySchema.parse(data),
   )
   .handler(async ({ data }) => {
