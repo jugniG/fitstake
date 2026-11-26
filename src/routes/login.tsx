@@ -65,14 +65,14 @@ function LoginPage() {
 
         <form onSubmit={onMagicLink} className="space-y-3 text-left">
           <label htmlFor="name" className="field-label">
-            Name <span className="text-xs text-faint">(optional for returning users)</span>
+            Name <span className="text-xs text-faint">(optional)</span>
           </label>
           <input
             id="name"
             type="text"
             autoComplete="name"
             className="field-input"
-            placeholder="Alex Doe"
+            placeholder="Your name"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
