@@ -272,3 +272,8 @@ export const challengeRelations = relations(challenge, ({ one, many }) => ({
   user: one(user, { fields: [challenge.userId], references: [user.id] }),
   days: many(day),
 }))
+
+// The reverse `one` is required for Drizzle to infer the join keys of the `days` many-relation.
+export const dayRelations = relations(day, ({ one }) => ({
+  challenge: one(challenge, { fields: [day.challengeId], references: [challenge.id] }),
+}))
