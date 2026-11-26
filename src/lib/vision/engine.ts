@@ -1,4 +1,5 @@
 import { FilesetResolver, HandLandmarker, PoseLandmarker } from '@mediapipe/tasks-vision'
+import type { ExerciseType } from '#/lib/challenge'
 import type { Landmark } from './types'
 
 // Self-hosted WASM (copied to public/wasm from node_modules so the JS/WASM versions match).
@@ -59,9 +60,7 @@ function createHandLandmarker(fs: VisionFileset, delegate: 'GPU' | 'CPU'): Promi
   })
 }
 
-export async function getLandmarkerFor(
-  exercise: 'squat' | 'push_up' | 'jumping_jack' | 'custom_gesture',
-): Promise<VisionLandmarker> {
+export async function getLandmarkerFor(exercise: ExerciseType): Promise<VisionLandmarker> {
   return exercise === 'custom_gesture' ? await getHandLandmarker() : await getPoseLandmarker()
 }
 

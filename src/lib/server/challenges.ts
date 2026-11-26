@@ -5,7 +5,7 @@ import type { DayStatus, ExerciseType, RoutineExercise, SettlementStatus } from 
 import * as server from './challenges.server'
 
 export const routineExerciseSchema = z.object({
-  exerciseType: z.enum(['squat', 'push_up', 'jumping_jack', 'custom_gesture']),
+  exerciseType: z.enum(['squat', 'push_up', 'jumping_jack', 'custom_gesture', 'leg_raise']),
   customGesture: z.enum(['pinch', 'fist', 'open_hand']).nullable().optional(),
   targetSets: z.number().int().min(1).max(50),
   targetReps: z.number().int().min(1).max(500),
@@ -13,7 +13,9 @@ export const routineExerciseSchema = z.object({
 
 const createChallengeSchema = z.object({
   exercises: z.array(routineExerciseSchema).min(1).optional(),
-  exerciseType: z.enum(['squat', 'push_up', 'jumping_jack', 'custom_gesture']).optional(),
+  exerciseType: z
+    .enum(['squat', 'push_up', 'jumping_jack', 'custom_gesture', 'leg_raise'])
+    .optional(),
   customGesture: z.enum(['pinch', 'fist', 'open_hand']).nullable().optional(),
   targetReps: z.number().int().min(1).max(1000).optional(),
   targetSets: z.number().int().min(1).max(100).optional(),

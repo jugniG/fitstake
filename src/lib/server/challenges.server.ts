@@ -106,13 +106,16 @@ export async function createChallengeImpl(data: CreateChallengeInput) {
   const averageReps = Math.ceil(totalReps / Math.max(1, totalSets))
   const serializedRoutine = JSON.stringify(exercises)
 
+  const dbExerciseType =
+    primaryExercise.exerciseType === 'leg_raise' ? 'squat' : primaryExercise.exerciseType
+
   let created: ChallengeRow
   try {
     ;[created] = await db
       .insert(challenge)
       .values({
         userId: sessionUser.id,
-        exerciseType: primaryExercise.exerciseType,
+        exerciseType: dbExerciseType,
         customGesture: primaryExercise.customGesture ?? null,
         targetReps: averageReps,
         targetSets: totalSets,

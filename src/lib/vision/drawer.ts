@@ -216,6 +216,25 @@ export function getExerciseFeedback(
     return { message: 'In position — lower chest to ground, then press up', isError: false }
   }
 
+  if (exerciseType === 'leg_raise') {
+    if (!hasHips || !hasAnkles) {
+      return {
+        message: 'Lie on floor/mat with hips and legs visible to camera',
+        isError: true,
+      }
+    }
+    if (warning === 'rep-too-fast') {
+      return {
+        message: 'Lower legs with control — do not let them drop',
+        isError: true,
+      }
+    }
+    return {
+      message: 'Lower abs engaged — raise legs toward 90° then lower smoothly',
+      isError: false,
+    }
+  }
+
   // jumping_jack
   if (!hasAnkles || !hasUpper) {
     return {

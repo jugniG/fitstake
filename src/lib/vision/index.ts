@@ -4,6 +4,7 @@ import { evaluateSquat } from './exercises/squat'
 import { evaluatePushUp } from './exercises/push-up'
 import { evaluateJumpingJack } from './exercises/jumping-jack'
 import { evaluateHandGesture } from './exercises/custom-gesture'
+import { evaluateLegRaise } from './exercises/leg-raise'
 import type { RepCounter } from './types'
 
 export function buildRepCounter(
@@ -21,6 +22,8 @@ export function buildRepCounter(
       return createRepCounter({
         evaluate: (lm) => evaluateHandGesture(lm, customGesture ?? 'pinch'),
       })
+    case 'leg_raise':
+      return createRepCounter({ evaluate: evaluateLegRaise })
   }
 }
 
@@ -31,6 +34,7 @@ export { evaluateSquat } from './exercises/squat'
 export { evaluatePushUp } from './exercises/push-up'
 export { evaluateJumpingJack } from './exercises/jumping-jack'
 export { evaluateHandGesture } from './exercises/custom-gesture'
+export { evaluateLegRaise } from './exercises/leg-raise'
 export { createLivenessGuard } from './liveness'
 export {
   closeVision,

@@ -923,7 +923,9 @@ export function RepRecorder({
                       ? 'Tip: Position camera side-on to check full depth.'
                       : routineList[currentExerciseIdx + 1].exerciseType === 'jumping_jack'
                         ? 'Tip: Ensure overhead arm reach fits in frame.'
-                        : 'Tip: Hold hand clearly in front of camera.'}
+                        : routineList[currentExerciseIdx + 1].exerciseType === 'leg_raise'
+                          ? 'Tip: Lie on your mat with hips and legs visible to camera.'
+                          : 'Tip: Hold hand clearly in front of camera.'}
                 </p>
               </div>
             ) : null}
