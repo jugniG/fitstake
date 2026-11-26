@@ -96,7 +96,6 @@ src/
     _protected.tsx + _protected/{dashboard,record,setup,history}.tsx
     api/auth/$.ts              Better Auth handler
     api/webhooks/kelviq.ts     raw-body + validateEvent
-    api/cron/settle.ts         settlement sweep (Bearer CRON_SECRET)
   components/
     app-shell.tsx              nav + sign-out
     ui/button.tsx              (kept from template)
@@ -109,7 +108,7 @@ drizzle/0000_greedy_nomad.sql  generated migration (not yet applied)
   specs/habit-stakes/          requirements.md, design.md, tasks.md
   steering/                    architecture, vision-conventions, kelviq, testing (inclusion: auto)
   hooks/vision-test-on-save.json  PostFileSave → npm test -- vision
-vercel.json                    + hourly cron /api/cron/settle
+vercel.json                    deployment configuration
 ```
 
 Removed: the entire old "Workout Commitment" demo — `src/lib/commitment.ts`, `commitment-store.tsx`,
@@ -140,12 +139,11 @@ vision test-on-save hook; route tree regenerated.
 1. Copy `.env.example` → `.env` and fill: `DATABASE_URL` (Neon, `?sslmode=require`),
    `BETTER_AUTH_SECRET`, `APP_URL`, `GOOGLE_CLIENT_ID/SECRET`, `RESEND_API_KEY/RESEND_FROM`
    (blank = log link server-side in dev), `KELVIQ_SERVER_API_KEY`, `KELVIQ_WEBHOOK_SECRET`,
-   `KELVIQ_ENV=sandbox`, `KELVIQ_COMMITMENT_PLAN_IDENTIFIER`, `CRON_SECRET`.
+   `KELVIQ_ENV=sandbox`, `KELVIQ_COMMITMENT_PLAN_IDENTIFIER`.
 2. Neon DB + `npm run db:migrate`.
 3. Kelviq dashboard: product + one-time plan (its id → `KELVIQ_COMMITMENT_PLAN_IDENTIFIER`);
    webhook endpoint → `<APP_URL>/api/webhooks/kelviq` (signing secret → `KELVIQ_WEBHOOK_SECRET`).
 4. Google Cloud: OAuth client; authorized redirect `<APP_URL>/api/auth/callback/google`.
-5. Vercel: same env vars; the `vercel.json` cron authenticates with `Bearer <CRON_SECRET>`.
 
 ## Verification commands
 

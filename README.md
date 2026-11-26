@@ -41,7 +41,6 @@ guards. This is an accepted trade-off for serverless hosting — not full server
    - `RESEND_API_KEY` / `RESEND_FROM` (leave blank in dev to log the magic-link URL server-side)
    - `KELVIQ_SERVER_API_KEY`, `KELVIQ_WEBHOOK_SECRET`, `KELVIQ_ENV=sandbox`,
      `KELVIQ_COMMITMENT_PLAN_IDENTIFIER`
-   - `CRON_SECRET`
 3. **Migrate the DB:** `npm run db:migrate` (migration SQL is generated at `drizzle/`).
 4. **Kelviq dashboard:** create a product + a one-time plan (use its identifier for
    `KELVIQ_COMMITMENT_PLAN_IDENTIFIER`), and register a webhook endpoint to
@@ -62,8 +61,7 @@ Camera capture requires `localhost` or HTTPS.
 
 ## Deploy (Vercel)
 
-- Add the same env vars to Vercel. `vercel.json` registers an hourly cron at `/api/cron/settle`
-  (the settlement sweep); set `CRON_SECRET` so Vercel's `Authorization: Bearer` calls authenticate.
+- Add the same env vars to Vercel. Settlement runs automatically upon final workout completion and lazily on dashboard load (no cron required).
 
 ## Project layout
 

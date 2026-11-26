@@ -10,6 +10,5 @@ export const env = {
   KELVIQ_WEBHOOK_SECRET: process.env.KELVIQ_WEBHOOK_SECRET ?? '',
   KELVIQ_ENV: process.env.KELVIQ_ENV ?? 'sandbox',
   KELVIQ_COMMITMENT_PLAN_IDENTIFIER: process.env.KELVIQ_COMMITMENT_PLAN_IDENTIFIER ?? '',
-  CRON_SECRET: process.env.CRON_SECRET ?? '',
   DATABASE_URL: process.env.DATABASE_URL ?? '',
 }

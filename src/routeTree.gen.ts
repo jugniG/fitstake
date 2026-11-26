@@ -17,7 +17,6 @@ import { Route as ProtectedHistoryRouteImport } from './routes/_protected/histor
 import { Route as ProtectedRecordRouteImport } from './routes/_protected/record'
 import { Route as ProtectedSetupRouteImport } from './routes/_protected/setup'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as ApiCronSettleRouteImport } from './routes/api/cron/settle'
 import { Route as ApiWebhooksKelviqRouteImport } from './routes/api/webhooks/kelviq'
 
 const IndexRoute = IndexRouteImport.update({
@@ -59,11 +58,6 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiCronSettleRoute = ApiCronSettleRouteImport.update({
-  id: '/api/cron/settle',
-  path: '/api/cron/settle',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiWebhooksKelviqRoute = ApiWebhooksKelviqRouteImport.update({
   id: '/api/webhooks/kelviq',
   path: '/api/webhooks/kelviq',
@@ -78,7 +72,6 @@ export interface FileRoutesByFullPath {
   '/record': typeof ProtectedRecordRoute
   '/setup': typeof ProtectedSetupRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/cron/settle': typeof ApiCronSettleRoute
   '/api/webhooks/kelviq': typeof ApiWebhooksKelviqRoute
 }
 export interface FileRoutesByTo {
@@ -89,7 +82,6 @@ export interface FileRoutesByTo {
   '/record': typeof ProtectedRecordRoute
   '/setup': typeof ProtectedSetupRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/cron/settle': typeof ApiCronSettleRoute
   '/api/webhooks/kelviq': typeof ApiWebhooksKelviqRoute
 }
 export interface FileRoutesById {
@@ -102,7 +94,6 @@ export interface FileRoutesById {
   '/_protected/record': typeof ProtectedRecordRoute
   '/_protected/setup': typeof ProtectedSetupRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/cron/settle': typeof ApiCronSettleRoute
   '/api/webhooks/kelviq': typeof ApiWebhooksKelviqRoute
 }
 export interface FileRouteTypes {
@@ -115,7 +106,6 @@ export interface FileRouteTypes {
     | '/record'
     | '/setup'
     | '/api/auth/$'
-    | '/api/cron/settle'
     | '/api/webhooks/kelviq'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -126,7 +116,6 @@ export interface FileRouteTypes {
     | '/record'
     | '/setup'
     | '/api/auth/$'
-    | '/api/cron/settle'
     | '/api/webhooks/kelviq'
   id:
     | '__root__'
@@ -138,7 +127,6 @@ export interface FileRouteTypes {
     | '/_protected/record'
     | '/_protected/setup'
     | '/api/auth/$'
-    | '/api/cron/settle'
     | '/api/webhooks/kelviq'
   fileRoutesById: FileRoutesById
 }
@@ -147,7 +135,6 @@ export interface RootRouteChildren {
   ProtectedRoute: typeof ProtectedRouteWithChildren
   LoginRoute: typeof LoginRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  ApiCronSettleRoute: typeof ApiCronSettleRoute
   ApiWebhooksKelviqRoute: typeof ApiWebhooksKelviqRoute
 }
 
@@ -209,13 +196,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/cron/settle': {
-      id: '/api/cron/settle'
-      path: '/api/cron/settle'
-      fullPath: '/api/cron/settle'
-      preLoaderRoute: typeof ApiCronSettleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/webhooks/kelviq': {
       id: '/api/webhooks/kelviq'
       path: '/api/webhooks/kelviq'
@@ -249,7 +229,6 @@ const rootRouteChildren: RootRouteChildren = {
   ProtectedRoute: ProtectedRouteWithChildren,
   LoginRoute: LoginRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
-  ApiCronSettleRoute: ApiCronSettleRoute,
   ApiWebhooksKelviqRoute: ApiWebhooksKelviqRoute,
 }
 export const routeTree = rootRouteImport
