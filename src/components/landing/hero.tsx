@@ -28,6 +28,13 @@ export function Hero() {
               there’s <span className="serif text-[#2b66f2]">zero consequence.</span>
             </h1>
 
+            <p className="mt-4 text-base sm:text-lg font-medium text-[#5a6678] max-w-lg leading-relaxed">
+              <strong className="text-[#0d1b2a]">
+                StakeFit introduces financial accountability
+              </strong>{' '}
+              backed by contactless physiological sensing and camera-verified workouts.
+            </p>
+
             <ul className="mt-6 w-full max-w-lg space-y-3 text-left text-sm font-medium text-[#0d1b2a] sm:text-base">
               <li className="flex items-start gap-3">
                 <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-[#2b66f2]/10 text-[#2b66f2]">

@@ -17,9 +17,9 @@ const PILLARS = [
   },
   {
     tag: '03 / THE INTEGRITY',
-    title: 'Honest Camera Verification',
+    title: 'Honest Physiological Verification',
     description:
-      'No self-reported honor system. On-device camera tracking verifies your exercise form and checks real physical effort, so you can never cheat yourself.',
+      'StakeFit introduces financial accountability backed by contactless physiological sensing and on-device computer vision. It tracks genuine cardiac effort and exercise form—no self-reported honor system, no cheating.',
     icon: ShieldCheck,
   },
 ]
