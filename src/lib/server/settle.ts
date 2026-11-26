@@ -1,5 +1,5 @@
 import { and, asc, eq, isNull } from 'drizzle-orm'
-import { db, challenge, day } from '#/db'
+import { db, challenge, day } from '#/db.server'
 import { decideSettlement } from '#/lib/challenge'
 import type { DayStatus, DayWindow } from '#/lib/challenge'
 import {

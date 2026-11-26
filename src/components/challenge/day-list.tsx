@@ -1,14 +1,15 @@
 import type { DashboardView } from '#/lib/server/challenges'
+import type { DayStatus } from '#/lib/challenge'
 import { formatDate } from '#/lib/format'
 
-const STATUS_LABEL: Record<string, string> = {
+const STATUS_LABEL: Record<DayStatus, string> = {
   locked: 'Locked',
   pending: 'Open',
   completed: 'Done',
   forfeited: 'Lost',
 }
 
-const STATUS_TONE: Record<string, string> = {
+const STATUS_TONE: Record<DayStatus, string> = {
   locked: 'text-muted',
   pending: 'text-bone',
   completed: 'text-gold',
@@ -30,9 +31,9 @@ export function DayList({ days }: { days: DashboardView['days'] }) {
               <span className="ml-2 text-xs text-muted">{formatDate(d.windowEndUtc)}</span>
             </span>
             <span
-              className={`text-xs font-medium uppercase tracking-[0.16em] ${STATUS_TONE[d.status] ?? 'text-muted'}`}
+              className={`text-xs font-medium uppercase tracking-[0.16em] ${STATUS_TONE[d.status]}`}
             >
-              {STATUS_LABEL[d.status] ?? d.status}
+              {STATUS_LABEL[d.status]}
             </span>
           </li>
         ))}

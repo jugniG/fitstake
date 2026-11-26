@@ -1,5 +1,5 @@
 import { and, desc, eq, inArray, isNull, or } from 'drizzle-orm'
-import { db, challenge, day, user, kelviqEvent } from '#/db'
+import { db, challenge, day, user, kelviqEvent } from '#/db.server'
 import {
   computeDayWindows,
   derivePendingStatus,

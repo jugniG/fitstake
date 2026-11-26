@@ -2,7 +2,7 @@ import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { magicLink } from 'better-auth/plugins'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
-import { db, user, session, account, verification } from '#/db'
+import { db, user, session, account, verification } from '#/db.server'
 import { env } from './env'
 import { sendMagicLinkEmail } from './email'
 

@@ -77,12 +77,12 @@ Drizzle ORM + Postgres (Neon) · Vercel serverless + Vercel Cron. Package manage
 
 ```
 src/
-  db.ts                        Neon-SSL-aware pool + schema-typed drizzle factory (HMR-safe)
+  db.server.ts                 Neon-SSL-aware pool + schema-typed drizzle factory (HMR-safe)
   db/schema.ts                 Better Auth core tables + challenge/day/workout_verification/kelviq_event
   lib/
     env.ts                     server-only env access (never import from client)
     email.ts                   Resend magic-link delivery (logs link if no transport)
-    auth.ts                    betterAuth instance (drizzleAdapter, Google, magicLink, tanstackStartCookies)
+    auth.server.ts             betterAuth instance (drizzleAdapter, Google, magicLink, tanstackStartCookies)
     auth-client.ts             createAuthClient + signInWithGoogle/sendMagicLinkEmail/signOut/useSession
     auth.functions.ts          getSession / ensureSession server fns
     challenge/                 PURE, unit-tested: types, math, windows(TZ/DST), state, settlement + index
@@ -168,7 +168,7 @@ npm run generate-routes  # after adding/renaming routes
 - **TanStack server-fn client calls use `{ data: {...} }`** — e.g. `createChallenge({ data: {...} })`,
   `completeDay({ data: {...} })`. `getDashboard()` takes no args.
 - **date-fns-tz v3** renamed `zonedTimeToUtc` → `fromZonedTime` (used in `windows.ts`).
-- **`db.query.<table>`** only types correctly because `db.ts` uses a schema-typed factory
+- **`db.query.<table>`** only types correctly because `db.server.ts` uses a schema-typed factory
   (`createDb`) for the HMR global — don't "simplify" it back to an untyped global or relational
   queries lose their types.
 - **MediaPipe `createFromOptions` is async** (returns a Promise) — it's awaited in `engine.ts`.
