@@ -20,14 +20,15 @@ export function Hero() {
             </div>
 
             <h1 className="mt-5 text-4xl font-bold tracking-tight text-[#0d1b2a] sm:text-6xl lg:text-7xl leading-[1.08] sm:leading-[1.04]">
-              Your workout,
+              You skip because
               <br />
-              with <span className="serif text-[#2b66f2]">real stakes.</span>
+              there’s <span className="serif text-[#2b66f2]">zero consequence.</span>
             </h1>
 
             <p className="mt-5 max-w-lg text-base leading-relaxed text-[#5a6678] sm:text-lg">
-              Habit-Stakes helps you set workout commitments — and stick to them. Put money behind
-              your word. Move on camera, verify your reps, and keep 100% of it.
+              When skipping costs you $0 in the moment, free motivation evaporates in seconds.
+              Habit-Stakes puts your own money behind your daily workout commitment. Move on camera,
+              verify your reps, and keep 100% of your cash.
             </p>
 
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3 lg:justify-start">

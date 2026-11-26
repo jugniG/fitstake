@@ -33,14 +33,15 @@ export function ScienceSection() {
             The Behavioral Science
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-[#0d1b2a] sm:text-5xl leading-tight">
-            You don’t skip workouts because you lack time.
+            You don’t have a discipline problem.
             <br />
-            <span className="serif text-[#2b66f2]">You skip because there’s zero consequence.</span>
+            <span className="serif text-[#2b66f2]">You have a consequence problem.</span>
           </h2>
           <p className="mt-5 text-base leading-relaxed text-[#5a6678] sm:text-lg">
-            Elevator rides, evening downtime, feeling slightly tired—we give ourselves permission to
-            skip because there is no immediate penalty. Loss aversion flips this wiring: risking
-            your own money on the line creates visceral urgency that crushes procrastination.
+            Human psychology is hardwired to seek immediate comfort when there is no tangible
+            penalty for skipping. Loss aversion flips this wiring: risking your own hard-earned
+            money on the line creates visceral urgency that crushes procrastination every single
+            day.
           </p>
         </div>
 
