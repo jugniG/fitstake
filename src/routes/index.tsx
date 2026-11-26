@@ -3,6 +3,7 @@ import { ArrowRight } from 'lucide-react'
 import { useSession } from '#/lib/auth-client'
 import { NavHeader } from '#/components/landing/nav-header'
 import { Hero } from '#/components/landing/hero'
+import { FounderStory } from '#/components/landing/founder-story'
 import { HonestQuestions } from '#/components/landing/honest-questions'
 import { RelatableMoments } from '#/components/landing/relatable-moments'
 import { ScienceSection } from '#/components/landing/science-section'
@@ -45,6 +46,7 @@ function IndexPage() {
 
       <main className="flex-1">
         <Hero />
+        <FounderStory />
         <HonestQuestions />
         <RelatableMoments />
         <ScienceSection />
