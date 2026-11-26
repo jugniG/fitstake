@@ -1,0 +1,58 @@
+{
+  "name": "workout-commitment",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "dotenv -e .env -- vite dev",
+    "build": "vite build",
+    "start": "dotenv -e .env -- node .output/server/index.mjs",
+    "preview": "vite preview",
+    "generate-routes": "tsr generate",
+    "db:generate": "dotenv -e .env -- drizzle-kit generate",
+    "db:migrate": "dotenv -e .env -- drizzle-kit migrate",
+    "db:studio": "dotenv -e .env -- drizzle-kit studio",
+    "lint": "eslint .",
+    "check": "prettier --check .",
+    "format": "prettier --write .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource/cormorant-garamond": "^5.3.0",
+    "@hookform/resolvers": "5.4.0",
+    "@tanstack/react-router": "latest",
+    "@tanstack/react-start": "latest",
+    "clsx": "2.1.1",
+    "dotenv-cli": "^11.0.0",
+    "drizzle-orm": "0.45.3",
+    "lucide-react": "0.545.0",
+    "nitro": "3.0.260903-beta",
+    "pg": "8.23.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-hook-form": "7.79.0",
+    "tailwind-merge": "3.6.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.18",
+    "@tanstack/eslint-config": "latest",
+    "@tanstack/router-cli": "^1.132.0",
+    "@tanstack/router-plugin": "^1.132.0",
+    "@types/node": "^22.10.2",
+    "@types/pg": "8.23.1",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.0.1",
+    "drizzle-kit": "0.31.11",
+    "eslint": "^9.20.0",
+    "prettier": "^3.8.1",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^6.0.2",
+    "vite": "^8.0.0",
+    "vitest": "^4.1.5"
+  },
+  "imports": {
+    "#/*": "./src/*"
+  }
+}
