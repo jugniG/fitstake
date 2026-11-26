@@ -1,26 +1,20 @@
-import { Link, useRouterState } from '@tanstack/react-router'
+import { Link, useRouterState, useNavigate } from '@tanstack/react-router'
 import { BookOpen, Flame, Video } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { useCommitment } from '#/lib/commitment-store'
+import { useSession, signOut } from '#/lib/auth.client'
 import { cn } from '#/lib/utils'
 import { BrandMark } from '#/components/brand-mark'
 
 const navigationItems = [
-  { to: '/dashboard', label: 'Ritual', icon: Flame },
-  { to: '/record', label: 'Mirror', icon: Video },
+  { to: '/dashboard', label: 'Today', icon: Flame },
+  { to: '/record', label: 'Record', icon: Video },
   { to: '/history', label: 'Ledger', icon: BookOpen },
 ] as const
 
-export function AppShell({
-  children,
-  hideNavigation = false,
-}: {
-  children: ReactNode
-  hideNavigation?: boolean
-}) {
-  const { state, storageWarning } = useCommitment()
+export function AppShell({ children }: { children: ReactNode }) {
+  const { data: session } = useSession()
+  const navigate = useNavigate()
   const pathname = useRouterState({ select: (routerState) => routerState.location.pathname })
-  const homeTarget = state.plan ? '/dashboard' : '/setup'
 
   return (
     <div className="relative flex min-h-dvh flex-col">
@@ -30,48 +24,35 @@ export function AppShell({
 
       <header className="sticky top-0 z-30 border-b border-line bg-void/[0.88] backdrop-blur-md">
         <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <Link to={homeTarget} className="group flex min-w-0 items-center gap-3">
+          <Link to="/dashboard" className="group flex min-w-0 items-center gap-3">
             <BrandMark className="h-9 w-7 text-rust transition-colors group-hover:text-bone" />
             <span className="min-w-0">
               <span className="block truncate font-display text-[1.15rem] font-medium leading-none tracking-[0.01em] text-bone">
-                Workout Commitment
+                Habit-Stakes
               </span>
-              <span className="mt-1 block text-[0.58rem] uppercase tracking-[0.24em] text-muted">
-                Private ritual · prototype
+              <span className="mt-1 block truncate text-[0.58rem] uppercase tracking-[0.24em] text-muted">
+                {session?.user.email ?? 'Signed out'}
               </span>
             </span>
           </Link>
-          <span className="shrink-0 border border-rust/40 bg-rust/[0.08] px-2 py-1 font-mono text-[0.58rem] uppercase tracking-[0.2em] text-rust">
-            Demo
-          </span>
+          <button
+            type="button"
+            onClick={async () => {
+              await signOut()
+              void navigate({ to: '/' })
+            }}
+            className="border border-line-strong px-3 py-1.5 text-xs text-bone-dim transition-colors hover:border-bone/40 hover:text-bone"
+          >
+            Sign out
+          </button>
         </div>
-        <p className="border-t border-rust/15 bg-rust/[0.045] px-4 py-1.5 text-center text-[0.6rem] uppercase tracking-[0.2em] text-rust/90">
-          Demo: no real money moves
-        </p>
       </header>
 
-      {storageWarning ? (
-        <div className="mx-auto mt-4 w-full max-w-2xl px-4 sm:px-6">
-          <p
-            role="status"
-            className="border border-rust/35 bg-rust/[0.08] px-3 py-2 text-xs leading-relaxed text-bone-dim"
-          >
-            {storageWarning}
-          </p>
-        </div>
-      ) : null}
-
-      <main
-        id="main-content"
-        className={cn(
-          'mx-auto w-full max-w-2xl flex-1 px-4 pt-7 sm:px-6 sm:pt-10',
-          hideNavigation ? 'pb-12' : 'pb-32',
-        )}
-      >
+      <main id="main-content" className="mx-auto w-full max-w-2xl flex-1 px-4 pt-7 pb-32 sm:px-6 sm:pt-10">
         {children}
       </main>
 
-      {hideNavigation ? null : <BottomNavigation pathname={pathname} />}
+      <BottomNavigation pathname={pathname} />
     </div>
   )
 }
@@ -85,9 +66,8 @@ function BottomNavigation({ pathname }: { pathname: string }) {
     >
       <div className="mx-auto grid w-full max-w-2xl grid-cols-3 px-2">
         {navigationItems.map((item) => {
-          const active = pathname === item.to
+          const active = pathname.startsWith(item.to)
           const Icon = item.icon
-
           return (
             <Link
               key={item.to}
@@ -99,10 +79,7 @@ function BottomNavigation({ pathname }: { pathname: string }) {
               )}
             >
               {active ? (
-                <span
-                  aria-hidden="true"
-                  className="absolute top-0 h-px w-9 bg-rust shadow-[0_0_10px_rgba(210,105,78,0.65)]"
-                />
+                <span aria-hidden="true" className="absolute top-0 h-px w-9 bg-rust shadow-[0_0_10px_rgba(210,105,78,0.65)]" />
               ) : null}
               <Icon
                 aria-hidden="true"

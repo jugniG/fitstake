@@ -4,22 +4,30 @@ import * as schema from './db/schema.js'
 import { getSchemaName } from './db/schema.js'
 
 const dbSchema = getSchemaName()
+const connectionString = process.env.DATABASE_URL ?? ''
+// Hosted Postgres (Neon, Supabase) needs explicit SSL config; pg does not read sslmode
+// from the connection string. Local Postgres usually has SSL disabled.
+const isLocal = /(?:^|@)(?:localhost|127\.0\.0\.1|\[::1\])(?::|\/)/i.test(connectionString)
+const needsSsl =
+  !isLocal && (/sslmode=require|neon\.tech|supabase\.(com|co)/i.test(connectionString))
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  // honor ?schema= param like Prisma did (src/db.ts previously used PrismaPg adapter schema)
+  connectionString,
   ...(dbSchema !== 'public' ? { options: `-c search_path=${dbSchema}` } : {}),
+  ...(needsSsl ? { ssl: { rejectUnauthorized: false } } : {}),
 })
 
+// A factory keeps the schema-typed return type so the HMR global reuses the same type
+// (and so `db.query.<table>` is properly typed).
+const createDb = () => drizzle({ client: pool, schema })
+
 declare global {
-  var __pool: Pool | undefined
-  var __db: ReturnType<typeof drizzle> | undefined
+  var __db: ReturnType<typeof createDb> | undefined
 }
 
-export const db = globalThis.__db || drizzle({ client: pool, schema })
+export const db = globalThis.__db ?? createDb()
 
 if (process.env.NODE_ENV !== 'production') {
-  globalThis.__pool = pool
   globalThis.__db = db
 }
 

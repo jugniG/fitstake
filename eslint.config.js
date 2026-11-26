@@ -15,6 +15,7 @@ export default [
     },
   },
   {
-    ignores: ['eslint.config.js', 'prettier.config.js'],
+    // MediaPipe ships minified browser bundles that are not part of the TypeScript project.
+    ignores: ['eslint.config.js', 'prettier.config.js', 'public/**'],
   },
 ]

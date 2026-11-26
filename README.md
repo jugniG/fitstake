@@ -1,94 +1,81 @@
-# Workout Commitment
+# Habit-Stakes
 
-A mobile-first prototype for a private daily workout commitment. You choose the movements, the
-daily amount and the number of days. One session is required per day. Complete a day and that
-day's allocation is returned; miss it and only that day's allocation is lost. Future allocations
-stay locked.
+Lock a commitment pot upfront, win each day back with camera-verified workouts, and settle once.
 
-**This is a demo. No real money moves.** There is no payment provider, no payout, no AI
-verification and no upload. The plan, ledger and capture summaries live in this browser's
-`localStorage`.
+Choose the exercise, your daily stake (USD), and how many days. You pay the full pot once via
+[Kelviq](https://kelviq.com) (merchant of record). Each day you complete your target sets and reps
+on the live camera, that day's stake moves into your **won-back** balance. Miss a day's local
+deadline and that day's stake is **forfeited**. At the end of the challenge, the won-back total is
+refunded to your original payment method in a single settlement — no per-day payout churn, and a
+challenge is refunded at most once.
 
-## What works
+Real money, real webhooks, real camera verification. Built for the Kiroween Frankenstein track by
+stitching the [Kiro-InteractionKit](https://github.com/Harpita-P/Kiro-InteractionKit) gesture/pose
+approach (MediaPipe) into a TanStack Start app, with Kelviq handling payments.
 
-- Editable setup: exercises, sets, reps, daily amount and duration. Defaults are ₹1,000/day for
-  10 days (₹10,000 total), but every value can be changed.
-- Dashboard with one coffin-shaped card per daily allocation, live totals and the current open
-  day.
-- Live in-app camera preview in a "haunted mirror", video-only recording with `getUserMedia` and
-  `MediaRecorder`, review, download and a saved capture summary.
-- Honest camera states: permission denied, missing device, unsupported browser, busy camera,
-  insecure context, recorder failure and interrupted takes are handled separately.
-- Results screen that keeps recording, verification and settlement as three distinct records.
-- Demo controls in the ledger to preview returned or lost days, one day at a time.
-- Local persistence across refreshes, cross-tab sync, reset-demo, reduced-motion support and
-  keyboard/screen-reader labels.
+## Stack
 
-## What is deliberately not built
+- **Framework:** TanStack Start (React 19 + Vite + Nitro), TanStack Router, Tailwind v4
+- **Auth:** Better Auth — Google OAuth + email magic-link (no password)
+- **Payments:** Kelviq (`@kelviq/node-sdk`) — one-time checkout, HMAC webhooks, partial refund
+- **Vision:** `@mediapipe/tasks-vision` (`PoseLandmarker` / `HandLandmarker`) in the browser; WASM
+  self-hosted in `public/wasm`, models load from the MediaPipe CDN
+- **DB:** Postgres (Neon serverless) via Drizzle ORM
+- **Hosting:** Vercel serverless + Vercel Cron for the settlement sweep
 
-- Real deposits, withdrawals, custody, KYC, refunds or payment webhooks.
-- A completion-verification method. A recording is not proof.
-- Calendar cutoffs, timezones or grace periods.
-- Interrupted-session policy.
-- A destination for forfeited money.
-- Accounts, social features, sharing, viewers, voting or leaderboards.
+## What's verified vs. trusted
 
-The ledger UI lists these open rules so they are not mistaken for implemented behavior.
+Pose rep-counting runs **client-side** (computer vision can't run on Vercel serverless). The client
+proposes a completion; the server validates it: the day must be open (server UTC + the user's pinned
+timezone), the rep/sets must match the target, and the session duration must be plausible. Live
+camera only, with liveness (frame-continuity), minimum rep duration, and landmark confidence
+guards. This is an accepted trade-off for serverless hosting — not full server-side CV.
+
+## Setup
+
+1. `npm install`
+2. Copy `.env.example` to `.env` and fill in:
+   - `DATABASE_URL` — a Neon connection string (`...?sslmode=require`)
+   - `BETTER_AUTH_SECRET`, `APP_URL`
+   - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`
+   - `RESEND_API_KEY` / `RESEND_FROM` (leave blank in dev to log the magic-link URL server-side)
+   - `KELVIQ_SERVER_API_KEY`, `KELVIQ_WEBHOOK_SECRET`, `KELVIQ_ENV=sandbox`,
+     `KELVIQ_COMMITMENT_PLAN_IDENTIFIER`
+   - `CRON_SECRET`
+3. **Migrate the DB:** `npm run db:migrate` (migration SQL is generated at `drizzle/`).
+4. **Kelviq dashboard:** create a product + a one-time plan (use its identifier for
+   `KELVIQ_COMMITMENT_PLAN_IDENTIFIER`), and register a webhook endpoint to
+   `<APP_URL>/api/webhooks/kelviq` (copy the signing secret into `KELVIQ_WEBHOOK_SECRET`).
+5. MediaPipe WASM is already self-hosted in `public/wasm`; nothing to do.
 
 ## Run
 
 ```bash
-npm install
-npm run dev
+npm run dev           # dev server (run this yourself; do not leave it to the agent)
+npm run lint          # ESLint
+npm run check         # Prettier check
+npm test              # Vitest (domain + vision unit tests)
+npx tsc --noEmit      # typecheck
 ```
-
-The dev server uses `dotenv -e .env -- vite dev`. Copy `.env.example` to `.env` if the file is
-missing. `DATABASE_URL` is currently unused by the prototype; no database query, migration or
-auth flow runs.
 
 Camera capture requires `localhost` or HTTPS.
 
-## Flow
+## Deploy (Vercel)
 
-1. `/setup` — set the stake and movements, then seal the demo commitment.
-2. `/dashboard` — see the open day, the required session and every daily allocation.
-3. `/record` — open the mirror, record one take, review it, optionally download it, then keep a
-   capture summary.
-4. `/history` — inspect recording, verification and settlement per day; preview outcomes with the
-   explicit demo controls; reset the demo when finished.
-
-## Data and recording behavior
-
-- `workout-commitment:demo:v1` in `localStorage` stores the plan, ledger and capture summaries.
-- A capture summary stores status, time and duration only. The video blob stays in memory for the
-  current tab and is revoked when the recording screen unmounts.
-- No video is uploaded. Leaving or reloading `/record` discards the take.
-- If storage is unavailable or malformed, the app says so and keeps working in memory.
-- Settlement is sequential and each day can settle once. Future days cannot be settled.
+- Add the same env vars to Vercel. `vercel.json` registers an hourly cron at `/api/cron/settle`
+  (the settlement sweep); set `CRON_SECRET` so Vercel's `Authorization: Bearer` calls authenticate.
 
 ## Project layout
 
 ```
 src/
-  components/          app shell, coffin cards, setup and ledger pieces
-  components/ui/       small shared primitives
-  hooks/               camera preview and MediaRecorder lifecycle
-  lib/commitment.ts    pure plan, ledger, capture and coherence rules
-  lib/commitment-store.tsx  React context and localStorage persistence
-  routes/              TanStack Router file routes
-  styles.css           Tailwind v4 theme, horror surfaces and motion
+  lib/challenge/      pure plan math, day windows, state machine, settlement (unit-tested)
+  lib/vision/          MediaPipe engine, rep-counter, exercises, liveness (unit-tested)
+  lib/kelviq/          server-only Kelviq checkout/refund
+  lib/server/          createChallenge/getDashboard/completeDay + webhook + settlement sweep
+  lib/auth*.ts         Better Auth server + client + session server fns
+  db/schema.ts         Drizzle schema (Better Auth tables + challenge/day/verification/event)
+  routes/              TanStack file routes incl. /api/auth/$, /api/webhooks/kelviq, /api/cron/settle
+.kiro/steering/        architecture, vision-conventions, kelviq, testing
+.kiro/specs/habit-stakes/  requirements, design, tasks
 ```
-
-## Scripts
-
-```bash
-npm run dev              # dev server
-npm run generate-routes  # regenerate the route tree
-npm run lint             # ESLint
-npm run check            # Prettier check
-npm test                 # Vitest ledger invariant tests
-npx tsc --noEmit         # typecheck
-```
-
-Database scripts (`db:generate`, `db:migrate`, `db:studio`) remain from the starter but are not
-part of the prototype. Ask before running a migration.

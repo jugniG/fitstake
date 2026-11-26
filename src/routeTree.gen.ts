@@ -10,73 +10,145 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as HistoryRouteImport } from './routes/history'
-import { Route as RecordRouteImport } from './routes/record'
-import { Route as SetupRouteImport } from './routes/setup'
+import { Route as ProtectedRouteImport } from './routes/_protected'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
+import { Route as ProtectedHistoryRouteImport } from './routes/_protected/history'
+import { Route as ProtectedRecordRouteImport } from './routes/_protected/record'
+import { Route as ProtectedSetupRouteImport } from './routes/_protected/setup'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiCronSettleRouteImport } from './routes/api/cron/settle'
+import { Route as ApiWebhooksKelviqRouteImport } from './routes/api/webhooks/kelviq'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardRoute = DashboardRouteImport.update({
+const ProtectedRoute = ProtectedRouteImport.update({
+  id: '/_protected',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProtectedDashboardRoute = ProtectedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => ProtectedRoute,
 } as any)
-const HistoryRoute = HistoryRouteImport.update({
+const ProtectedHistoryRoute = ProtectedHistoryRouteImport.update({
   id: '/history',
   path: '/history',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => ProtectedRoute,
 } as any)
-const RecordRoute = RecordRouteImport.update({
+const ProtectedRecordRoute = ProtectedRecordRouteImport.update({
   id: '/record',
   path: '/record',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => ProtectedRoute,
 } as any)
-const SetupRoute = SetupRouteImport.update({
+const ProtectedSetupRoute = ProtectedSetupRouteImport.update({
   id: '/setup',
   path: '/setup',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCronSettleRoute = ApiCronSettleRouteImport.update({
+  id: '/api/cron/settle',
+  path: '/api/cron/settle',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWebhooksKelviqRoute = ApiWebhooksKelviqRouteImport.update({
+  id: '/api/webhooks/kelviq',
+  path: '/api/webhooks/kelviq',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
-  '/history': typeof HistoryRoute
-  '/record': typeof RecordRoute
-  '/setup': typeof SetupRoute
+  '/login': typeof LoginRoute
+  '/dashboard': typeof ProtectedDashboardRoute
+  '/history': typeof ProtectedHistoryRoute
+  '/record': typeof ProtectedRecordRoute
+  '/setup': typeof ProtectedSetupRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/cron/settle': typeof ApiCronSettleRoute
+  '/api/webhooks/kelviq': typeof ApiWebhooksKelviqRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
-  '/history': typeof HistoryRoute
-  '/record': typeof RecordRoute
-  '/setup': typeof SetupRoute
+  '/login': typeof LoginRoute
+  '/dashboard': typeof ProtectedDashboardRoute
+  '/history': typeof ProtectedHistoryRoute
+  '/record': typeof ProtectedRecordRoute
+  '/setup': typeof ProtectedSetupRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/cron/settle': typeof ApiCronSettleRoute
+  '/api/webhooks/kelviq': typeof ApiWebhooksKelviqRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
-  '/history': typeof HistoryRoute
-  '/record': typeof RecordRoute
-  '/setup': typeof SetupRoute
+  '/_protected': typeof ProtectedRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_protected/dashboard': typeof ProtectedDashboardRoute
+  '/_protected/history': typeof ProtectedHistoryRoute
+  '/_protected/record': typeof ProtectedRecordRoute
+  '/_protected/setup': typeof ProtectedSetupRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/cron/settle': typeof ApiCronSettleRoute
+  '/api/webhooks/kelviq': typeof ApiWebhooksKelviqRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/history' | '/record' | '/setup'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/dashboard'
+    | '/history'
+    | '/record'
+    | '/setup'
+    | '/api/auth/$'
+    | '/api/cron/settle'
+    | '/api/webhooks/kelviq'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/history' | '/record' | '/setup'
-  id: '__root__' | '/' | '/dashboard' | '/history' | '/record' | '/setup'
+  to:
+    | '/'
+    | '/login'
+    | '/dashboard'
+    | '/history'
+    | '/record'
+    | '/setup'
+    | '/api/auth/$'
+    | '/api/cron/settle'
+    | '/api/webhooks/kelviq'
+  id:
+    | '__root__'
+    | '/'
+    | '/_protected'
+    | '/login'
+    | '/_protected/dashboard'
+    | '/_protected/history'
+    | '/_protected/record'
+    | '/_protected/setup'
+    | '/api/auth/$'
+    | '/api/cron/settle'
+    | '/api/webhooks/kelviq'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DashboardRoute: typeof DashboardRoute
-  HistoryRoute: typeof HistoryRoute
-  RecordRoute: typeof RecordRoute
-  SetupRoute: typeof SetupRoute
+  ProtectedRoute: typeof ProtectedRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiCronSettleRoute: typeof ApiCronSettleRoute
+  ApiWebhooksKelviqRoute: typeof ApiWebhooksKelviqRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -88,53 +160,98 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard': {
-      id: '/dashboard'
+    '/_protected': {
+      id: '/_protected'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof ProtectedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_protected/dashboard': {
+      id: '/_protected/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof ProtectedDashboardRouteImport
+      parentRoute: typeof ProtectedRoute
     }
-    '/history': {
-      id: '/history'
+    '/_protected/history': {
+      id: '/_protected/history'
       path: '/history'
       fullPath: '/history'
-      preLoaderRoute: typeof HistoryRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof ProtectedHistoryRouteImport
+      parentRoute: typeof ProtectedRoute
     }
-    '/record': {
-      id: '/record'
+    '/_protected/record': {
+      id: '/_protected/record'
       path: '/record'
       fullPath: '/record'
-      preLoaderRoute: typeof RecordRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof ProtectedRecordRouteImport
+      parentRoute: typeof ProtectedRoute
     }
-    '/setup': {
-      id: '/setup'
+    '/_protected/setup': {
+      id: '/_protected/setup'
       path: '/setup'
       fullPath: '/setup'
-      preLoaderRoute: typeof SetupRouteImport
+      preLoaderRoute: typeof ProtectedSetupRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cron/settle': {
+      id: '/api/cron/settle'
+      path: '/api/cron/settle'
+      fullPath: '/api/cron/settle'
+      preLoaderRoute: typeof ApiCronSettleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/webhooks/kelviq': {
+      id: '/api/webhooks/kelviq'
+      path: '/api/webhooks/kelviq'
+      fullPath: '/api/webhooks/kelviq'
+      preLoaderRoute: typeof ApiWebhooksKelviqRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
 }
 
+interface ProtectedRouteChildren {
+  ProtectedDashboardRoute: typeof ProtectedDashboardRoute
+  ProtectedHistoryRoute: typeof ProtectedHistoryRoute
+  ProtectedRecordRoute: typeof ProtectedRecordRoute
+  ProtectedSetupRoute: typeof ProtectedSetupRoute
+}
+
+const ProtectedRouteChildren: ProtectedRouteChildren = {
+  ProtectedDashboardRoute: ProtectedDashboardRoute,
+  ProtectedHistoryRoute: ProtectedHistoryRoute,
+  ProtectedRecordRoute: ProtectedRecordRoute,
+  ProtectedSetupRoute: ProtectedSetupRoute,
+}
+
+const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(
+  ProtectedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DashboardRoute: DashboardRoute,
-  HistoryRoute: HistoryRoute,
-  RecordRoute: RecordRoute,
-  SetupRoute: SetupRoute,
+  ProtectedRoute: ProtectedRouteWithChildren,
+  LoginRoute: LoginRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiCronSettleRoute: ApiCronSettleRoute,
+  ApiWebhooksKelviqRoute: ApiWebhooksKelviqRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

@@ -1,10 +1,8 @@
-const inrFormatter = new Intl.NumberFormat('en-IN', {
-  maximumFractionDigits: 0,
-})
+const usdFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
 
-export function formatINR(amount: number): string {
-  if (!Number.isFinite(amount)) return '₹0'
-  return `₹${inrFormatter.format(Math.round(amount))}`
+export function formatUSD(amount: number): string {
+  if (!Number.isFinite(amount)) return '$0'
+  return `$${usdFormatter.format(Math.round(amount))}`
 }
 
 export function formatClock(seconds: number): string {
@@ -14,14 +12,22 @@ export function formatClock(seconds: number): string {
   return `${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`
 }
 
-export function formatDateTime(isoDate: string): string {
+export function formatDate(iso: string): string {
   try {
-    return new Intl.DateTimeFormat('en-IN', {
+    return new Intl.DateTimeFormat('en-US', { month: 'short', day: '2-digit' }).format(new Date(iso))
+  } catch {
+    return '—'
+  }
+}
+
+export function formatDateTime(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat('en-US', {
       day: '2-digit',
       month: 'short',
       hour: 'numeric',
       minute: '2-digit',
-    }).format(new Date(isoDate))
+    }).format(new Date(iso))
   } catch {
     return 'Unknown time'
   }
@@ -29,8 +35,4 @@ export function formatDateTime(isoDate: string): string {
 
 export function formatPrescription(sets: number, reps: number): string {
   return `${sets} × ${reps}`
-}
-
-export function exerciseSummary(exercises: Array<{ name: string }>): string {
-  return exercises.map((exercise) => exercise.name).join(' · ')
 }

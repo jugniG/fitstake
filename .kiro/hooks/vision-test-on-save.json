@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Run vision tests on save",
+      "trigger": "PostFileSave",
+      "description": "Runs the src/lib/vision unit tests whenever a vision module is saved, so rep-counting edits stay valid.",
+      "matcher": "src/lib/vision/.*\\.ts$",
+      "action": {
+        "type": "command",
+        "command": "npm test -- vision"
+      }
+    }
+  ]
+}
