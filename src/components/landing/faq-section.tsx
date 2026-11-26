@@ -1,6 +1,3 @@
-import { useState } from 'react'
-import { Plus, Minus } from 'lucide-react'
-
 const FAQS = [
   {
     q: 'How does StakeFit work?',
@@ -29,11 +26,9 @@ const FAQS = [
 ]
 
 export function FaqSection() {
-  const [openIdx, setOpenIdx] = useState<number | null>(0)
-
   return (
     <section id="faq" className="border-t border-[#0d1b2a14] bg-[#faf8f5] py-20 sm:py-28">
-      <div className="mx-auto max-w-4xl px-5">
+      <div className="mx-auto max-w-3xl px-5">
         <div className="text-center">
           <p className="inline-block rounded-full bg-[#eef3fb] px-3.5 py-1 text-xs font-bold tracking-wider text-[#5a6678] uppercase">
             FAQ
@@ -43,33 +38,26 @@ export function FaqSection() {
           </h2>
         </div>
 
-        <div className="mt-12 space-y-3.5">
-          {FAQS.map((faq, idx) => {
-            const isOpen = openIdx === idx
-            return (
-              <div
-                key={idx}
-                className="overflow-hidden rounded-2xl border border-[#0d1b2a14] bg-white transition-all shadow-xs"
-              >
-                <button
-                  type="button"
-                  onClick={() => setOpenIdx(isOpen ? null : idx)}
-                  className="flex w-full items-center justify-between p-5 text-left font-bold text-[#0d1b2a] sm:p-6 sm:text-lg cursor-pointer"
-                >
-                  <span>{faq.q}</span>
-                  <div className="ml-4 grid size-7 shrink-0 place-items-center rounded-full bg-[#eef3fb] text-[#2b66f2]">
-                    {isOpen ? <Minus className="size-4" /> : <Plus className="size-4" />}
-                  </div>
-                </button>
-
-                {isOpen ? (
-                  <div className="border-t border-[#0d1b2a10] px-5 pt-3 pb-6 text-sm leading-relaxed text-[#5a6678] sm:px-6">
-                    {faq.a}
-                  </div>
-                ) : null}
+        {/* Exclusive HTML <details name="faq"> Accordion matching Screenly */}
+        <div className="mt-12 divide-y divide-[#0d1b2a14] border-y border-[#0d1b2a14]">
+          {FAQS.map((faq, index) => (
+            <details
+              key={faq.q}
+              name="faq"
+              className="group py-5 transition-colors"
+              {...(index === 0 ? { open: true } : {})}
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left font-display text-base font-bold text-[#0d1b2a] hover:text-[#2b66f2] sm:text-lg">
+                <span>{faq.q}</span>
+                <span className="shrink-0 text-2xl font-light text-[#5a6678] transition-transform duration-200 group-open:rotate-45">
+                  +
+                </span>
+              </summary>
+              <div className="mt-2.5 max-w-2xl pr-4 text-sm leading-relaxed text-[#5a6678]">
+                <p>{faq.a}</p>
               </div>
-            )
-          })}
+            </details>
+          ))}
         </div>
       </div>
     </section>

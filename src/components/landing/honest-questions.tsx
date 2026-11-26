@@ -37,12 +37,17 @@ export function HonestQuestions() {
             </ul>
           </div>
 
+          {/* Middle Divider matching Screenly DirectCheck */}
+          <div className="mx-auto flex w-full max-w-3xl items-center gap-4">
+            <div className="flex-1 border-t border-dashed border-[#0d1b2a1a]" aria-hidden="true" />
+            <span className="shrink-0 rounded-full border border-[#2b66f2]/20 bg-[#2b66f2]/10 px-3.5 py-1 text-[11px] font-bold tracking-wider text-[#2b66f2] uppercase">
+              If your answer is yes
+            </span>
+            <div className="flex-1 border-t border-dashed border-[#0d1b2a1a]" aria-hidden="true" />
+          </div>
+
           <div className="mx-auto w-full max-w-3xl rounded-3xl border border-[#0d1b2a14] bg-white p-7 shadow-sm sm:p-10">
             <div className="flex flex-col gap-4">
-              <span className="inline-block w-fit rounded-full bg-[#eef3fb] px-3.5 py-1 text-xs font-bold tracking-wider text-[#2b66f2] uppercase">
-                If your answer is yes
-              </span>
-
               <h3 className="text-2xl font-extrabold tracking-tight text-[#0d1b2a] sm:text-4xl">
                 Let me tell you —{' '}
                 <span className="serif text-[#2b66f2]">you still don’t do it.</span>

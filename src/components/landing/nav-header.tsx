@@ -18,24 +18,24 @@ export function NavHeader() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-7 text-xs font-bold text-[#5a6678] lg:flex">
+        <nav className="hidden items-center gap-7 text-xs font-semibold tracking-wide text-[#5a6678] lg:flex">
           <a href="#in-short" className="transition-colors hover:text-[#0d1b2a]">
-            In short
+            <span className="text-[#2b66f2] font-mono mr-1">01</span> In short
           </a>
           <a href="#scenarios" className="transition-colors hover:text-[#0d1b2a]">
-            Relatable
+            <span className="text-[#2b66f2] font-mono mr-1">02</span> Relatable
           </a>
           <a href="#science" className="transition-colors hover:text-[#0d1b2a]">
-            The Science
+            <span className="text-[#2b66f2] font-mono mr-1">03</span> Science
           </a>
           <a href="#how-it-works" className="transition-colors hover:text-[#0d1b2a]">
-            How it works
+            <span className="text-[#2b66f2] font-mono mr-1">04</span> Method
           </a>
           <a href="#compare" className="transition-colors hover:text-[#0d1b2a]">
-            Comparison
+            <span className="text-[#2b66f2] font-mono mr-1">05</span> Compare
           </a>
           <a href="#faq" className="transition-colors hover:text-[#0d1b2a]">
-            FAQ
+            <span className="text-[#2b66f2] font-mono mr-1">06</span> FAQ
           </a>
         </nav>
 

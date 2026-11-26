@@ -70,9 +70,9 @@ export function Hero() {
               </Link>
               <a
                 href="#in-short"
-                className="inline-flex items-center rounded-full border border-[#0d1b2a1f] bg-white px-5 py-3 text-sm font-bold text-[#0d1b2a] shadow-xs transition-colors hover:bg-[#f1f3f7] sm:text-base"
+                className="btn-quippy-secondary inline-flex items-center gap-2 px-6 py-3 text-sm font-bold sm:text-base"
               >
-                Learn the science
+                Learn the science <ArrowRight className="size-4" />
               </a>
             </div>
 
