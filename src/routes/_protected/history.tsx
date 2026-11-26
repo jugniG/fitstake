@@ -34,18 +34,29 @@ function HistoryPage() {
 
   if (error)
     return (
-      <p role="alert" className="field-error">
+      <p
+        role="alert"
+        className="rounded-2xl border border-rose-500/20 bg-rose-50 p-4 text-center text-xs font-semibold text-rose-700"
+      >
         {error}
       </p>
     )
-  if (!data) return <p className="text-muted">Loading the ledger…</p>
-  if (!data.challenge) return <p className="text-muted">No challenge yet.</p>
+  if (!data) return <p className="text-sm font-medium text-[#5a6678]">Loading the ledger…</p>
+  if (!data.challenge)
+    return <p className="text-sm font-medium text-[#5a6678]">No active commitment yet.</p>
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <header className="space-y-1">
-        <p className="eyebrow">Ledger</p>
-        <h1 className="font-display text-3xl font-medium text-bone">Day-by-day record</h1>
+        <p className="font-mono text-xs font-bold uppercase tracking-wider text-[#2b66f2]">
+          Commitment Ledger
+        </p>
+        <h1 className="font-display text-3xl font-extrabold text-[#0d1b2a] sm:text-4xl">
+          Day-by-day record
+        </h1>
+        <p className="text-sm text-[#5a6678]">
+          Every rep verified on camera. Every day defended in audited escrow.
+        </p>
       </header>
       <MoneySummary totals={data.totals} challenge={data.challenge} />
       <DayList days={data.days} />

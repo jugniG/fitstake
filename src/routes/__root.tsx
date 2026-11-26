@@ -53,17 +53,19 @@ function RootDocument({ children }: { children: ReactNode }) {
 
 function NotFound() {
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center px-6 text-center">
-      <BrandMark className="size-12 text-rust" />
-      <p className="eyebrow mt-6">Missing page</p>
-      <h1 className="mt-2 font-display text-3xl font-medium text-bone">
-        This page was never carved.
+    <div className="flex min-h-dvh flex-col items-center justify-center bg-[#faf8f5] px-6 text-center text-[#0d1b2a]">
+      <BrandMark className="size-12 text-[#2b66f2]" />
+      <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#5a6678] mt-6">
+        404 · Page Not Found
+      </span>
+      <h1 className="mt-2 font-display text-3xl font-extrabold text-[#0d1b2a]">
+        This page does not exist.
       </h1>
       <Link
         to="/dashboard"
-        className="mt-6 border border-line-strong px-4 py-2.5 text-sm text-bone-dim transition-colors hover:border-bone/40 hover:text-bone"
+        className="btn-quippy mt-6 inline-flex items-center gap-2 px-6 py-3 text-sm font-bold"
       >
-        Return to the ritual
+        Return to Dashboard
       </Link>
     </div>
   )

@@ -33,19 +33,22 @@ function RecordPage() {
 
   if (error)
     return (
-      <p role="alert" className="field-error">
+      <p
+        role="alert"
+        className="rounded-2xl border border-rose-500/20 bg-rose-50 p-4 text-center text-xs font-semibold text-rose-700"
+      >
         {error}
       </p>
     )
-  if (!data) return <p className="text-muted">Opening the mirror…</p>
+  if (!data) return <p className="text-sm font-medium text-[#5a6678]">Connecting camera…</p>
 
   const challenge = data.challenge
   if (!challenge || challenge.status !== 'active') {
     return (
-      <div className="space-y-4">
-        <h1 className="font-display text-2xl text-bone">No open day.</h1>
-        <p className="text-sm text-muted">
-          You need an active challenge with an open day to record.
+      <div className="rounded-3xl border border-[#0d1b2a14] bg-white p-8 text-center space-y-3">
+        <h1 className="font-display text-2xl font-bold text-[#0d1b2a]">No open day.</h1>
+        <p className="text-sm text-[#5a6678]">
+          You need an active commitment with an open day to record.
         </p>
       </div>
     )
@@ -54,10 +57,12 @@ function RecordPage() {
   const openDay = data.days.find((d) => d.status === 'pending')
   if (!openDay) {
     return (
-      <div className="space-y-4">
-        <h1 className="font-display text-2xl text-bone">Today's window is closed.</h1>
-        <p className="text-sm text-muted">
-          There's no open day right now. Come back when the next day opens.
+      <div className="rounded-3xl border border-[#0d1b2a14] bg-white p-8 text-center space-y-3">
+        <h1 className="font-display text-2xl font-bold text-[#0d1b2a]">
+          Today's window is closed.
+        </h1>
+        <p className="text-sm text-[#5a6678]">
+          You've already completed today's workout! Next window opens at midnight.
         </p>
       </div>
     )

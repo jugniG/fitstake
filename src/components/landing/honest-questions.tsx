@@ -31,7 +31,7 @@ export function HonestQuestions() {
                   02
                 </span>
                 <p className="min-w-0 text-lg font-bold leading-snug tracking-tight text-[#0d1b2a] sm:text-2xl">
-                  Do you believe 15–20 minutes of bodyweight movement a day is completely doable?
+                  You keep failing in being consistent in workout ?
                 </p>
               </li>
             </ul>

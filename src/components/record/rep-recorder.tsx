@@ -492,9 +492,13 @@ export function RepRecorder({
 
   if (status === 'done') {
     return (
-      <div className="space-y-3">
-        <h1 className="font-display text-2xl text-bone">Workout recorded.</h1>
-        <p className="text-sm text-muted">Day {dayNumber} complete. Returning to the ledger…</p>
+      <div className="rounded-3xl border border-emerald-500/20 bg-emerald-50 p-8 text-center space-y-3">
+        <h1 className="font-display text-2xl font-extrabold text-emerald-900">
+          Workout recorded & verified!
+        </h1>
+        <p className="text-sm font-medium text-emerald-800">
+          Day {dayNumber} complete. Returning to your dashboard…
+        </p>
       </div>
     )
   }
@@ -509,14 +513,17 @@ export function RepRecorder({
   return (
     <div className="space-y-5">
       <header className="space-y-1">
-        <h1 className="font-display text-2xl text-bone">Day {dayNumber}</h1>
-        <p className="text-xs text-muted">
-          {targetSets} sets × {targetReps} reps · live camera counting & SmartSpectra vitals
+        <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#2b66f2]">
+          Camera Verification
+        </span>
+        <h1 className="font-display text-2xl font-extrabold text-[#0d1b2a]">Day {dayNumber}</h1>
+        <p className="text-xs font-medium text-[#5a6678]">
+          {targetSets} sets × {targetReps} reps · On-device vision & SmartSpectra™ vitals
         </p>
       </header>
 
       <div
-        className={`relative mx-auto overflow-hidden border border-line bg-black shadow-2xl ${
+        className={`relative mx-auto overflow-hidden rounded-3xl border border-[#0d1b2a20] bg-[#0d1b2a] shadow-2xl ${
           isPortrait
             ? 'aspect-[3/4] max-w-sm sm:max-w-md'
             : isCustomGesture
@@ -546,16 +553,21 @@ export function RepRecorder({
             <p className="mt-4 font-mono text-[0.65rem] uppercase tracking-widest text-emerald-400">
               SmartSpectra™ Vitals Calibration
             </p>
-            <h2 className="mt-1 font-display text-2xl font-medium text-bone">
+            <h2 className="mt-1 font-display text-2xl font-bold text-white">
               Cardiovascular Baseline
             </h2>
-            <div className="my-2 font-mono text-3xl font-bold text-bone">
-              {vitals.pulseBpm} <span className="text-xs text-muted">BPM</span>
+            <div className="my-2 font-mono text-3xl font-bold text-white">
+              {vitals.pulseBpm} <span className="text-xs text-slate-400">BPM</span>
             </div>
-            <p className="mb-5 max-w-xs text-xs text-muted">
+            <p className="mb-5 max-w-xs text-xs text-slate-300">
               Calibrating resting pulse & biological pulse waveform ({scanProgress}s)…
             </p>
-            <Button variant="ghost" size="sm" onClick={finishReadinessScan}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-white hover:text-white hover:bg-white/10"
+              onClick={finishReadinessScan}
+            >
               Skip Calibration & Start Set 1
             </Button>
           </div>
@@ -565,31 +577,33 @@ export function RepRecorder({
         {isLive || status === 'submitting' ? (
           <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 rounded-full border border-line/60 bg-black/75 px-3 py-1 backdrop-blur-md">
+              <div className="flex items-center gap-2 rounded-full border border-white/20 bg-black/75 px-3 py-1 backdrop-blur-md">
                 <span
                   className={`h-2 w-2 rounded-full ${
                     feedback.isError ? 'animate-pulse bg-amber-400' : 'bg-emerald-400'
                   }`}
                 />
-                <span className="font-mono text-xs font-semibold uppercase tracking-wider text-bone">
+                <span className="font-mono text-xs font-semibold uppercase tracking-wider text-white">
                   {exerciseTitle}
                 </span>
               </div>
               {/* SmartSpectra Heart Rate Pill */}
-              <div className="flex items-center gap-1.5 rounded-full border border-line/60 bg-black/75 px-2.5 py-1 backdrop-blur-md">
+              <div className="flex items-center gap-1.5 rounded-full border border-white/20 bg-black/75 px-2.5 py-1 backdrop-blur-md">
                 <span className="text-xs text-rose-400 animate-pulse">❤️</span>
-                <span className="font-mono text-xs font-semibold text-bone">{vitals.pulseBpm}</span>
-                <span className="text-[0.65rem] uppercase text-bone/60 font-mono">
+                <span className="font-mono text-xs font-semibold text-white">
+                  {vitals.pulseBpm}
+                </span>
+                <span className="text-[0.65rem] uppercase text-white/60 font-mono">
                   {vitals.exertionZone}
                 </span>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="rounded-full border border-line/60 bg-black/75 px-2.5 py-1 font-mono text-xs text-bone/90 backdrop-blur-md">
+              <span className="rounded-full border border-white/20 bg-black/75 px-2.5 py-1 font-mono text-xs text-white/90 backdrop-blur-md">
                 Set {Math.min(sets + 1, targetSets)}/{targetSets}
               </span>
-              <span className="rounded-full border border-line/60 bg-black/75 px-2.5 py-1 font-mono text-xs text-bone/70 backdrop-blur-md">
+              <span className="rounded-full border border-white/20 bg-black/75 px-2.5 py-1 font-mono text-xs text-white/70 backdrop-blur-md">
                 {formatClock(elapsed)}
               </span>
             </div>
@@ -603,11 +617,11 @@ export function RepRecorder({
 
         {/* Bottom Prominent Rep Counter */}
         {status === 'live' ? (
-          <div className="pointer-events-none absolute bottom-3 left-3 z-10 flex items-baseline gap-2 rounded-lg border border-line/70 bg-black/80 px-3.5 py-2 shadow-lg backdrop-blur-md">
-            <span className="font-mono text-3xl font-extrabold leading-none text-bone sm:text-4xl">
+          <div className="pointer-events-none absolute bottom-3 left-3 z-10 flex items-baseline gap-2 rounded-lg border border-white/20 bg-black/80 px-3.5 py-2 shadow-lg backdrop-blur-md">
+            <span className="font-mono text-3xl font-extrabold leading-none text-white sm:text-4xl">
               {reps}
             </span>
-            <span className="font-mono text-sm font-medium text-bone/60 sm:text-base">
+            <span className="font-mono text-sm font-medium text-white/60 sm:text-base">
               / {targetReps} reps
             </span>
           </div>
@@ -619,18 +633,18 @@ export function RepRecorder({
             <p className="font-mono text-xs uppercase tracking-[0.2em] text-emerald-400">
               Set {sets} of {targetSets} Complete!
             </p>
-            <h2 className="mt-1 font-display text-3xl font-medium text-bone">Take a Breather</h2>
-            <div className="my-2 font-mono text-5xl font-bold text-rust">{restSeconds}s</div>
+            <h2 className="mt-1 font-display text-3xl font-bold text-white">Take a Breather</h2>
+            <div className="my-2 font-mono text-5xl font-bold text-[#2b66f2]">{restSeconds}s</div>
 
             {/* SmartSpectra Heart Rate Recovery Gauge */}
-            <div className="my-3 w-full max-w-xs rounded-lg border border-line/60 bg-panel/60 p-3 text-left">
+            <div className="my-3 w-full max-w-xs rounded-xl border border-white/20 bg-white/10 p-3 text-left">
               <div className="flex items-center justify-between text-xs">
-                <span className="flex items-center gap-1.5 text-muted">
+                <span className="flex items-center gap-1.5 text-slate-300">
                   <span className="text-xs text-rose-400">❤️</span> Recovery Pulse
                 </span>
-                <span className="font-mono font-bold text-bone">{vitals.pulseBpm} BPM</span>
+                <span className="font-mono font-bold text-white">{vitals.pulseBpm} BPM</span>
               </div>
-              <div className="mt-1 flex items-center justify-between text-[0.65rem] text-faint font-mono">
+              <div className="mt-1 flex items-center justify-between text-[0.65rem] text-slate-400 font-mono">
                 <span>Peak: {ref.current.sensor.getSummary().peakBpm} BPM</span>
                 <span className="text-emerald-400 font-medium">
                   -{Math.max(0, ref.current.sensor.getSummary().peakBpm - vitals.pulseBpm)} BPM
@@ -639,7 +653,7 @@ export function RepRecorder({
               </div>
             </div>
 
-            <p className="mb-5 max-w-xs text-xs text-muted">
+            <p className="mb-5 max-w-xs text-xs text-slate-300">
               Catch your breath. Set {sets + 1} begins automatically when the timer runs out.
             </p>
             <Button variant="primary" size="lg" onClick={resumeAfterRest}>
@@ -651,23 +665,29 @@ export function RepRecorder({
 
       {status === 'idle' ? (
         <div className="space-y-4">
-          <div className="space-y-2 border border-line bg-panel/40 px-4 py-3 text-sm leading-relaxed text-bone-dim">
+          <div className="space-y-2 rounded-2xl border border-[#0d1b2a14] bg-white p-5 text-sm leading-relaxed text-[#5a6678] shadow-xs">
+            <p className="font-bold text-[#0d1b2a] mb-1">Camera setup instructions:</p>
             <p>
               {exerciseType === 'squat'
-                ? 'Position camera so your hips, knees, and ankles are all visible. Turn slightly sideways so knee depth can be detected.'
+                ? 'Position your camera so hips, knees, and ankles are clearly visible. Turn slightly 45° so parallel knee flexion can be detected.'
                 : exerciseType === 'push_up'
                   ? 'Position camera to your side so your shoulders, back, hips, and knees are visible.'
                   : exerciseType === 'jumping_jack'
                     ? 'Stand back far enough that your full body and overhead reach fit in the frame.'
                     : 'Hold your hand clearly in front of the camera.'}
             </p>
-            <p className="text-xs text-muted">
-              SmartSpectra™ contactless vitals & joint tracking are active. No video is ever
-              recorded or stored.
+            <p className="mt-2 text-xs text-[#5a6678] font-medium">
+              🔒 100% On-Device Privacy: SmartSpectra™ contactless vitals & joint kinematics run
+              strictly in browser RAM. No video is ever saved or uploaded.
             </p>
           </div>
-          <Button variant="primary" size="lg" className="w-full" onClick={() => void begin()}>
-            Open camera and start
+          <Button
+            variant="primary"
+            size="lg"
+            className="w-full py-4 text-base shadow-md"
+            onClick={() => void begin()}
+          >
+            Open camera and begin Day {dayNumber}
           </Button>
         </div>
       ) : null}

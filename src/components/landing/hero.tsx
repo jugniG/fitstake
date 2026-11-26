@@ -40,7 +40,7 @@ export function Hero() {
                   <Check className="size-3.5 stroke-[2.5]" />
                 </span>
                 <span>
-                  <strong>Perform exercises in front of camera daily</strong> (15 mins at home).
+                  <strong>Perform exercises in front of camera daily</strong>
                 </span>
               </li>
               <li className="flex items-start gap-3">

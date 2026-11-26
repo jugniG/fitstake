@@ -7,6 +7,9 @@ import { startChallengeCheckout } from '#/lib/server/challenges'
 import { MoneySummary } from './money-summary'
 import { DayList } from './day-list'
 import { Button, buttonStyles } from '#/components/ui/button'
+import { Card } from '#/components/ui/card'
+import { Badge } from '#/components/ui/badge'
+import { Video, ArrowRight, ShieldCheck, Flame } from 'lucide-react'
 
 export function DashboardView({
   data,
@@ -19,13 +22,23 @@ export function DashboardView({
 
   if (!challenge) {
     return (
-      <div className="space-y-6">
-        <h1 className="font-display text-3xl font-medium text-bone">No active challenge.</h1>
-        <p className="text-sm text-muted">Forge a new commitment to put real stakes on the line.</p>
-        <Link to="/setup" className={buttonStyles({ variant: 'primary', size: 'lg' })}>
-          Start a challenge
-        </Link>
-      </div>
+      <Card className="p-8 text-center sm:p-12">
+        <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-[#eef3fb] text-[#2b66f2]">
+          <Flame className="size-6 text-[#2b66f2]" />
+        </div>
+        <h1 className="mt-4 font-display text-2xl font-extrabold text-[#0d1b2a] sm:text-3xl">
+          No active commitment.
+        </h1>
+        <p className="mx-auto mt-2 max-w-sm text-sm text-[#5a6678]">
+          Lock in your workout commitment today. Put real skin in the game and build unbreakable
+          consistency.
+        </p>
+        <div className="mt-6">
+          <Link to="/setup" className={buttonStyles({ variant: 'primary', size: 'lg' })}>
+            Start a challenge <ArrowRight className="size-4" />
+          </Link>
+        </div>
+      </Card>
     )
   }
 
@@ -36,22 +49,54 @@ export function DashboardView({
   const hasOpenDay = days.some((day) => day.status === 'pending')
 
   return (
-    <div className="space-y-8">
-      <header className="space-y-2">
-        <p className="eyebrow">{statusLabel(challenge.status)}</p>
-        <h1 className="font-display text-3xl font-medium text-bone">{exerciseLabel}</h1>
-        <p className="text-sm text-muted">
-          {challenge.targetSets} sets × {challenge.targetReps} reps · {challenge.totalDays} days ·{' '}
-          {formatUSD(challenge.dailyStakeAmount)}/day
-        </p>
-      </header>
+    <div className="space-y-6">
+      <Card className="p-6 sm:p-7">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#0d1b2a10] pb-4">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#5a6678]">
+              Active Challenge
+            </span>
+            <Badge variant={challenge.status === 'active' ? 'success' : 'warning'}>
+              {statusLabel(challenge.status)}
+            </Badge>
+          </div>
+          <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-700">
+            <ShieldCheck className="size-4" /> Escrow Protected
+          </span>
+        </div>
+
+        <div className="mt-4">
+          <h1 className="font-display text-3xl font-extrabold tracking-tight text-[#0d1b2a]">
+            {exerciseLabel}
+          </h1>
+          <p className="mt-1 text-sm font-medium text-[#5a6678]">
+            {challenge.targetSets} sets × {challenge.targetReps} reps · {challenge.totalDays} days ·{' '}
+            {formatUSD(challenge.dailyStakeAmount)}/day
+          </p>
+        </div>
+
+        {challenge.status === 'active' && hasOpenDay ? (
+          <div className="mt-6">
+            <Link
+              to="/record"
+              className={buttonStyles({
+                variant: 'primary',
+                size: 'lg',
+                className: 'w-full py-3.5 text-base flex items-center justify-center gap-2',
+              })}
+            >
+              <Video className="size-5" /> Record Today's Workout
+            </Link>
+          </div>
+        ) : null}
+      </Card>
 
       {challenge.status === 'pending_charge' ? (
-        <div className="space-y-3 border border-line bg-panel/50 px-4 py-4">
-          <p className="text-sm text-bone-dim">
+        <Card className="border-amber-200 bg-amber-50 p-5 text-amber-900">
+          <p className="text-sm font-bold">
             {confirmingPayment ? 'Confirming your payment…' : 'Payment not completed.'}
           </p>
-          <p className="text-xs text-muted">
+          <p className="mt-1 text-xs text-amber-800/80">
             {confirmingPayment
               ? 'Kelviq is confirming the charge. This page refreshes automatically while the webhook arrives.'
               : challenge.kelviqCheckoutUrl
@@ -61,56 +106,52 @@ export function DashboardView({
           {!confirmingPayment && challenge.kelviqCheckoutUrl ? (
             <a
               href={challenge.kelviqCheckoutUrl}
-              className={buttonStyles({ variant: 'primary', className: 'w-full' })}
+              className={buttonStyles({ variant: 'primary', className: 'w-full mt-4' })}
             >
               Resume checkout
             </a>
           ) : null}
           {!confirmingPayment && !challenge.kelviqCheckoutUrl ? <RetryPaymentButton /> : null}
-        </div>
+        </Card>
       ) : null}
 
       <MoneySummary totals={totals} challenge={challenge} />
 
-      {challenge.status === 'active' && hasOpenDay ? (
-        <Link
-          to="/record"
-          className={buttonStyles({ variant: 'primary', size: 'lg', className: 'w-full' })}
-        >
-          Record today's workout
-        </Link>
-      ) : null}
-
       {challenge.status === 'active' && !hasOpenDay ? (
-        <p className="border border-line bg-panel/40 px-4 py-3 text-sm text-bone-dim">
-          No day is open right now. The next window opens at midnight in your pinned timezone.
-        </p>
-      ) : null}
-
-      {challenge.status === 'settled' ? (
-        <div className="border border-line bg-panel/50 px-4 py-4">
-          <p className="text-sm text-bone-dim">Challenge settled.</p>
-          <p className="mt-1 text-xs text-muted">
-            {totals.wonBackBalance > 0
-              ? `${formatUSD(totals.wonBackBalance)} won back has been refunded to your original payment method.`
-              : 'No days were completed, so no refund was issued.'}
-          </p>
-        </div>
+        <Card className="border-[#0d1b2a14] bg-white p-5 text-center text-sm font-medium text-[#5a6678]">
+          ✓ Today's workout is complete! Next daily window opens at midnight in your timezone.
+        </Card>
       ) : null}
 
       {challenge.status === 'settling' ? (
-        <div className="border border-line bg-panel/50 px-4 py-4">
-          <p className="text-sm text-bone-dim">Settling your refund…</p>
+        <Card className="border-blue-200 bg-blue-50 p-5 text-blue-900">
+          <p className="text-sm font-bold">Settling your refund…</p>
+          <p className="mt-1 text-xs text-blue-800">
+            Kelviq escrow is issuing your automated refund. This page will update shortly.
+          </p>
+        </Card>
+      ) : null}
+
+      {challenge.status === 'settled' ? (
+        <div className="space-y-4">
+          <Card className="border-emerald-200 bg-emerald-50 p-5 text-emerald-900">
+            <p className="text-sm font-bold">Challenge settled.</p>
+            <p className="mt-1 text-xs text-emerald-800">
+              {totals.wonBackBalance > 0
+                ? `${formatUSD(totals.wonBackBalance)} won back has been refunded to your original payment card.`
+                : 'No days were completed, so no refund was issued.'}
+            </p>
+          </Card>
+          <Link
+            to="/setup"
+            className={buttonStyles({ variant: 'primary', className: 'w-full py-3.5' })}
+          >
+            Start a new challenge
+          </Link>
         </div>
       ) : null}
 
-      {days.length > 0 ? <DayList days={days} /> : null}
-
-      {challenge.status === 'settled' ? (
-        <Link to="/setup" className={buttonStyles({ variant: 'secondary', className: 'w-full' })}>
-          Start a new challenge
-        </Link>
-      ) : null}
+      <DayList days={days} />
     </div>
   )
 }
