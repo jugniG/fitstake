@@ -15,7 +15,14 @@ export type SubscriptionSnapshot = {
   endsAt: Date | null
 }
 
-export type AppAccessReason = 'lifetime' | 'trial' | 'subscribed' | 'running_challenge' | 'none'
+export type AppAccessReason =
+  | 'lifetime'
+  | 'trial'
+  | 'subscribed'
+  // The `paywall_enabled` experiment turned the paywall off for this user: no plan needed.
+  | 'paywall_off'
+  | 'running_challenge'
+  | 'none'
 
 // Dodo keeps a trial and a scheduled cancellation as `active`, so access stays on until
 // endsAt has actually passed. `on_hold` (failed renewal) turns access off.
@@ -63,6 +70,8 @@ export function appAccessReason(
     subscription: SubscriptionSnapshot | null
     hasRunningChallenge: boolean
     lifetimeTrial?: LifetimeTrialSnapshot | null
+    // From the `paywall_enabled` flag; defaults to today's behaviour (paywall on).
+    paywallEnabled?: boolean
   },
   now: Date,
 ): AppAccessReason {
@@ -71,6 +80,7 @@ export function appAccessReason(
   if (subscriptionGrantsAccess(input.subscription, now)) {
     return isInTrial(input.subscription, now) ? 'trial' : 'subscribed'
   }
+  if (input.paywallEnabled === false) return 'paywall_off'
   if (input.hasRunningChallenge) return 'running_challenge'
   return 'none'
 }
@@ -84,9 +94,12 @@ export function newChallengeBlocker(input: {
   owedAmount: number
   hasLostMandate: boolean
 }): ChallengeBlocker {
-  if (input.reason !== 'lifetime' && input.reason !== 'trial' && input.reason !== 'subscribed') {
-    return 'no_plan'
-  }
+  const hasPlan =
+    input.reason === 'lifetime' ||
+    input.reason === 'trial' ||
+    input.reason === 'subscribed' ||
+    input.reason === 'paywall_off'
+  if (!hasPlan) return 'no_plan'
   if (input.owedAmount > 0) return 'owes_charges'
   if (input.hasLostMandate) return 'mandate_lost'
   return null

@@ -1,6 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { readSetupDraft } from '#/components/challenge/setup-draft'
 import { getDashboard } from '#/lib/server/challenges'
 import type { DashboardView } from '#/lib/server/challenges'
 import { DashboardView as DashboardViewComponent } from '#/components/challenge/dashboard-view'
@@ -28,8 +27,9 @@ function DashboardPage() {
       try {
         const result = await getDashboard()
         if (!active) return
-        // Onboarding finished but the card was never authorized: resume at the consent step.
-        if (!result.challenge && readSetupDraft()) {
+        // No challenge yet: setup is the first screen, in both paywall versions. A draft resumes
+        // where the user left off.
+        if (!result.challenge) {
           void navigate({ to: '/setup', replace: true })
           return
         }
@@ -40,7 +40,7 @@ function DashboardPage() {
         polls += 1
         if (
           mandate === 'return' &&
-          result.challenge?.status === 'pending_mandate' &&
+          result.challenge.status === 'pending_mandate' &&
           polls < MAX_POLLS
         ) {
           timer = window.setTimeout(load, POLL_MS)

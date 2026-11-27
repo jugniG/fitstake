@@ -14,10 +14,12 @@
     "lint": "eslint .",
     "check": "prettier --check .",
     "format": "prettier --write .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "simulate": "dotenv -e .env -- node scripts/simulate-traffic.ts"
   },
   "dependencies": {
     "@bryllim/workout-guide": "1.0.0",
+    "@flagsmith/nodejs": "9.5.0",
     "@fontsource-variable/inter": "^5.3.0",
     "@fontsource/cormorant-garamond": "^5.3.0",
     "@hookform/resolvers": "5.4.0",

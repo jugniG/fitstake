@@ -30,8 +30,8 @@ export function nextAttemptAt(
 ): Date | null {
   if (isHardDecline(declineCode)) return null
   if (attemptsMade >= MAX_CHARGE_ATTEMPTS) return null
-  const offsetDays = RETRY_OFFSET_DAYS[attemptsMade - 1]
-  if (offsetDays === undefined) return null
+  const offsetDays = RETRY_OFFSET_DAYS.at(attemptsMade - 1)
+  if (offsetDays === undefined || attemptsMade < 1) return null
   return new Date(firstAttemptAt.getTime() + offsetDays * DAY_MS)
 }
 

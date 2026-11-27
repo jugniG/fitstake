@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { createChallenge } from '#/lib/server/challenges'
+import { getSetupConfig, trackSetupCompleted } from '#/lib/server/experiments'
 import { CUSTOM_GESTURE_LABELS, consentStatement } from '#/lib/challenge'
 import type { CustomGesture, ExerciseType } from '#/lib/challenge'
 import { formatUSD } from '#/lib/format'
@@ -103,7 +104,23 @@ export function SetupForm({ hasPlan }: { hasPlan: boolean }) {
       if (hasPlan) setStep(LAST_STEP)
     }
     setDraftRestored(true)
-  }, [reset, hasPlan])
+
+    // Records the exposures for both experiments. The default_stake value only replaces the
+    // pre-selected stake for a fresh setup; a saved draft keeps the user's own choice.
+    let cancelled = false
+    getSetupConfig({ data: { isLateNight: new Date().getHours() >= LATE_HOUR } })
+      .then((config) => {
+        if (cancelled || draft) return
+        setValue('dailyStakeAmount', config.defaultStake, { shouldValidate: true })
+      })
+      .catch((error: unknown) => {
+        // The form already shows the $10 fallback, so the user can carry on.
+        console.error('[setup] could not load the experiment config:', error)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [reset, hasPlan, setValue])
 
   const isFirstRender = useRef(true)
   useEffect(() => {
@@ -201,6 +218,12 @@ export function SetupForm({ hasPlan }: { hasPlan: boolean }) {
       setSubmitError('Please choose at least 1 exercise.')
       return
     }
+
+    // Finishing the last setup step is the default_stake experiment's early metric. Analytics
+    // never blocks the user, so a failure is only logged.
+    void trackSetupCompleted().catch((error: unknown) => {
+      console.error('[setup] could not record setup_completed:', error)
+    })
 
     if (!hasPlan) {
       saveSetupDraft({

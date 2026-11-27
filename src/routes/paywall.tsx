@@ -30,6 +30,8 @@ export const Route = createFileRoute('/paywall')({
     // On return from checkout the page itself redirects, because only the browser knows whether
     // an onboarding draft is waiting for its card authorization. A server redirect skipped it.
     const onLifetime = access.plan === 'lifetime' || access.plan === 'lifetime_trial'
+    // The paywall_enabled experiment turned the paywall off for this user.
+    if (access.reason === 'paywall_off') throw redirect({ to: '/setup' })
     if (onLifetime && search.checkout !== 'return') {
       throw redirect({ to: '/dashboard' })
     }

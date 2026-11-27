@@ -16,6 +16,7 @@ import {
 } from '#/lib/access'
 import type { AppAccessReason } from '#/lib/access'
 import { chargeLifetimeTrialIfDue } from './lifetime-trial.server'
+import { isPaywallEnabled } from '#/lib/flagsmith.server'
 import type { AccessPlan, AppAccess, CurrentPlan } from './access'
 
 type SessionUser = { id: string; email: string; name: string }
@@ -80,6 +81,13 @@ export async function resolveAppAccess(userId: string): Promise<{
       subscription: rows.subscription,
       lifetimeTrial: rows.trial,
       hasRunningChallenge: !!rows.runningChallenge,
+      // Only asked when it matters: users with a plan never see the paywall either way.
+      paywallEnabled:
+        rows.purchase ||
+        lifetimeTrialGrantsAccess(rows.trial, now) ||
+        subscriptionGrantsAccess(rows.subscription, now)
+          ? true
+          : await isPaywallEnabled(userId),
     },
     now,
   )

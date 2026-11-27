@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from 'drizzle-orm'
+import { and, asc, count, desc, eq, inArray } from 'drizzle-orm'
 import { db, challenge, day, stakeCharge, workoutVerification } from '#/db.server'
 import { ensureSession } from '#/lib/auth.functions'
 import { env } from '#/lib/env'
@@ -18,6 +18,10 @@ import {
 } from '#/lib/challenge/session-token'
 import type { DayWindow, RoutineExercise } from '#/lib/challenge'
 import type { CreateChallengeInput, DashboardView } from './challenges'
+import { EXPERIMENT_EVENT } from '#/lib/experiments'
+import { trackExperimentEvent } from '#/lib/flagsmith.server'
+
+const reportedChallengeCreated = new Set<string>()
 
 const LIVE_STATES = ['pending_mandate', 'active', 'mandate_lost'] as const
 const RECORDABLE_STATES = ['active', 'mandate_lost'] as const
@@ -246,6 +250,14 @@ export async function getDashboardImpl(): Promise<DashboardView> {
 
   const blocker = await readChallengeBlocker(userId)
 
+  // The paywall experiment's early metric: the user reached a dashboard with a challenge the
+  // card mandate activated. Sent once per server process per user; the metric counts each user
+  // once anyway, so a repeat after a restart is harmless.
+  if (latest && latest.status !== 'pending_mandate' && !reportedChallengeCreated.has(userId)) {
+    reportedChallengeCreated.add(userId)
+    await trackExperimentEvent(userId, EXPERIMENT_EVENT.challengeCreated)
+  }
+
   const challengeRow = latest
     ? await db.query.challenge.findFirst({
         where: eq(challenge.id, latest.id),
@@ -448,6 +460,14 @@ export async function completeDayImpl(data: {
   } catch (error) {
     console.error('[challenge] closing the challenge after the final day failed:', error)
   }
+
+  // The real-proof metric for both experiments: the user's first verified workout ever.
+  const [{ workouts }] = await db
+    .select({ workouts: count() })
+    .from(workoutVerification)
+    .innerJoin(challenge, eq(challenge.id, workoutVerification.challengeId))
+    .where(eq(challenge.userId, userId))
+  if (workouts === 1) await trackExperimentEvent(userId, EXPERIMENT_EVENT.firstWorkoutDone)
 
   return { ok: true as const, dayNumber: data.dayNumber }
 }

@@ -58,6 +58,28 @@ describe('app access', () => {
     ).toBe('lifetime')
   })
 
+  it('lets a planless user in when the paywall experiment turns the paywall off', () => {
+    const reason = appAccessReason(
+      { hasLifetime: false, subscription: null, hasRunningChallenge: false, paywallEnabled: false },
+      now,
+    )
+    expect(reason).toBe('paywall_off')
+    expect(canStartChallenge(reason)).toBe(true)
+    // A paid plan still wins, and the default keeps today's paywall.
+    expect(
+      appAccessReason(
+        {
+          hasLifetime: true,
+          subscription: null,
+          hasRunningChallenge: false,
+          paywallEnabled: false,
+        },
+        now,
+      ),
+    ).toBe('lifetime')
+    expect(reasonFor(null)).toBe('none')
+  })
+
   it('offers the 3-day trial only once', () => {
     expect(trialDaysForCheckout(false)).toBe(3)
     expect(trialDaysForCheckout(true)).toBe(0)
