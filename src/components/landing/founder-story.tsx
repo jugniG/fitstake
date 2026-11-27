@@ -1,4 +1,4 @@
-import { Flame, CheckCircle2 } from 'lucide-react'
+import { Check, Flame } from 'lucide-react'
 import founderPhoto from '#/assets/founder-sahil.jpg'
 
 export function FounderStory() {
@@ -30,18 +30,13 @@ export function FounderStory() {
 
             {/* Streak Badge */}
             <div className="inline-flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-3.5 py-1.5 text-xs font-bold text-amber-800">
-              <Flame className="size-4 text-amber-600 animate-bounce" />
-              <span>Personal Streak: Day 10 (40 pushups + 30 squats)</span>
+              <Flame className="size-4 text-amber-600 motion-safe:animate-bounce" />
+              <span>Personal streak: Day 10 (20 push-ups + 20 squats + 20 leg raises)</span>
             </div>
           </div>
 
           {/* Story Body */}
           <div className="mt-6 space-y-4 text-base leading-relaxed text-[#5a6678]">
-            <p className="text-lg sm:text-xl font-extrabold text-[#0d1b2a]">
-              “I didn’t build this to be a fitness influencer. I built it because I couldn’t stop
-              procrastinating in my own room.”
-            </p>
-
             <p>
               Almost all of my work happens on a laptop, sitting in one room for 10+ hours a day. I
               knew I needed to exercise, but being a natural procrastinator, I kept endlessly
@@ -52,35 +47,16 @@ export function FounderStory() {
             </p>
 
             <p>
-              The brutal truth? When you work from a desk, there is zero immediate consequence to
-              skipping a workout. Free motivation dies the instant you feel slightly tired.
+              But since I built StakeFit and started using it, I do{' '}
+              <strong className="text-[#0d1b2a]">20 push-ups, 20 squats and 20 leg raises</strong>{' '}
+              every day. It’s been{' '}
+              <strong className="text-[#0d1b2a]">10 days without skipping a single one.</strong>
             </p>
 
-            <p>
-              So I built StakeFit to engineer unbreakable consistency through financial stakes. It
-              completely removed the daily mental debate of whether I “feel like” working out. It’s
-              now been <strong className="text-[#0d1b2a]">10 consecutive days</strong> of pure,
-              unbroken consistency—knocking out{' '}
-              <strong className="text-[#0d1b2a]">40 push-ups + 30 squats every single day</strong>{' '}
-              right in front of my webcam without a single skip.
+            <p className="text-lg font-extrabold text-[#0d1b2a] sm:text-xl">
+              Just me, my phone, StakeFit and 30 minutes a day.{' '}
+              <span className="text-[#2b66f2]">I don’t even go to the gym.</span>
             </p>
-
-            <p>
-              I don’t even go to a gym. Everything happens in my room in 15 minutes. That’s the
-              secret to staying consistent: zero commute friction combined with a hard midnight
-              deadline. Knowing that procrastinating past midnight forfeits real cash turns daily
-              fitness from a willpower struggle into an automatic, non-negotiable daily reflex.
-            </p>
-          </div>
-
-          {/* Footer takeaway */}
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-[#faf8f5] p-4 text-xs">
-            <span className="font-semibold text-[#0d1b2a]">
-              No gym required. No commute. Just your laptop camera and skin in the game.
-            </span>
-            <span className="flex items-center gap-1.5 font-mono font-bold text-emerald-700">
-              <CheckCircle2 className="size-4" /> 100% of stakes defended
-            </span>
           </div>
         </div>
       </div>

@@ -13,7 +13,7 @@ const HOW_IT_WORKS = [
   },
   {
     title: 'Set up auto-pay for any amount you choose.',
-    detail: "That's your daily stake. Nothing is charged upfront.",
+    detail: "That's your daily stake.",
     warning: false,
   },
   {
@@ -65,18 +65,11 @@ export function Hero() {
           {/* Left Column Text */}
           <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
             <h1 className="text-4xl font-extrabold tracking-tight text-[#0d1b2a] sm:text-6xl lg:text-7xl leading-[1.08] sm:leading-[1.04]">
-              You skip because
-              <br />
-              there’s <span className="serif text-[#2b66f2]">zero consequence.</span>
+              Build a great body by working out{' '}
+              <span className="serif text-[#2b66f2]">consistently.</span>
             </h1>
 
-            <p className="mt-4 text-base sm:text-lg font-medium text-[#5a6678] max-w-lg leading-relaxed">
-              <strong className="text-[#0d1b2a]">StakeFit puts real money on the line</strong>
-              —backed by camera verification that counts your reps and checks your form, zero
-              wearables required.
-            </p>
-
-            <ol className="mt-6 w-full max-w-lg space-y-3 text-left text-sm font-medium text-[#0d1b2a] sm:text-base">
+            <ol className="mt-8 w-full max-w-lg space-y-3 text-left text-sm font-medium text-[#0d1b2a] sm:text-base">
               {HOW_IT_WORKS.map((step, index) => (
                 <li key={step.title} className="flex items-start gap-3">
                   <span
@@ -111,10 +104,6 @@ export function Hero() {
                 Learn the science <ArrowRight className="size-4" />
               </a>
             </div>
-
-            <p className="mt-4 text-xs font-medium text-[#5a6678]">
-              Start free · Set up in 2 minutes · 100% On-device privacy
-            </p>
           </div>
 
           {/* Right column: steady push-ups while the days fly by, day 1 to day 365 */}
