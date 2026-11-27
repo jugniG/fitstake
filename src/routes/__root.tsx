@@ -8,6 +8,13 @@ import '@fontsource-variable/inter'
 import appCss from '../styles.css?url'
 import { BrandMark } from '#/components/brand-mark'
 
+// The public production address. Link-preview crawlers can't fetch localhost, so the image URL
+// must point here even in development. Change it when the custom domain is live.
+const SITE_URL = 'https://fitstake-two.vercel.app'
+const SITE_TITLE = 'StakeFit — Make showing up the only option'
+const SITE_DESCRIPTION =
+  'Do your workout on camera every day. Miss a day and your card is charged your stake.'
+
 export const Route = createRootRoute({
   notFoundComponent: NotFound,
   head: () => ({
@@ -16,12 +23,22 @@ export const Route = createRootRoute({
       { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
       { name: 'theme-color', content: '#070807' },
       { name: 'color-scheme', content: 'dark' },
-      { title: 'StakeFit — Make showing up the only option' },
-      {
-        name: 'description',
-        content:
-          'Do your workout on camera every day. Miss a day and your card is charged your stake.',
-      },
+      { title: SITE_TITLE },
+      { name: 'description', content: SITE_DESCRIPTION },
+      // Link previews (WhatsApp, X, LinkedIn, Slack). Crawlers need an absolute image URL.
+      { property: 'og:type', content: 'website' },
+      { property: 'og:site_name', content: 'StakeFit' },
+      { property: 'og:url', content: SITE_URL },
+      { property: 'og:title', content: SITE_TITLE },
+      { property: 'og:description', content: SITE_DESCRIPTION },
+      { property: 'og:image', content: `${SITE_URL}/og-image.png` },
+      { property: 'og:image:width', content: '1200' },
+      { property: 'og:image:height', content: '825' },
+      { property: 'og:image:alt', content: 'StakeFit: build a great body by working out consistently' },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: SITE_TITLE },
+      { name: 'twitter:description', content: SITE_DESCRIPTION },
+      { name: 'twitter:image', content: `${SITE_URL}/og-image.png` },
     ],
     links: [
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
