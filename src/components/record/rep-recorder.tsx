@@ -507,7 +507,7 @@ export function RepRecorder({
       }
     }
 
-    const live = current.liveness.onFrame(nowMs, landmarks, currentExercise.exerciseType)
+    const live = current.liveness.onFrame(nowMs)
     if (!live.ok) {
       current.isSpoof = Boolean(live.isSpoof)
       setIsSpoofDetected(current.isSpoof)
