@@ -9,6 +9,9 @@ import { LIFETIME_PRICE_USD, TRIAL_DAYS, WEEKLY_PRICE_USD } from '#/lib/access'
 import { BrandMark } from '#/components/brand-mark'
 import { Button } from '#/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '#/components/ui/card'
+import { readSetupDraft } from '#/components/challenge/setup-draft'
+import type { SetupDraft } from '#/components/challenge/setup-draft'
+import { formatUSD } from '#/lib/format'
 import { cn } from '#/lib/utils'
 
 const CONFIRM_POLL_MS = 2000
@@ -17,11 +20,15 @@ const CONFIRM_MAX_ATTEMPTS = 15
 export const Route = createFileRoute('/paywall')({
   validateSearch: (search: Record<string, unknown>) =>
     search.checkout === 'return' ? { checkout: 'return' as const } : {},
-  beforeLoad: async () => {
+  beforeLoad: async ({ search }) => {
     const session = await getSession()
     if (!session) throw redirect({ to: '/login' })
     const access = await getAppAccess()
-    if (access.reason === 'lifetime') throw redirect({ to: '/dashboard' })
+    // On return from checkout the page itself redirects, because only the browser knows whether
+    // an onboarding draft is waiting for its pot deposit. A server redirect here skipped it.
+    if (access.reason === 'lifetime' && search.checkout !== 'return') {
+      throw redirect({ to: '/dashboard' })
+    }
     return { access }
   },
   loader: ({ context }) => context.access,
@@ -37,6 +44,9 @@ function PaywallPage() {
   const [confirming, setConfirming] = useState(checkout === 'return')
 
   const weeklyActive = access.reason === 'trial' || access.reason === 'subscribed'
+  const [draft, setDraft] = useState<SetupDraft | null>(null)
+  useEffect(() => setDraft(readSetupDraft()), [])
+  const draftExerciseCount = draft?.exercises.filter((e) => e.enabled).length ?? 0
 
   // On return the webhook may not have landed yet, so poll until access changes. A weekly
   // subscriber who upgrades already has access, so wait specifically for lifetime in that case.
@@ -53,7 +63,8 @@ function PaywallPage() {
         if (!active) return
         const done = waitForLifetime ? latest.reason === 'lifetime' : latest.hasAccess
         if (done) {
-          void navigate({ to: '/dashboard', replace: true })
+          // Onboarding users still need to deposit the pot for the challenge they built.
+          void navigate({ to: readSetupDraft() ? '/setup' : '/dashboard', replace: true })
           return
         }
       } catch (cause) {
@@ -100,9 +111,24 @@ function PaywallPage() {
 
       <div className="w-full max-w-2xl space-y-5">
         <header className="space-y-1.5 text-center">
+          {draft && !weeklyActive ? (
+            <p className="font-mono text-xs font-bold uppercase tracking-wider text-[#2b66f2]">
+              Step 2 of 2: Choose your plan
+            </p>
+          ) : null}
           <h1 className="font-display text-3xl font-extrabold sm:text-4xl">
-            {weeklyActive ? 'Upgrade to lifetime' : 'Choose your plan'}
+            {weeklyActive
+              ? 'Upgrade to lifetime'
+              : draft
+                ? `Your ${draft.totalDays}-day, ${formatUSD(draft.dailyStakeAmount)}/day challenge is ready`
+                : 'Choose your plan'}
           </h1>
+          {draft && !weeklyActive ? (
+            <p className="text-sm font-semibold text-[#0d1b2a]">
+              {draftExerciseCount} {draftExerciseCount === 1 ? 'exercise' : 'exercises'} a day,{' '}
+              {formatUSD(draft.dailyStakeAmount * draft.totalDays)} pot. Pick a plan to lock it in.
+            </p>
+          ) : null}
           <p className="text-sm text-[#5a6678]">
             Camera-verified workouts and daily stakes you win back. A card is required for both
             plans.
@@ -141,8 +167,6 @@ function PaywallPage() {
           />
         </div>
 
-        <p className="text-center text-xs text-[#5a6678]">Tax may be added at checkout.</p>
-
         {confirming ? (
           <p
             role="status"
@@ -167,6 +191,15 @@ function PaywallPage() {
         ) : null}
 
         <div className="flex justify-center gap-5">
+          {draft && !access.hasAccess ? (
+            <button
+              type="button"
+              onClick={() => void navigate({ to: '/setup' })}
+              className="text-xs font-bold text-[#2b66f2] underline-offset-2 hover:underline"
+            >
+              Edit my challenge
+            </button>
+          ) : null}
           {access.hasAccess ? (
             <button
               type="button"

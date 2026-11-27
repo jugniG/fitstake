@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { createChallenge } from '#/lib/server/challenges'
@@ -9,10 +10,11 @@ import { formatUSD } from '#/lib/format'
 import { Button } from '#/components/ui/button'
 import { Label } from '#/components/ui/label'
 import { Input } from '#/components/ui/input'
-import { ArrowRight, Check, Plus, ShieldCheck, Sparkles, Trash2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Plus, ShieldCheck, Sparkles, Trash2 } from 'lucide-react'
 import { ExerciseDrawer, EXERCISE_CATALOG } from './exercise-drawer'
 import type { CatalogExerciseItem } from './exercise-drawer'
 import { ExerciseMascot } from './exercise-mascots'
+import { clearSetupDraft, exerciseItemSchema, readSetupDraft, saveSetupDraft } from './setup-draft'
 import { cn } from '#/lib/utils'
 
 const DURATION_PRESETS = [
@@ -23,14 +25,6 @@ const DURATION_PRESETS = [
 ]
 
 const STAKE_PRESETS = [5, 10, 20, 50]
-
-const exerciseItemSchema = z.object({
-  enabled: z.boolean(),
-  exerciseType: z.enum(['squat', 'push_up', 'jumping_jack', 'custom_gesture', 'leg_raise']),
-  customGesture: z.enum(['pinch', 'fist', 'open_hand']).nullable().optional(),
-  targetSets: z.number().int().min(1).max(20),
-  targetReps: z.number().int().min(1).max(500),
-})
 
 const setupSchema = z
   .object({
@@ -49,9 +43,26 @@ type SetupValues = z.output<typeof setupSchema>
 
 const LATE_HOUR = 20
 
-export function SetupForm() {
+// One question per screen. Fields are validated per screen so a user can't move past a bad
+// value; the review screen submits the whole schema.
+const STEP_FIELDS = [['totalDays'], ['dailyStakeAmount'], ['exercises'], []] as const
+const STEP_COUNT = STEP_FIELDS.length
+const LAST_STEP = STEP_COUNT - 1
+
+// Without a plan this is onboarding: the user builds the challenge first, then picks a plan on
+// /paywall, then comes back here to deposit the pot.
+export function SetupForm({ hasPlan }: { hasPlan: boolean }) {
+  const navigate = useNavigate()
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [draftRestored, setDraftRestored] = useState(false)
+  const [step, setStep] = useState(0)
+  const stepRefs = [
+    useRef<HTMLElement>(null),
+    useRef<HTMLElement>(null),
+    useRef<HTMLElement>(null),
+    useRef<HTMLElement>(null),
+  ]
   const late = new Date().getHours() >= LATE_HOUR
 
   const {
@@ -59,6 +70,8 @@ export function SetupForm() {
     handleSubmit,
     watch,
     setValue,
+    reset,
+    trigger,
     formState: { errors, isSubmitting },
   } = useForm<SetupInput, unknown, SetupValues>({
     resolver: zodResolver(setupSchema),
@@ -75,6 +88,53 @@ export function SetupForm() {
       })),
     },
   })
+
+  // localStorage only exists in the browser, so the draft is restored after hydration.
+  useEffect(() => {
+    const draft = readSetupDraft()
+    if (draft) {
+      reset(draft)
+      // Back from the plan checkout: everything is answered, so go straight to the deposit.
+      if (hasPlan) setStep(LAST_STEP)
+    }
+    setDraftRestored(true)
+  }, [reset, hasPlan])
+
+  const isFirstRender = useRef(true)
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    // Move focus to the new question so keyboard and screen-reader users land on it.
+    stepRefs[step].current?.focus()
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [step])
+
+  async function goNext() {
+    const valid = await trigger([...STEP_FIELDS[step]])
+    if (valid) setStep((current) => Math.min(current + 1, LAST_STEP))
+  }
+
+  function goBack() {
+    setStep((current) => Math.max(current - 1, 0))
+  }
+
+  // Saving starts only after the restore, so the defaults never overwrite a stored draft.
+  useEffect(() => {
+    if (!draftRestored) return
+    const subscription = watch((values) => {
+      const parsed = setupSchema.safeParse(values)
+      if (!parsed.success) return
+      saveSetupDraft({
+        totalDays: parsed.data.totalDays,
+        dailyStakeAmount: parsed.data.dailyStakeAmount,
+        exercises: parsed.data.exercises,
+        startDayOffset: parsed.data.startDayOffset === 1 ? '1' : '0',
+      })
+    })
+    return () => subscription.unsubscribe()
+  }, [draftRestored, watch])
 
   const totalDays = watch('totalDays') || 30
   const dailyStake = watch('dailyStakeAmount') || 10
@@ -137,6 +197,17 @@ export function SetupForm() {
       return
     }
 
+    if (!hasPlan) {
+      saveSetupDraft({
+        totalDays: values.totalDays,
+        dailyStakeAmount: values.dailyStakeAmount,
+        exercises: values.exercises,
+        startDayOffset: values.startDayOffset === 1 ? '1' : '0',
+      })
+      void navigate({ to: '/paywall' })
+      return
+    }
+
     try {
       localStorage.setItem('stakefit:active-routine', JSON.stringify(selectedExercises))
     } catch {
@@ -157,6 +228,8 @@ export function SetupForm() {
           timezone,
         },
       })
+      // The challenge now exists server-side; a stale draft would re-open onboarding later.
+      clearSetupDraft()
       window.location.href = result.checkoutUrl
     } catch (error) {
       console.error('[setup] createChallenge failed:', error)
@@ -166,33 +239,48 @@ export function SetupForm() {
 
   return (
     <>
-      {/* Commitment Terms Status Summary Pill */}
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#0d1b2a14] bg-white/70 px-4 py-3 sm:px-5 backdrop-blur-sm shadow-2xs">
-        <div className="flex items-center gap-2.5">
-          <span className="relative flex size-2.5">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex size-2.5 rounded-full bg-emerald-600" />
-          </span>
-          <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#0d1b2a]">
-            Commitment Terms
-          </span>
+      {/* Progress: one question per screen */}
+      <div className="mb-8 flex items-center gap-3">
+        <div
+          role="progressbar"
+          aria-label="Setup progress"
+          aria-valuemin={1}
+          aria-valuemax={STEP_COUNT}
+          aria-valuenow={step + 1}
+          className="h-3 flex-1 overflow-hidden rounded-full bg-[#0d1b2a14]"
+        >
+          <div
+            className="h-full rounded-full bg-[#2b66f2] motion-safe:transition-[width] motion-safe:duration-300"
+            style={{ width: `${((step + 1) / STEP_COUNT) * 100}%` }}
+          />
         </div>
-        <div className="flex flex-wrap items-center gap-2 font-mono text-xs font-semibold text-[#5a6678]">
-          <span className="font-bold text-[#0d1b2a]">{totalDays}d</span>
-          <span>/</span>
-          <span className="font-bold text-[#2b66f2]">{formatUSD(dailyStake)}/day</span>
-          <span>/</span>
-          <span className="font-bold text-[#0d1b2a]">{activeExercises.length} movements</span>
-          <span>/</span>
-          <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-bold text-emerald-800">
-            Pot: {formatUSD(total)}
-          </span>
-        </div>
+        <span className="shrink-0 font-mono text-xs font-bold text-[#5a6678]">
+          {step + 1}/{STEP_COUNT}
+        </span>
       </div>
+      <p role="status" aria-live="polite" className="sr-only">
+        Question {step + 1} of {STEP_COUNT}
+      </p>
 
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-10 sm:space-y-12">
+      <form
+        onSubmit={
+          step < LAST_STEP
+            ? (event) => {
+                // Enter in a number field moves forward instead of submitting the whole setup.
+                event.preventDefault()
+                void goNext()
+              }
+            : handleSubmit(onSubmit)
+        }
+        noValidate
+        className="space-y-8"
+      >
         {/* Step 1: Duration Horizon */}
-        <section className="space-y-4">
+        <section
+          ref={stepRefs[0]}
+          tabIndex={-1}
+          className={cn('space-y-4 outline-none', step !== 0 && 'hidden')}
+        >
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3">
               <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#2b66f2]/10 font-mono text-xs font-bold text-[#2b66f2] ring-1 ring-[#2b66f2]/20">
@@ -276,11 +364,12 @@ export function SetupForm() {
           ) : null}
         </section>
 
-        {/* Clean Divider Line */}
-        <div className="border-t border-[#0d1b2a14]" />
-
         {/* Step 2: Daily Stake */}
-        <section className="space-y-4">
+        <section
+          ref={stepRefs[1]}
+          tabIndex={-1}
+          className={cn('space-y-4 outline-none', step !== 1 && 'hidden')}
+        >
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3">
               <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#2b66f2]/10 font-mono text-xs font-bold text-[#2b66f2] ring-1 ring-[#2b66f2]/20">
@@ -349,11 +438,12 @@ export function SetupForm() {
           ) : null}
         </section>
 
-        {/* Clean Divider Line */}
-        <div className="border-t border-[#0d1b2a14]" />
-
         {/* Step 3: Exercise Routine */}
-        <section className="space-y-4">
+        <section
+          ref={stepRefs[2]}
+          tabIndex={-1}
+          className={cn('space-y-4 outline-none', step !== 2 && 'hidden')}
+        >
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3">
               <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#2b66f2]/10 font-mono text-xs font-bold text-[#2b66f2] ring-1 ring-[#2b66f2]/20">
@@ -506,11 +596,26 @@ export function SetupForm() {
           </button>
         </section>
 
-        {/* Clean Divider Line */}
-        <div className="border-t border-[#0d1b2a14]" />
+        {step < LAST_STEP ? (
+          <div className="flex gap-3">
+            {step > 0 ? <PrevButton onClick={goBack} /> : null}
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              className="flex-1 py-4 text-base font-bold shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+            >
+              Next <ArrowRight className="size-4" />
+            </Button>
+          </div>
+        ) : null}
 
         {/* Step 4: Commitment Review & Escrow Deposit */}
-        <section className="space-y-5">
+        <section
+          ref={stepRefs[3]}
+          tabIndex={-1}
+          className={cn('space-y-5 outline-none', step !== 3 && 'hidden')}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="grid size-6 place-items-center rounded-full bg-[#2b66f2] text-white shadow-xs">
@@ -623,15 +728,19 @@ export function SetupForm() {
           ) : null}
 
           {/* Checkout CTA */}
-          <Button
-            type="submit"
-            variant="primary"
-            size="lg"
-            className="w-full py-4 text-base shadow-sm flex items-center justify-center gap-2 font-bold cursor-pointer"
-            disabled={isSubmitting || activeExercises.length === 0}
-          >
-            Lock In Commitment & Deposit {formatUSD(total)} <ArrowRight className="size-4" />
-          </Button>
+          <div className="flex gap-3">
+            <PrevButton onClick={goBack} />
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              className="flex-1 py-4 text-base shadow-sm flex items-center justify-center gap-2 font-bold cursor-pointer"
+              disabled={isSubmitting || activeExercises.length === 0}
+            >
+              {hasPlan ? <>Deposit {formatUSD(total)}</> : <>Next: choose your plan</>}{' '}
+              <ArrowRight className="size-4" />
+            </Button>
+          </div>
         </section>
       </form>
 
@@ -649,5 +758,19 @@ export function SetupForm() {
         onUpdateExercise={handleUpdateExerciseFromDrawer}
       />
     </>
+  )
+}
+
+function PrevButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="lg"
+      onClick={onClick}
+      className="py-4 text-base font-bold flex items-center justify-center gap-2 cursor-pointer"
+    >
+      <ArrowLeft className="size-4" /> Prev
+    </Button>
   )
 }

@@ -1,4 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { readSetupDraft } from '#/components/challenge/setup-draft'
 import { useEffect, useState } from 'react'
 import { getDashboard } from '#/lib/server/challenges'
 import type { DashboardView } from '#/lib/server/challenges'
@@ -12,6 +13,7 @@ export const Route = createFileRoute('/_protected/dashboard')({
 
 function DashboardPage() {
   const { checkout } = Route.useSearch()
+  const navigate = useNavigate()
   const [data, setData] = useState<DashboardView | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -22,6 +24,11 @@ function DashboardPage() {
       try {
         const result = await getDashboard()
         if (!active) return
+        // Onboarding finished but the pot was never deposited: resume at the review step.
+        if (!result.challenge && readSetupDraft()) {
+          void navigate({ to: '/setup', replace: true })
+          return
+        }
         setData(result)
         setError(null)
         // Poll only after returning from checkout. A directly opened abandoned checkout
@@ -40,7 +47,7 @@ function DashboardPage() {
       active = false
       if (timer) window.clearTimeout(timer)
     }
-  }, [checkout])
+  }, [checkout, navigate])
 
   if (error) {
     return (
