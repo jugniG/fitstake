@@ -80,6 +80,7 @@ export function RepRecorder({
     message: 'Looking for your body…',
     isError: false,
   })
+  const [isWideFraming, setIsWideFraming] = useState(false)
 
   const currentExercise = routineList[currentExerciseIdx] ?? routineList[0]
   const currentTargetSets = currentExercise.targetSets
@@ -747,10 +748,29 @@ export function RepRecorder({
         </div>
       ) : null}
 
+      {/* Squat Framing Helper Tip & Toggle */}
+      {currentExercise.exerciseType === 'squat' && (isLive || status === 'scanning') ? (
+        <div className="mx-auto mb-2 flex max-w-lg items-center justify-between rounded-xl border border-blue-200/80 bg-blue-50/80 px-3.5 py-1.5 text-xs text-blue-900 shadow-2xs">
+          <span className="flex items-center gap-1.5">
+            <span>💡</span>
+            <span>
+              <strong>Squat Setup:</strong> Step back ~5–6 ft & tilt screen down so hips fit.
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setIsWideFraming((w) => !w)}
+            className="ml-2 shrink-0 font-bold underline hover:text-[#2b66f2] cursor-pointer text-[0.72rem]"
+          >
+            {isWideFraming ? 'Switch to Portrait' : 'Expand Full Width'}
+          </button>
+        </div>
+      ) : null}
+
       {/* Camera Component */}
       <div
-        className={`relative mx-auto overflow-hidden rounded-3xl border border-[#0d1b2a20] bg-[#0d1b2a] shadow-2xl ${
-          isPortrait
+        className={`relative mx-auto overflow-hidden rounded-3xl border border-[#0d1b2a20] bg-[#0d1b2a] shadow-2xl transition-all duration-300 ${
+          isPortrait && !isWideFraming
             ? 'aspect-[3/4] max-w-md sm:max-w-lg'
             : isCustomGesture
               ? 'aspect-square max-w-md'
@@ -773,20 +793,21 @@ export function RepRecorder({
         {/* Pre-Workout Readiness Scan Overlay (Only once at start) */}
         {status === 'scanning' ? (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/85 p-6 text-center backdrop-blur-md">
-            <div className="relative flex h-32 w-32 items-center justify-center rounded-full border-2 border-dashed border-rose-500/80 animate-pulse">
+            <div className="relative flex h-28 w-28 items-center justify-center rounded-full border-2 border-dashed border-rose-500/80 animate-pulse">
               <span className="text-4xl">❤️</span>
             </div>
-            <p className="mt-4 font-mono text-[0.65rem] uppercase tracking-widest text-emerald-400">
-              Heart Rate & Effort Calibration
+            <p className="mt-4 font-mono text-[0.7rem] uppercase tracking-widest text-emerald-400 font-bold">
+              Proof of Biological Effort
             </p>
             <h2 className="mt-1 font-display text-2xl font-bold text-white">
-              Cardiovascular Baseline
+              Measuring Resting Heart Rate
             </h2>
             <div className="my-2 font-mono text-3xl font-bold text-white">
               {vitals.pulseBpm} <span className="text-xs text-slate-400">BPM</span>
             </div>
-            <p className="mb-5 max-w-xs text-xs text-slate-300">
-              Calibrating resting pulse & camera sensor ({scanProgress}s)…
+            <p className="mb-5 max-w-sm text-xs text-slate-300 leading-relaxed">
+              SmartSpectra locks your resting pulse before set 1 so it can verify real physical
+              exertion during your workout and certify your escrow refund ({scanProgress}s)…
             </p>
             <Button
               variant="ghost"
@@ -794,7 +815,7 @@ export function RepRecorder({
               className="text-white hover:text-white hover:bg-white/10"
               onClick={finishReadinessScan}
             >
-              Skip Calibration & Start Set 1
+              Skip & Start Set 1
             </Button>
           </div>
         ) : null}
