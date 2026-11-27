@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 // Onboarding choices survive the plan checkout redirect in localStorage. The server never reads
-// this; createChallenge re-validates everything when the pot is deposited.
+// this; createChallenge re-validates everything when the card is authorized.
 const SETUP_DRAFT_KEY = 'stakefit:setup-draft:v1'
 
 export const exerciseItemSchema = z.object({

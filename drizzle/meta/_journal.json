@@ -29,6 +29,27 @@
       "when": 1795436369132,
       "tag": "0003_lifetime_access",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795641928110,
+      "tag": "0004_drop_kelviq",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795641936401,
+      "tag": "0005_dodo_payments",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795644905584,
+      "tag": "0006_lifetime_trial",
+      "breakpoints": true
     }
   ]
 }

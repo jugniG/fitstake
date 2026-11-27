@@ -15,7 +15,7 @@ const TIMELINE = [
     day: 'Day 07',
     title: 'Zero Mental Debate',
     badge: 'The Shift',
-    desc: 'You no longer negotiate with yourself. 7:00 PM hits, you do your reps in your room, and you lock in your daily refund.',
+    desc: 'You no longer negotiate with yourself. 7:00 PM hits, you do your reps in your room, and the day costs you nothing.',
   },
   {
     day: 'Day 14',
@@ -31,9 +31,9 @@ const TIMELINE = [
   },
   {
     day: 'Day 30',
-    title: '100% Cash Back in Hand',
+    title: 'Not a Cent Lost',
     badge: 'Victory',
-    desc: 'Challenge complete. Every single dollar of your deposit is refunded straight to your bank card. You built a real habit and kept your money.',
+    desc: 'Challenge complete. You showed up every day, so your stakes cost you nothing. You built a real habit and kept your money.',
   },
 ]
 

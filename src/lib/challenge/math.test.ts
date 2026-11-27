@@ -1,37 +1,52 @@
 import { describe, expect, it } from 'vitest'
-import { computeTotals, invariantHolds, totalCommitmentAmount } from './math'
+import { computeTotals, invariantHolds, maxExposure } from './math'
 
 describe('challenge math', () => {
-  it('computes the total commitment from the daily stake and duration', () => {
-    expect(totalCommitmentAmount({ dailyStakeAmount: 10, totalDays: 30 })).toBe(300)
-    expect(totalCommitmentAmount({ dailyStakeAmount: 1, totalDays: 1 })).toBe(1)
-    expect(totalCommitmentAmount({ dailyStakeAmount: 25, totalDays: 14 })).toBe(350)
+  it('computes the maximum exposure from the daily stake and duration', () => {
+    expect(maxExposure({ dailyStakeAmount: 10, totalDays: 30 })).toBe(300)
+    expect(maxExposure({ dailyStakeAmount: 1, totalDays: 1 })).toBe(1)
   })
 
-  it('reconciles won-back, forfeited and remaining totals', () => {
+  it('splits missed days into charged and owed amounts', () => {
     const totals = computeTotals(
-      { dailyStakeAmount: 10, totalDays: 30, totalCommitmentAmount: 300 },
-      { completed: 20, forfeited: 5 },
+      { dailyStakeAmount: 10, totalDays: 30 },
+      { completed: 20, missed: 5 },
+      [
+        { status: 'succeeded' },
+        { status: 'succeeded' },
+        { status: 'succeeded' },
+        { status: 'failed' },
+        { status: 'pending' },
+      ],
     )
     expect(totals).toMatchObject({
-      wonBackBalance: 200,
-      forfeitedBalance: 50,
-      remainingAmount: 50,
-      remainingDays: 5,
       completedDays: 20,
-      forfeitedDays: 5,
+      missedDays: 5,
+      remainingDays: 5,
+      chargedAmount: 30,
+      owedAmount: 20,
+      remainingExposure: 50,
+      maxExposure: 300,
     })
     expect(invariantHolds(totals)).toBe(true)
   })
 
-  it('flags a broken money invariant', () => {
-    const tampered: ReturnType<typeof computeTotals> = {
-      ...computeTotals(
-        { dailyStakeAmount: 10, totalDays: 30, totalCommitmentAmount: 300 },
-        { completed: 20, forfeited: 5 },
-      ),
-      remainingAmount: 999,
-    }
-    expect(invariantHolds(tampered)).toBe(false)
+  it('counts a missed day with no charge row yet as owed', () => {
+    const totals = computeTotals(
+      { dailyStakeAmount: 10, totalDays: 3 },
+      { completed: 1, missed: 1 },
+      [],
+    )
+    expect(totals.owedAmount).toBe(10)
+    expect(totals.chargedAmount).toBe(0)
+  })
+
+  it('flags a broken invariant', () => {
+    const totals = computeTotals(
+      { dailyStakeAmount: 10, totalDays: 30 },
+      { completed: 20, missed: 5 },
+      [],
+    )
+    expect(invariantHolds({ ...totals, chargedAmount: 999 })).toBe(false)
   })
 })

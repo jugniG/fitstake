@@ -2,8 +2,12 @@
 
 export const WEEKLY_PRICE_USD = 2
 export const LIFETIME_PRICE_USD = 49
-// Applies to the weekly plan only; Kelviq trials need a recurring plan.
+// Both plans. Weekly uses Dodo's own trial; lifetime authorizes the card and the app charges
+// $49 when the trial ends (Dodo one-time products can't have trials).
 export const TRIAL_DAYS = 3
+export const TRIAL_MS = TRIAL_DAYS * 24 * 60 * 60 * 1000
+
+const DAY_MS = 24 * 60 * 60 * 1000
 
 export type SubscriptionSnapshot = {
   status: string
@@ -13,57 +17,101 @@ export type SubscriptionSnapshot = {
 
 export type AppAccessReason = 'lifetime' | 'trial' | 'subscribed' | 'running_challenge' | 'none'
 
-// Kelviq keeps a scheduled cancellation `active` until the period ends, so access stays on
-// until endsAt has actually passed.
+// Dodo keeps a trial and a scheduled cancellation as `active`, so access stays on until
+// endsAt has actually passed. `on_hold` (failed renewal) turns access off.
 export function subscriptionGrantsAccess(
   subscription: SubscriptionSnapshot | null,
   now: Date,
 ): boolean {
   if (!subscription) return false
-  if (subscription.status !== 'trialing' && subscription.status !== 'active') return false
+  if (subscription.status !== 'active') return false
   if (subscription.endsAt && subscription.endsAt.getTime() <= now.getTime()) return false
   return true
 }
 
-// A user with money staked in a running challenge keeps access after a lapse, so a paywall can
-// never forfeit their daily stakes.
+function isInTrial(subscription: SubscriptionSnapshot | null, now: Date): boolean {
+  return !!subscription?.trialEndsAt && subscription.trialEndsAt.getTime() > now.getTime()
+}
+
+export type LifetimeTrialStatus = 'trialing' | 'charging' | 'paid' | 'failed' | 'cancelled'
+
+export type LifetimeTrialSnapshot = {
+  status: string
+  trialEndsAt: Date
+}
+
+// A lifetime trial grants access during its 3 days, and past them while the $49 charge is
+// due or processing so a slow charge doesn't lock the user out. A trial cancelled before it
+// ends keeps access until the end. A failed charge grants nothing.
+export function lifetimeTrialGrantsAccess(trial: LifetimeTrialSnapshot | null, now: Date): boolean {
+  if (!trial) return false
+  if (trial.status === 'trialing' || trial.status === 'charging') return true
+  if (trial.status === 'cancelled') return trial.trialEndsAt.getTime() > now.getTime()
+  return false
+}
+
+// The $49 is charged once, after the trial ends, and only if the user didn't cancel.
+export function lifetimeTrialChargeDue(trial: LifetimeTrialSnapshot | null, now: Date): boolean {
+  return trial?.status === 'trialing' && trial.trialEndsAt.getTime() <= now.getTime()
+}
+
+// A user with a running challenge keeps access after a lapse, so a paywall can never stop them
+// from recording a day and avoiding a charge.
 export function appAccessReason(
   input: {
     hasLifetime: boolean
     subscription: SubscriptionSnapshot | null
     hasRunningChallenge: boolean
+    lifetimeTrial?: LifetimeTrialSnapshot | null
   },
   now: Date,
 ): AppAccessReason {
   if (input.hasLifetime) return 'lifetime'
+  if (lifetimeTrialGrantsAccess(input.lifetimeTrial ?? null, now)) return 'trial'
   if (subscriptionGrantsAccess(input.subscription, now)) {
-    return input.subscription?.status === 'trialing' ? 'trial' : 'subscribed'
+    return isInTrial(input.subscription, now) ? 'trial' : 'subscribed'
   }
   if (input.hasRunningChallenge) return 'running_challenge'
   return 'none'
 }
 
-// Starting a new pot needs a live subscription; the running-challenge exemption only covers
-// finishing one.
+export type ChallengeBlocker = 'no_plan' | 'owes_charges' | 'mandate_lost' | null
+
+// Why a user can't start a new challenge, if they can't. The running-challenge exemption only
+// covers finishing one; unpaid missed days and a lost card mandate must be fixed first.
+export function newChallengeBlocker(input: {
+  reason: AppAccessReason
+  owedAmount: number
+  hasLostMandate: boolean
+}): ChallengeBlocker {
+  if (input.reason !== 'lifetime' && input.reason !== 'trial' && input.reason !== 'subscribed') {
+    return 'no_plan'
+  }
+  if (input.owedAmount > 0) return 'owes_charges'
+  if (input.hasLostMandate) return 'mandate_lost'
+  return null
+}
+
 export function canStartChallenge(reason: AppAccessReason): boolean {
-  return reason === 'lifetime' || reason === 'trial' || reason === 'subscribed'
+  return newChallengeBlocker({ reason, owedAmount: 0, hasLostMandate: false }) === null
 }
 
-// One trial per user. Anyone who has ever had a subscription row already used it.
-export function trialDaysForCheckout(hasPreviousSubscription: boolean): number {
-  return hasPreviousSubscription ? 0 : TRIAL_DAYS
+// One trial per user across both plans. Anyone with a weekly subscription row or a lifetime
+// trial row has already used it.
+export function trialDaysForCheckout(hasUsedTrial: boolean): number {
+  return hasUsedTrial ? 0 : TRIAL_DAYS
 }
 
-export type ParsedSubscriptionObject = {
-  kelviqSubscriptionId: string
-  planIdentifier: string | null
-  userId: string | null
-  kelviqCustomerId: string | null
+export type ParsedDodoSubscription = {
+  dodoSubscriptionId: string
+  productId: string | null
+  dodoCustomerId: string | null
   status: string
+  onDemand: boolean
   trialEndsAt: Date | null
   currentPeriodEndsAt: Date | null
   endsAt: Date | null
-  modifiedAt: Date | null
+  metadata: Record<string, unknown>
 }
 
 function readString(value: unknown): string | null {
@@ -77,33 +125,35 @@ function readDate(value: unknown): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
-// `end_date` is a plain date (yyyy-MM-dd); the subscription runs through the end of that day.
-function readEndDate(value: unknown): Date | null {
-  const raw = readString(value)
-  if (raw && /^\d{4}-\d{2}-\d{2}$/.test(raw)) return readDate(`${raw}T23:59:59Z`)
-  return readDate(raw)
-}
-
-export function parseSubscriptionObject(
+// Reads the subscription object from a Dodo `subscription.*` webhook (`event.data`).
+export function parseDodoSubscription(
   object: Record<string, unknown>,
-): ParsedSubscriptionObject | null {
-  const kelviqSubscriptionId = readString(object.id)
+): ParsedDodoSubscription | null {
+  const dodoSubscriptionId = readString(object.subscription_id)
   const status = readString(object.status)
-  if (!kelviqSubscriptionId || !status) return null
+  if (!dodoSubscriptionId || !status) return null
 
-  const plan = object.plan as { identifier?: unknown } | null | undefined
-  const customer = object.customer as { id?: unknown; customer_id?: unknown } | null | undefined
+  const customer = object.customer as { customer_id?: unknown } | null | undefined
+  const createdAt = readDate(object.created_at)
+  const trialDays = typeof object.trial_period_days === 'number' ? object.trial_period_days : 0
+  const nextBillingAt = readDate(object.next_billing_date)
+  const cancelledAt = readDate(object.cancelled_at)
+  const expiresAt = readDate(object.expires_at)
+  const cancelAtPeriodEnd = object.cancel_at_next_billing_date === true
 
   return {
-    kelviqSubscriptionId,
-    planIdentifier: readString(plan?.identifier),
-    // Kelviq customers are registered with our user id as the client-defined customer id.
-    userId: readString(customer?.customer_id),
-    kelviqCustomerId: readString(customer?.id),
+    dodoSubscriptionId,
+    productId: readString(object.product_id),
+    dodoCustomerId: readString(customer?.customer_id),
     status: status.toLowerCase(),
-    trialEndsAt: readDate(object.trial_end),
-    currentPeriodEndsAt: readDate(object.billing_period_end_time),
-    endsAt: readEndDate(object.end_date),
-    modifiedAt: readDate(object.modified_on),
+    onDemand: object.on_demand === true,
+    trialEndsAt:
+      createdAt && trialDays > 0 ? new Date(createdAt.getTime() + trialDays * DAY_MS) : null,
+    currentPeriodEndsAt: nextBillingAt,
+    endsAt: cancelledAt ?? (cancelAtPeriodEnd ? nextBillingAt : null) ?? expiresAt,
+    metadata:
+      object.metadata && typeof object.metadata === 'object'
+        ? (object.metadata as Record<string, unknown>)
+        : {},
   }
 }

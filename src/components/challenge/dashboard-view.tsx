@@ -2,9 +2,9 @@ import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { DashboardView } from '#/lib/server/challenges'
 import { EXERCISE_LABELS, CUSTOM_GESTURE_LABELS } from '#/lib/challenge'
-import type { CustomGesture, ExerciseType, RoutineExercise } from '#/lib/challenge'
+import type { ChallengeStatus, CustomGesture, ExerciseType, RoutineExercise } from '#/lib/challenge'
 import { formatUSD } from '#/lib/format'
-import { startChallengeCheckout, updateRoutine } from '#/lib/server/challenges'
+import { resumeMandateCheckout, startUpdateCard, updateRoutine } from '#/lib/server/challenges'
 import { MoneySummary } from './money-summary'
 import { ChallengeCalendar } from './challenge-calendar'
 import { ExerciseDrawer, EXERCISE_CATALOG } from './exercise-drawer'
@@ -26,12 +26,14 @@ import { cn } from '#/lib/utils'
 
 export function DashboardView({
   data,
-  confirmingPayment = false,
+  confirmingMandate = false,
 }: {
   data: DashboardView
-  confirmingPayment?: boolean
+  confirmingMandate?: boolean
 }) {
   const { challenge, days, totals } = data
+  const lastDecline =
+    [...days].reverse().find((d) => d.charge?.declineMessage)?.charge?.declineMessage ?? null
 
   const [currentRoutine, setCurrentRoutine] = useState<RoutineExercise[]>(() => {
     if (challenge?.routine && challenge.routine.length > 0) {
@@ -80,6 +82,7 @@ export function DashboardView({
       ? `${EXERCISE_LABELS.custom_gesture} (${CUSTOM_GESTURE_LABELS[challenge.customGesture ?? 'pinch']})`
       : EXERCISE_LABELS[challenge.exerciseType]
   const hasOpenDay = days.some((day) => day.status === 'pending')
+  const canRecord = challenge.status === 'active' || challenge.status === 'mandate_lost'
 
   const persistRoutine = async (next: RoutineExercise[]) => {
     try {
@@ -147,8 +150,9 @@ export function DashboardView({
               {statusLabel(challenge.status)}
             </Badge>
           </div>
-          <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-700">
-            <ShieldCheck className="size-4" /> Escrow Protected
+          <span className="flex items-center gap-1.5 text-xs font-bold text-[#5a6678]">
+            <ShieldCheck className="size-4" /> {formatUSD(challenge.dailyStakeAmount)} per missed
+            day
           </span>
         </div>
 
@@ -179,7 +183,7 @@ export function DashboardView({
           )}
         </div>
 
-        {challenge.status === 'active' && hasOpenDay ? (
+        {canRecord && hasOpenDay ? (
           <div className="mt-6">
             <Link
               to="/record"
@@ -195,7 +199,7 @@ export function DashboardView({
           </div>
         ) : null}
 
-        {challenge.status === 'active' && !hasOpenDay ? (
+        {canRecord && !hasOpenDay ? (
           <div className="mt-6">
             <div className="flex items-center justify-center gap-2.5 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 py-3.5 px-4 text-emerald-800 font-bold text-sm">
               <CheckCircle2 className="size-5 text-emerald-600" />
@@ -205,57 +209,69 @@ export function DashboardView({
         ) : null}
       </Card>
 
-      {challenge.status === 'pending_charge' ? (
+      {challenge.status === 'pending_mandate' ? (
         <Card className="border-amber-200 bg-amber-50 p-5 text-amber-900">
-          <p className="text-sm font-bold">
-            {confirmingPayment ? 'Confirming your payment…' : 'Payment not completed.'}
+          <p className="text-sm font-bold" role="status">
+            {confirmingMandate ? 'Confirming your card…' : 'Card not authorized yet.'}
           </p>
           <p className="mt-1 text-xs text-amber-800/80">
-            {confirmingPayment
-              ? 'Confirming your deposit. This page refreshes automatically once confirmed.'
-              : challenge.kelviqCheckoutUrl
-                ? 'Your challenge is saved. Finish the checkout to open Day 1.'
-                : 'Your challenge is saved, but the payment link was not created.'}
+            {confirmingMandate
+              ? 'This page refreshes on its own once Dodo confirms the authorization.'
+              : 'Your challenge is saved. Authorize your card to open Day 1. Nothing is charged now.'}
           </p>
-          {!confirmingPayment && challenge.kelviqCheckoutUrl ? (
-            <a
-              href={challenge.kelviqCheckoutUrl}
-              className={buttonStyles({ variant: 'primary', className: 'w-full mt-4' })}
-            >
-              Resume checkout
-            </a>
-          ) : null}
-          {!confirmingPayment && !challenge.kelviqCheckoutUrl ? <RetryPaymentButton /> : null}
+          {!confirmingMandate ? <MandateButton label="Authorize card" /> : null}
         </Card>
       ) : null}
 
-      <MoneySummary totals={totals} challenge={challenge} />
-
-      {challenge.status === 'settling' ? (
-        <Card className="border-blue-200 bg-blue-50 p-5 text-blue-900">
-          <p className="text-sm font-bold">Settling your refund…</p>
-          <p className="mt-1 text-xs text-blue-800">
-            Secure escrow is issuing your automated refund. This page will update shortly.
+      {challenge.status === 'mandate_lost' ? (
+        <Card className="border-rose-200 bg-rose-50 p-5 text-rose-900">
+          <p className="text-sm font-bold" role="status">
+            Your card authorization ended.
           </p>
+          <p className="mt-1 text-xs text-rose-800/80">
+            Missed days can't be charged until you re-authorize, and you can't start a new
+            challenge. You can still record today's workout.
+          </p>
+          <MandateButton label="Re-authorize card" />
         </Card>
       ) : null}
 
-      {challenge.status === 'settled' ? (
+      {totals.owedAmount > 0 && challenge.status === 'active' ? (
+        <Card className="border-rose-200 bg-rose-50 p-5 text-rose-900">
+          <p className="text-sm font-bold" role="status">
+            {formatUSD(totals.owedAmount)} for missed days is unpaid.
+          </p>
+          <p className="mt-1 text-xs text-rose-800/80">
+            {lastDecline
+              ? `Your card was declined: ${lastDecline}. `
+              : 'A charge for a missed day did not go through. '}
+            Update your card and we'll try again. New challenges are blocked until it's paid.
+          </p>
+          <UpdateCardButton />
+        </Card>
+      ) : null}
+
+      <MoneySummary totals={totals} />
+
+      {challenge.status === 'completed' ? (
         <div className="space-y-4">
           <Card className="border-emerald-200 bg-emerald-50 p-5 text-emerald-900">
-            <p className="text-sm font-bold">Challenge settled.</p>
+            <p className="text-sm font-bold">Challenge complete.</p>
             <p className="mt-1 text-xs text-emerald-800">
-              {totals.wonBackBalance > 0
-                ? `${formatUSD(totals.wonBackBalance)} won back has been refunded to your original payment card.`
-                : 'No days were completed, so no refund was issued.'}
+              {totals.missedDays === 0
+                ? `You showed up all ${totals.totalDays} days and paid nothing.`
+                : `You completed ${totals.completedDays} of ${totals.totalDays} days. Missed days cost ${formatUSD(totals.chargedAmount)}.`}{' '}
+              Your card authorization has been cancelled.
             </p>
           </Card>
-          <Link
-            to="/setup"
-            className={buttonStyles({ variant: 'primary', className: 'w-full py-3.5' })}
-          >
-            Start a new challenge
-          </Link>
+          {data.newChallengeBlocker === null ? (
+            <Link
+              to="/setup"
+              className={buttonStyles({ variant: 'primary', className: 'w-full py-3.5' })}
+            >
+              Start a new challenge
+            </Link>
+          ) : null}
         </div>
       ) : null}
 
@@ -360,27 +376,36 @@ export function DashboardView({
   )
 }
 
-function RetryPaymentButton() {
+function RedirectButton({
+  label,
+  busyLabel,
+  logPrefix,
+  getUrl,
+}: {
+  label: string
+  busyLabel: string
+  logPrefix: string
+  getUrl: () => Promise<string>
+}) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function retry() {
+  async function go() {
     setBusy(true)
     setError(null)
     try {
-      const result = await startChallengeCheckout()
-      window.location.assign(result.checkoutUrl)
+      window.location.assign(await getUrl())
     } catch (cause) {
-      console.error('[dashboard] retry checkout failed:', cause)
+      console.error(`${logPrefix}`, cause)
       setError((cause as Error).message)
       setBusy(false)
     }
   }
 
   return (
-    <div className="space-y-2">
-      <Button variant="secondary" className="w-full" onClick={() => void retry()} disabled={busy}>
-        {busy ? 'Creating payment link…' : 'Retry payment link'}
+    <div className="mt-4 space-y-2">
+      <Button variant="primary" className="w-full" onClick={() => void go()} disabled={busy}>
+        {busy ? busyLabel : label}
       </Button>
       {error ? (
         <p role="alert" className="field-error">
@@ -391,17 +416,37 @@ function RetryPaymentButton() {
   )
 }
 
-function statusLabel(status: string): string {
+function MandateButton({ label }: { label: string }) {
+  return (
+    <RedirectButton
+      label={label}
+      busyLabel="Opening Dodo…"
+      logPrefix="[dashboard] card authorization failed:"
+      getUrl={async () => (await resumeMandateCheckout()).checkoutUrl}
+    />
+  )
+}
+
+function UpdateCardButton() {
+  return (
+    <RedirectButton
+      label="Update card"
+      busyLabel="Opening Dodo…"
+      logPrefix="[dashboard] card update failed:"
+      getUrl={async () => (await startUpdateCard()).url}
+    />
+  )
+}
+
+function statusLabel(status: ChallengeStatus): string {
   switch (status) {
-    case 'pending_charge':
-      return 'Payment pending'
+    case 'pending_mandate':
+      return 'Card not authorized'
     case 'active':
       return 'In progress'
-    case 'settling':
-      return 'Settling'
-    case 'settled':
+    case 'mandate_lost':
+      return 'Card authorization ended'
+    case 'completed':
       return 'Complete'
-    default:
-      return status
   }
 }

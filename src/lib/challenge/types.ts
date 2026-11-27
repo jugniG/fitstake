@@ -5,34 +5,17 @@ export type ExerciseType = 'squat' | 'push_up' | 'jumping_jack' | 'custom_gestur
 
 export type CustomGesture = 'pinch' | 'fist' | 'open_hand'
 
-export type ChallengeStatus = 'pending_charge' | 'active' | 'settling' | 'settled'
+export type ChallengeStatus = 'pending_mandate' | 'active' | 'mandate_lost' | 'completed'
 
 export type DayStatus = 'locked' | 'pending' | 'completed' | 'forfeited'
 
-export type SettlementStatus = 'pending' | 'settled' | 'none'
+export type StakeChargeStatus = 'claimed' | 'pending' | 'succeeded' | 'failed' | 'abandoned'
 
 export type RoutineExercise = {
   exerciseType: ExerciseType
   customGesture?: CustomGesture | null
   targetSets: number
   targetReps: number
-}
-
-export type ChallengeConfig = {
-  exerciseType: ExerciseType
-  customGesture: CustomGesture | null
-  targetReps: number
-  targetSets: number
-  dailyStakeAmount: number // whole USD dollars
-  totalDays: number
-}
-
-export type ChallengePlan = ChallengeConfig & {
-  id: string
-  userId: string
-  totalCommitmentAmount: number // whole USD dollars
-  timezone: string
-  createdAt: string
 }
 
 export const EXERCISE_LABELS: Record<ExerciseType, string> = {

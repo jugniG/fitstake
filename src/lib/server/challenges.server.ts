@@ -1,194 +1,31 @@
 import { and, asc, desc, eq, inArray } from 'drizzle-orm'
-import { db, challenge, day, user, workoutVerification } from '#/db.server'
-import { canStartChallenge } from '#/lib/access'
-import { resolveAppAccess } from '#/lib/server/access.server'
+import { db, challenge, day, stakeCharge, workoutVerification } from '#/db.server'
 import { ensureSession } from '#/lib/auth.functions'
 import { env } from '#/lib/env'
-import { createCommitmentCheckout } from '#/lib/kelviq/checkout'
-import { ensureKelviqCustomer } from '#/lib/kelviq/customers'
+import { newChallengeBlocker } from '#/lib/access'
+import type { ChallengeBlocker } from '#/lib/access'
+import { createStakeMandateCheckout } from '#/lib/dodo/checkout'
+import { createUpdateCardLink } from '#/lib/dodo/charges'
+import { ensureDodoCustomer } from '#/lib/dodo/customers'
 import { isUniqueViolation } from '#/lib/server/db-errors'
-import {
-  canCompleteDay,
-  computeTotals,
-  currentDayStatus,
-  totalCommitmentAmount,
-} from '#/lib/challenge'
+import { resolveAppAccess } from '#/lib/server/access.server'
+import { chargeDueDays, finishChallengeIfDone } from '#/lib/server/stake-charges.server'
+import { canCompleteDay, computeTotals, consentStatement, currentDayStatus } from '#/lib/challenge'
 import {
   createWorkoutSessionToken,
   verifyWorkoutSessionToken,
   WORKOUT_SESSION_MAX_MS,
 } from '#/lib/challenge/session-token'
 import type { DayWindow, RoutineExercise } from '#/lib/challenge'
-import { settleChallenge } from '#/lib/server/settle'
 import type { CreateChallengeInput, DashboardView } from './challenges'
 
-const ACTIVE_STATES = ['pending_charge', 'active', 'settling'] as const
+const LIVE_STATES = ['pending_mandate', 'active', 'mandate_lost'] as const
+const RECORDABLE_STATES = ['active', 'mandate_lost'] as const
+const UNPAID_CHARGE_STATES = ['failed', 'abandoned'] as const
 const MIN_SECONDS_PER_REP = 0.6
 
 type SessionUser = { id: string; email: string; name: string }
 type ChallengeRow = typeof challenge.$inferSelect
-
-async function beginCheckout(challengeRow: ChallengeRow, sessionUser: SessionUser) {
-  const userName = sessionUser.name.trim() || undefined
-
-  const customer = await ensureKelviqCustomer({
-    userId: sessionUser.id,
-    email: sessionUser.email,
-    name: userName,
-  })
-  await db.update(user).set({ kelviqCustomerId: customer.id }).where(eq(user.id, sessionUser.id))
-
-  const checkout = await createCommitmentCheckout({
-    challengeId: challengeRow.id,
-    userId: sessionUser.id,
-    customerId: customer.customerId,
-    userName,
-    amountDollars: challengeRow.totalCommitmentAmount,
-  })
-  await db
-    .update(challenge)
-    .set({
-      kelviqCheckoutSessionId: checkout.checkoutSessionId,
-      kelviqCheckoutUrl: checkout.checkoutUrl,
-    })
-    .where(eq(challenge.id, challengeRow.id))
-  return checkout
-}
-
-// Only new pots are gated. Workout recording and settlement stay open for users whose trial
-// ended mid-challenge, so their staked money is never forfeited by a paywall.
-export async function createChallengeImpl(data: CreateChallengeInput) {
-  const session = await ensureSession()
-  const sessionUser = session.user as SessionUser
-
-  const access = await resolveAppAccess(sessionUser.id)
-  if (!canStartChallenge(access.reason)) {
-    throw new Error('Choose a plan on the pricing page to create a new challenge.')
-  }
-
-  const existing = await db.query.challenge.findFirst({
-    where: and(eq(challenge.userId, sessionUser.id), inArray(challenge.status, [...ACTIVE_STATES])),
-    orderBy: desc(challenge.createdAt),
-  })
-
-  if (existing) {
-    if (existing.status !== 'pending_charge') {
-      throw new Error('You already have an active or settling challenge. Finish it first.')
-    }
-    if (existing.kelviqCheckoutUrl) {
-      return {
-        checkoutUrl: existing.kelviqCheckoutUrl,
-        challengeId: existing.id,
-        resumed: true as const,
-      }
-    }
-    try {
-      const checkout = await beginCheckout(existing, sessionUser)
-      return {
-        checkoutUrl: checkout.checkoutUrl,
-        challengeId: existing.id,
-        resumed: true as const,
-      }
-    } catch (error) {
-      console.error('[challenge] could not resume checkout:', error)
-      throw new Error(
-        'Payment could not be started. Your challenge is saved — submit again to retry the payment link.',
-      )
-    }
-  }
-
-  const total = totalCommitmentAmount(data)
-  const exercises =
-    data.exercises && data.exercises.length > 0
-      ? data.exercises
-      : [
-          {
-            exerciseType: data.exerciseType ?? 'squat',
-            customGesture: data.customGesture ?? null,
-            targetSets: data.targetSets ?? 3,
-            targetReps: data.targetReps ?? 15,
-          },
-        ]
-  const primaryExercise = exercises[0]
-  const totalSets = exercises.reduce((sum, e) => sum + e.targetSets, 0)
-  const totalReps = exercises.reduce((sum, e) => sum + e.targetSets * e.targetReps, 0)
-  const averageReps = Math.ceil(totalReps / Math.max(1, totalSets))
-  const serializedRoutine = JSON.stringify(exercises)
-
-  const dbExerciseType =
-    primaryExercise.exerciseType === 'leg_raise' ? 'squat' : primaryExercise.exerciseType
-
-  let created: ChallengeRow
-  try {
-    ;[created] = await db
-      .insert(challenge)
-      .values({
-        userId: sessionUser.id,
-        exerciseType: dbExerciseType,
-        customGesture: primaryExercise.customGesture ?? null,
-        targetReps: averageReps,
-        targetSets: totalSets,
-        dailyStakeAmount: data.dailyStakeAmount,
-        totalDays: data.totalDays,
-        totalCommitmentAmount: total,
-        status: 'pending_charge',
-        startDayOffset: data.startDayOffset,
-        timezone: data.timezone,
-        kelviqCustomerId: serializedRoutine,
-      })
-      .returning()
-  } catch (error) {
-    if (isUniqueViolation(error, 'challenge_one_live_per_user')) {
-      throw new Error('You already have a live challenge. Open the dashboard to continue it.')
-    }
-    throw error
-  }
-
-  try {
-    const checkout = await beginCheckout(created, sessionUser)
-    return { checkoutUrl: checkout.checkoutUrl, challengeId: created.id, resumed: false as const }
-  } catch (error) {
-    console.error('[challenge] could not start checkout:', error)
-    throw new Error(
-      'Payment could not be started. Your challenge is saved — submit again to retry the payment link.',
-    )
-  }
-}
-
-export async function startChallengeCheckoutImpl() {
-  const session = await ensureSession()
-  const sessionUser = session.user as SessionUser
-  const existing = await db.query.challenge.findFirst({
-    where: and(eq(challenge.userId, sessionUser.id), eq(challenge.status, 'pending_charge')),
-    orderBy: desc(challenge.createdAt),
-  })
-  if (!existing) throw new Error('There is no pending payment to resume.')
-  if (existing.kelviqCheckoutUrl) {
-    return { checkoutUrl: existing.kelviqCheckoutUrl, challengeId: existing.id }
-  }
-
-  try {
-    const checkout = await beginCheckout(existing, sessionUser)
-    return { checkoutUrl: checkout.checkoutUrl, challengeId: existing.id }
-  } catch (error) {
-    console.error('[challenge] retry checkout failed:', error)
-    throw new Error('The payment link could not be created. Try again in a moment.')
-  }
-}
-
-function zeroTotals() {
-  return {
-    totalCommitment: 0,
-    dailyStake: 0,
-    totalDays: 0,
-    completedDays: 0,
-    forfeitedDays: 0,
-    remainingDays: 0,
-    wonBackBalance: 0,
-    forfeitedBalance: 0,
-    remainingAmount: 0,
-  }
-}
 
 function toDayWindow(row: {
   dayNumber: number
@@ -204,43 +41,228 @@ function toDayWindow(row: {
   }
 }
 
+function readRoutine(row: ChallengeRow): RoutineExercise[] {
+  if (Array.isArray(row.routine) && row.routine.length > 0) {
+    return row.routine as RoutineExercise[]
+  }
+  return [
+    {
+      exerciseType: row.exerciseType,
+      customGesture: row.customGesture ?? null,
+      targetSets: row.targetSets,
+      targetReps: row.targetReps,
+    },
+  ]
+}
+
+// Unpaid missed days across every challenge, plus whether any challenge lost its card.
+async function readChallengeBlocker(userId: string): Promise<ChallengeBlocker> {
+  const [{ reason }, unpaid, lost] = await Promise.all([
+    resolveAppAccess(userId),
+    db
+      .select({ amountCents: stakeCharge.amountCents })
+      .from(stakeCharge)
+      .innerJoin(challenge, eq(challenge.id, stakeCharge.challengeId))
+      .where(
+        and(eq(challenge.userId, userId), inArray(stakeCharge.status, [...UNPAID_CHARGE_STATES])),
+      ),
+    db.query.challenge.findFirst({
+      where: and(eq(challenge.userId, userId), eq(challenge.status, 'mandate_lost')),
+      columns: { id: true },
+    }),
+  ])
+  const owedAmount = unpaid.reduce((sum, row) => sum + row.amountCents, 0) / 100
+  return newChallengeBlocker({ reason, owedAmount, hasLostMandate: !!lost })
+}
+
+const BLOCKER_MESSAGES: Record<Exclude<ChallengeBlocker, null>, string> = {
+  no_plan: 'Choose a plan to create a new challenge.',
+  owes_charges: 'You have unpaid missed days. Update your card on the dashboard first.',
+  mandate_lost: 'Your card authorization ended. Re-authorize it on the dashboard first.',
+}
+
+async function openMandateCheckout(challengeRow: ChallengeRow, sessionUser: SessionUser) {
+  const dodoCustomerId = await ensureDodoCustomer(sessionUser)
+  const checkout = await createStakeMandateCheckout({
+    userId: sessionUser.id,
+    dodoCustomerId,
+    challengeId: challengeRow.id,
+  })
+  await db
+    .update(challenge)
+    .set({ mandateCheckoutUrl: checkout.checkoutUrl })
+    .where(eq(challenge.id, challengeRow.id))
+  return checkout.checkoutUrl
+}
+
+export async function createChallengeImpl(data: CreateChallengeInput) {
+  const session = await ensureSession()
+  const sessionUser = session.user as SessionUser
+
+  const existing = await db.query.challenge.findFirst({
+    where: and(eq(challenge.userId, sessionUser.id), inArray(challenge.status, [...LIVE_STATES])),
+    orderBy: desc(challenge.createdAt),
+  })
+  if (existing && existing.status !== 'pending_mandate') {
+    throw new Error('You already have a running challenge. Finish it first.')
+  }
+
+  const blocker = await readChallengeBlocker(sessionUser.id)
+  if (blocker) throw new Error(BLOCKER_MESSAGES[blocker])
+
+  // An unfinished authorization is replaced, so the user can change their terms before
+  // authorizing. It has no days or charges yet.
+  if (existing) {
+    await db
+      .delete(challenge)
+      .where(and(eq(challenge.id, existing.id), eq(challenge.status, 'pending_mandate')))
+  }
+
+  const exercises = data.exercises.map((exercise) => ({
+    exerciseType: exercise.exerciseType,
+    customGesture:
+      exercise.exerciseType === 'custom_gesture' ? (exercise.customGesture ?? 'pinch') : null,
+    targetSets: exercise.targetSets,
+    targetReps: exercise.targetReps,
+  }))
+  const primary = exercises[0]
+  const totalSets = exercises.reduce((sum, e) => sum + e.targetSets, 0)
+  const totalReps = exercises.reduce((sum, e) => sum + e.targetSets * e.targetReps, 0)
+
+  let created: ChallengeRow
+  try {
+    ;[created] = await db
+      .insert(challenge)
+      .values({
+        userId: sessionUser.id,
+        exerciseType: primary.exerciseType,
+        customGesture: primary.customGesture,
+        targetReps: Math.ceil(totalReps / Math.max(1, totalSets)),
+        targetSets: totalSets,
+        routine: exercises,
+        dailyStakeAmount: data.dailyStakeAmount,
+        totalDays: data.totalDays,
+        status: 'pending_mandate',
+        startDayOffset: data.startDayOffset,
+        timezone: data.timezone,
+        consentText: consentStatement(data),
+        consentedAt: new Date(),
+      })
+      .returning()
+  } catch (error) {
+    if (isUniqueViolation(error, 'challenge_one_live_per_user')) {
+      throw new Error(
+        'You already have a challenge in progress. Open the dashboard to continue it.',
+      )
+    }
+    throw error
+  }
+
+  try {
+    const checkoutUrl = await openMandateCheckout(created, sessionUser)
+    return { checkoutUrl, challengeId: created.id }
+  } catch (error) {
+    console.error('[challenge] could not start the card authorization:', error)
+    throw new Error(
+      'The card authorization page could not be opened. Your challenge is saved; try again from the dashboard.',
+    )
+  }
+}
+
+// Resumes an unfinished authorization, or re-authorizes a challenge whose card mandate ended.
+export async function resumeMandateCheckoutImpl() {
+  const session = await ensureSession()
+  const sessionUser = session.user as SessionUser
+  const existing = await db.query.challenge.findFirst({
+    where: and(
+      eq(challenge.userId, sessionUser.id),
+      inArray(challenge.status, ['pending_mandate', 'mandate_lost']),
+    ),
+    orderBy: desc(challenge.createdAt),
+  })
+  if (!existing) throw new Error('There is no card authorization to finish.')
+  if (existing.status === 'pending_mandate' && existing.mandateCheckoutUrl) {
+    return { checkoutUrl: existing.mandateCheckoutUrl }
+  }
+
+  try {
+    return { checkoutUrl: await openMandateCheckout(existing, sessionUser) }
+  } catch (error) {
+    console.error('[challenge] could not resume the card authorization:', error)
+    throw new Error('The card authorization page could not be opened. Try again in a moment.')
+  }
+}
+
+// Hosted Dodo page to replace a declined card; unpaid days are retried once it succeeds.
+export async function startUpdateCardImpl() {
+  const session = await ensureSession()
+  const challengeRow = await db.query.challenge.findFirst({
+    where: and(eq(challenge.userId, session.user.id), eq(challenge.status, 'active')),
+    orderBy: desc(challenge.createdAt),
+  })
+  if (!challengeRow?.dodoSubscriptionId) {
+    throw new Error('There is no active card authorization to update.')
+  }
+  try {
+    const url = await createUpdateCardLink({
+      subscriptionId: challengeRow.dodoSubscriptionId,
+      returnUrl: `${env.APP_URL}/dashboard?card=return`,
+    })
+    return { url }
+  } catch (error) {
+    console.error('[challenge] could not open the card update page:', error)
+    throw new Error('The card update page could not be opened. Try again in a moment.')
+  }
+}
+
 export async function getDashboardImpl(): Promise<DashboardView> {
   const session = await ensureSession()
   const userId = session.user.id
+  const now = new Date()
 
-  const challengeRow = await db.query.challenge.findFirst({
+  const latest = await db.query.challenge.findFirst({
     where: eq(challenge.userId, userId),
     orderBy: desc(challenge.createdAt),
-    with: { days: { orderBy: asc(day.dayNumber) } },
+    columns: { id: true, status: true },
   })
 
-  if (!challengeRow) {
-    return { challenge: null, days: [], totals: zeroTotals() } satisfies DashboardView
-  }
-
-  let routine: RoutineExercise[] = []
-  if (challengeRow.kelviqCustomerId) {
+  // Opening the app is when missed days are charged. Failures are logged and retried on the
+  // next open or by the daily cron; they never block the dashboard.
+  if (latest?.status === 'active') {
     try {
-      const parsed = JSON.parse(challengeRow.kelviqCustomerId)
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        routine = parsed
-      }
-    } catch {
-      // not JSON
+      const result = await chargeDueDays(latest.id, now)
+      if (result === 'failed') console.error(`[dashboard] charge run failed for ${latest.id}`)
+      await finishChallengeIfDone(latest.id, now)
+    } catch (error) {
+      console.error('[dashboard] charging missed days failed:', error)
+    }
+  } else if (latest?.status === 'mandate_lost') {
+    try {
+      await finishChallengeIfDone(latest.id, now)
+    } catch (error) {
+      console.error('[dashboard] closing a challenge failed:', error)
     }
   }
-  if (routine.length === 0) {
-    routine = [
-      {
-        exerciseType: challengeRow.exerciseType,
-        customGesture: challengeRow.customGesture ?? null,
-        targetSets: challengeRow.targetSets,
-        targetReps: challengeRow.targetReps,
-      },
-    ]
+
+  const blocker = await readChallengeBlocker(userId)
+
+  const challengeRow = latest
+    ? await db.query.challenge.findFirst({
+        where: eq(challenge.id, latest.id),
+        with: { days: { orderBy: asc(day.dayNumber) }, charges: true },
+      })
+    : null
+
+  if (!challengeRow) {
+    return {
+      challenge: null,
+      days: [],
+      totals: computeTotals({ dailyStakeAmount: 0, totalDays: 0 }, { completed: 0, missed: 0 }, []),
+      newChallengeBlocker: blocker,
+    }
   }
 
-  const challengeView: DashboardView['challenge'] = {
+  const challengeView: NonNullable<DashboardView['challenge']> = {
     id: challengeRow.id,
     exerciseType: challengeRow.exerciseType,
     customGesture: challengeRow.customGesture ?? null,
@@ -248,121 +270,70 @@ export async function getDashboardImpl(): Promise<DashboardView> {
     targetSets: challengeRow.targetSets,
     dailyStakeAmount: challengeRow.dailyStakeAmount,
     totalDays: challengeRow.totalDays,
-    totalCommitmentAmount: challengeRow.totalCommitmentAmount,
     status: challengeRow.status,
-    settlementStatus: challengeRow.settlementStatus,
     timezone: challengeRow.timezone,
-    activatedAt: challengeRow.activatedAt ? challengeRow.activatedAt.toISOString() : null,
-    kelviqCheckoutUrl: challengeRow.kelviqCheckoutUrl,
-    kelviqOrderId: challengeRow.kelviqOrderId,
+    activatedAt: challengeRow.activatedAt?.toISOString() ?? null,
     startDayOffset: challengeRow.startDayOffset,
-    routine,
+    mandateCheckoutUrl: challengeRow.mandateCheckoutUrl,
+    consentText: challengeRow.consentText,
+    routine: readRoutine(challengeRow),
   }
 
-  if (
-    challengeRow.status === 'pending_charge' ||
-    !challengeRow.activatedAt ||
-    !challengeRow.timezone
-  ) {
-    const pendingTotals = computeTotals(
-      {
-        dailyStakeAmount: challengeRow.dailyStakeAmount,
-        totalDays: challengeRow.totalDays,
-        totalCommitmentAmount: challengeRow.totalCommitmentAmount,
-      },
-      { completed: 0, forfeited: 0 },
-    )
-    return { challenge: challengeView, days: [], totals: pendingTotals } satisfies DashboardView
-  }
-
-  const now = new Date()
-  const derived = challengeRow.days.map((d) => {
-    const window = toDayWindow(d)
-    return { row: d, window, status: currentDayStatus(d.status, window, now) }
+  const chargesByDay = new Map(challengeRow.charges.map((charge) => [charge.dayNumber, charge]))
+  const daysView: DashboardView['days'] = challengeRow.days.map((row) => {
+    const charge = chargesByDay.get(row.dayNumber)
+    return {
+      dayNumber: row.dayNumber,
+      localDate: row.localDate,
+      status: currentDayStatus(row.status, toDayWindow(row), now),
+      windowStartUtc: row.windowStartUtc.toISOString(),
+      windowEndUtc: row.windowEndUtc.toISOString(),
+      completedAt: row.completedAt?.toISOString() ?? null,
+      charge: charge
+        ? {
+            status: charge.status,
+            amount: charge.amountCents / 100,
+            nextAttemptAt: charge.nextAttemptAt?.toISOString() ?? null,
+            declineMessage: charge.lastDeclineMessage,
+          }
+        : null,
+    }
   })
 
-  // Lazily persist lapsed days: pending/locked past their deadline become forfeited; the open day becomes pending.
-  const forfeitNumbers = derived
-    .filter(
-      (d) => (d.row.status === 'locked' || d.row.status === 'pending') && d.status === 'forfeited',
-    )
-    .map((d) => d.row.dayNumber)
-  const openNumbers = derived
-    .filter((d) => d.row.status === 'locked' && d.status === 'pending')
-    .map((d) => d.row.dayNumber)
-  if (forfeitNumbers.length > 0) {
-    await db
-      .update(day)
-      .set({ status: 'forfeited' })
-      .where(and(eq(day.challengeId, challengeRow.id), inArray(day.dayNumber, forfeitNumbers)))
-  }
-  if (openNumbers.length > 0) {
-    await db
-      .update(day)
-      .set({ status: 'pending' })
-      .where(and(eq(day.challengeId, challengeRow.id), inArray(day.dayNumber, openNumbers)))
-  }
-
-  const statuses = derived.map((d) => d.status)
-  const completed = statuses.filter((s) => s === 'completed').length
-  const forfeited = statuses.filter((s) => s === 'forfeited').length
   const totals = computeTotals(
+    { dailyStakeAmount: challengeRow.dailyStakeAmount, totalDays: challengeRow.totalDays },
     {
-      dailyStakeAmount: challengeRow.dailyStakeAmount,
-      totalDays: challengeRow.totalDays,
-      totalCommitmentAmount: challengeRow.totalCommitmentAmount,
+      completed: daysView.filter((d) => d.status === 'completed').length,
+      missed: daysView.filter((d) => d.status === 'forfeited').length,
     },
-    { completed, forfeited },
+    challengeRow.charges,
   )
 
-  // Lazy settlement check: if challenge is active and all days are resolved or final deadline passed
-  if (challengeRow.status === 'active') {
-    try {
-      const settleResult = await settleChallenge(challengeRow.id, now)
-      if (settleResult === 'settled' || settleResult === 'refunded') {
-        const updated = await db.query.challenge.findFirst({
-          where: eq(challenge.id, challengeRow.id),
-        })
-        if (updated) {
-          challengeView.status = updated.status
-          challengeView.settlementStatus = updated.settlementStatus
-        }
-      }
-    } catch (err) {
-      console.error('[dashboard] lazy settlement failed:', err)
-    }
-  }
-
-  const daysView: DashboardView['days'] = derived.map((d) => ({
-    dayNumber: d.row.dayNumber,
-    localDate: d.row.localDate,
-    status: d.status,
-    windowStartUtc: d.row.windowStartUtc.toISOString(),
-    windowEndUtc: d.row.windowEndUtc.toISOString(),
-    completedAt: d.row.completedAt ? d.row.completedAt.toISOString() : null,
-  }))
-
-  return { challenge: challengeView, days: daysView, totals } satisfies DashboardView
+  return { challenge: challengeView, days: daysView, totals, newChallengeBlocker: blocker }
 }
 
 export async function startWorkoutImpl(data: { dayNumber: number }) {
   const session = await ensureSession()
   const challengeRow = await db.query.challenge.findFirst({
-    where: and(eq(challenge.userId, session.user.id), eq(challenge.status, 'active')),
+    where: and(
+      eq(challenge.userId, session.user.id),
+      inArray(challenge.status, [...RECORDABLE_STATES]),
+    ),
     with: { days: true },
   })
   if (!challengeRow) throw new Error('No active challenge to record against.')
-  if (!challengeRow.timezone) throw new Error('This challenge has no pinned timezone.')
-  if (!env.BETTER_AUTH_SECRET)
+  if (!env.BETTER_AUTH_SECRET) {
     throw new Error('BETTER_AUTH_SECRET is not set; workouts cannot be verified.')
+  }
 
   const dayRow = challengeRow.days.find((d) => d.dayNumber === data.dayNumber)
   if (!dayRow) throw new Error('Day not found for this challenge.')
   const now = new Date()
   const window = toDayWindow(dayRow)
   const check = canCompleteDay(currentDayStatus(dayRow.status, window, now), window, now)
-  if (!check.ok)
+  if (!check.ok) {
     throw new Error(`Day ${data.dayNumber} is not open for recording (${check.reason}).`)
+  }
 
   const startedAtMs = Date.now()
   const token = createWorkoutSessionToken(
@@ -388,19 +359,18 @@ export async function completeDayImpl(data: {
   const userId = session.user.id
 
   const challengeRow = await db.query.challenge.findFirst({
-    where: and(eq(challenge.userId, userId), inArray(challenge.status, ['active', 'settling'])),
+    where: and(eq(challenge.userId, userId), inArray(challenge.status, [...RECORDABLE_STATES])),
     with: { days: true },
   })
   if (!challengeRow) throw new Error('No active challenge to record against.')
-  if (challengeRow.status === 'settling') {
-    throw new Error('This challenge is already settling; no new completions are accepted.')
-  }
-  if (!env.BETTER_AUTH_SECRET)
+  if (!env.BETTER_AUTH_SECRET) {
     throw new Error('BETTER_AUTH_SECRET is not set; workouts cannot be verified.')
+  }
 
   const tokenPayload = verifyWorkoutSessionToken(data.sessionToken, env.BETTER_AUTH_SECRET)
-  if (!tokenPayload)
+  if (!tokenPayload) {
     throw new Error('The workout session is invalid or has expired. Start a new session.')
+  }
   if (
     tokenPayload.userId !== userId ||
     tokenPayload.challengeId !== challengeRow.id ||
@@ -409,23 +379,9 @@ export async function completeDayImpl(data: {
     throw new Error('This workout session does not belong to this day.')
   }
 
-  let routine: RoutineExercise[] = []
-  if (challengeRow.kelviqCustomerId) {
-    try {
-      const parsed = JSON.parse(challengeRow.kelviqCustomerId)
-      if (Array.isArray(parsed) && parsed.length > 0) routine = parsed
-    } catch {
-      // ignore
-    }
-  }
-
-  const expectedSets =
-    routine.length > 0 ? routine.reduce((sum, e) => sum + e.targetSets, 0) : challengeRow.targetSets
-  const expectedReps =
-    routine.length > 0
-      ? routine.reduce((sum, e) => sum + e.targetSets * e.targetReps, 0)
-      : challengeRow.targetSets * challengeRow.targetReps
-
+  const routine = readRoutine(challengeRow)
+  const expectedSets = routine.reduce((sum, e) => sum + e.targetSets, 0)
+  const expectedReps = routine.reduce((sum, e) => sum + e.targetSets * e.targetReps, 0)
   if (data.setsCompleted < expectedSets) {
     throw new Error(
       `Completed sets (${data.setsCompleted}) do not match the target (${expectedSets}).`,
@@ -460,6 +416,22 @@ export async function completeDayImpl(data: {
     routine.length > 1 ? routine.map((r) => r.exerciseType).join('+') : challengeRow.exerciseType
 
   await db.transaction(async (tx) => {
+    // Conditional on the stored status: if the deadline passed and the day was already marked
+    // missed (and possibly claimed for a charge), the completion must not win.
+    const completed = await tx
+      .update(day)
+      .set({ status: 'completed', completedAt: now })
+      .where(
+        and(
+          eq(day.challengeId, challengeRow.id),
+          eq(day.dayNumber, data.dayNumber),
+          inArray(day.status, ['locked', 'pending']),
+        ),
+      )
+      .returning({ id: day.id })
+    if (completed.length === 0) {
+      throw new Error(`Day ${data.dayNumber} is no longer open; its deadline has passed.`)
+    }
     await tx.insert(workoutVerification).values({
       challengeId: challengeRow.id,
       dayNumber: data.dayNumber,
@@ -469,19 +441,12 @@ export async function completeDayImpl(data: {
       confidence: String(data.confidence),
       durationSeconds,
     })
-    await tx
-      .update(day)
-      .set({ status: 'completed', completedAt: now })
-      .where(and(eq(day.challengeId, challengeRow.id), eq(day.dayNumber, data.dayNumber)))
   })
 
-  // Immediate settlement if this was the final day of the challenge
-  if (data.dayNumber === challengeRow.totalDays) {
-    try {
-      await settleChallenge(challengeRow.id, now)
-    } catch (err) {
-      console.error('[challenge] immediate settlement on final day failed:', err)
-    }
+  try {
+    await finishChallengeIfDone(challengeRow.id, now)
+  } catch (error) {
+    console.error('[challenge] closing the challenge after the final day failed:', error)
   }
 
   return { ok: true as const, dayNumber: data.dayNumber }
@@ -489,22 +454,12 @@ export async function completeDayImpl(data: {
 
 export async function updateRoutineImpl(newRoutine: RoutineExercise[]) {
   const session = await ensureSession()
-  const sessionUser = session.user as SessionUser
-
   const active = await db.query.challenge.findFirst({
-    where: and(eq(challenge.userId, sessionUser.id), inArray(challenge.status, [...ACTIVE_STATES])),
+    where: and(eq(challenge.userId, session.user.id), inArray(challenge.status, [...LIVE_STATES])),
     orderBy: desc(challenge.createdAt),
   })
+  if (!active) throw new Error('No active challenge found to update.')
 
-  if (!active) {
-    throw new Error('No active challenge found to update.')
-  }
-
-  const serialized = JSON.stringify(newRoutine)
-  await db
-    .update(challenge)
-    .set({ kelviqCustomerId: serialized })
-    .where(eq(challenge.id, active.id))
-
+  await db.update(challenge).set({ routine: newRoutine }).where(eq(challenge.id, active.id))
   return { success: true, routine: newRoutine }
 }

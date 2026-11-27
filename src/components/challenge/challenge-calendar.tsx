@@ -23,6 +23,28 @@ interface ChallengeCalendarProps {
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
+function missedDayChargeText(
+  charge: DashboardView['days'][number]['charge'],
+  dailyStakeAmount: number,
+): string {
+  const amount = formatUSD(charge?.amount ?? dailyStakeAmount)
+  switch (charge?.status) {
+    case 'succeeded':
+      return `${amount} charged.`
+    case 'claimed':
+    case 'pending':
+      return `Charging ${amount}…`
+    case 'failed':
+      return charge.nextAttemptAt
+        ? `The ${amount} charge was declined. Retrying ${new Date(charge.nextAttemptAt).toLocaleDateString()}.`
+        : `The ${amount} charge was declined.`
+    case 'abandoned':
+      return `The ${amount} charge was declined. Update your card to pay it.`
+    default:
+      return `${amount} will be charged.`
+  }
+}
+
 export function ChallengeCalendar({ days, dailyStakeAmount }: ChallengeCalendarProps) {
   // Map days by their localDate string (YYYY-MM-DD)
   const dayMap = useMemo(() => {
@@ -241,13 +263,13 @@ export function ChallengeCalendar({ days, dailyStakeAmount }: ChallengeCalendarP
 
             <p className="text-xs text-[#5a6678]">
               {selectedDayItem.status === 'completed' &&
-                `✓ Verified on camera — ${formatUSD(dailyStakeAmount)} secured in won-back escrow.`}
+                `✓ Verified on camera. This day cost nothing.`}
               {selectedDayItem.status === 'pending' &&
-                `● Window open today — Record before midnight to protect your ${formatUSD(dailyStakeAmount)} stake!`}
+                `● Open today. Record before midnight or you'll be charged ${formatUSD(dailyStakeAmount)}.`}
               {selectedDayItem.status === 'forfeited' &&
-                `✕ Workout missed — ${formatUSD(dailyStakeAmount)} forfeited to escrow.`}
+                `✕ Workout missed. ${missedDayChargeText(selectedDayItem.charge, dailyStakeAmount)}`}
               {selectedDayItem.status === 'locked' &&
-                `○ Upcoming commitment day — Opens automatically at 12:00 AM local time.`}
+                `○ Upcoming day. Opens automatically at 12:00 AM local time.`}
             </p>
           </div>
 
@@ -268,7 +290,7 @@ export function ChallengeCalendar({ days, dailyStakeAmount }: ChallengeCalendarP
                 : selectedDayItem.status === 'pending'
                   ? 'Open Today'
                   : selectedDayItem.status === 'forfeited'
-                    ? 'Forfeited'
+                    ? 'Missed'
                     : 'Locked'}
             </Badge>
 
@@ -301,7 +323,7 @@ export function ChallengeCalendar({ days, dailyStakeAmount }: ChallengeCalendarP
         </div>
         <div className="flex items-center gap-1.5">
           <span className="size-2.5 rounded-full bg-rose-500" />
-          <span>Forfeited</span>
+          <span>Missed</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="size-2.5 rounded-full border border-[#0d1b2a18] bg-white" />

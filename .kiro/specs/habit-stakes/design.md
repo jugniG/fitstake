@@ -1,304 +1,216 @@
-# Habit-Stakes — Design
+# Habit-Stakes — Design (v2: Dodo Payments, charge per missed day)
 
-> Companion to `requirements.md` (locked). All decisions here trace to the requirements and the
-> verified APIs cited inline.
+> Companion to `requirements.md` v2. Sections on auth, day windows and MediaPipe are unchanged
+> from v1 and summarized only where they touch payments.
 
-## 1. Architecture overview
-
-Browser/React (TanStack Start) + Vercel serverless. Two trust domains:
-
-- **Client (browser):** camera capture, MediaPipe rep counting, UI. Cannot be fully trusted for
-  verification, so it only _proposes_ a completion; the server _decides_.
-- **Server (Vercel serverless, TanStack server functions + API routes on Nitro):** Better Auth,
-  Kelviq checkout creation, webhook verification, day-window computation, completion acceptance,
-  the single-settlement refund, and a cron sweep. Postgres (Neon) via Drizzle is the source of
-  truth — never `localStorage` for money state.
+## 1. Architecture
 
 ```
-Browser                Vercel serverless (Nitro)            Kelviq (MoR)        Neon Postgres
---------               --------------------------           ------------        -------------
-camera + MediaPipe  ->  /api/workout/complete (server fn)                       challenge/day/
-counts reps             validates window+ownership          checkout.session     verification/
-                        -> marks day COMPLETED                                  kelviq_event
-setup form  --------->  createChallenge (server fn)
-                        -> Kelviq checkout.session  ----->   hosted checkout
-                        redirect                         <--- checkoutUrl
-                        /api/webhooks/kelviq (raw body) <--- checkout.completed
-                        validateEvent -> activate                                persist
-                        /api/cron/settle (Vercel Cron) -->  refunds.create  <--- (orderId)
-                                                  <------  refund.updated(SUCCEEDED)
+Browser                    Server (TanStack Start on Vercel)              Dodo Payments
+-------                    ---------------------------------              -------------
+onboarding draft  ----->   startAccessCheckout (weekly | lifetime) ---->  hosted checkout
+                                                                   <----  subscription.active /
+                                                                          payment.succeeded
+consent + mandate ----->   createChallenge -> stake mandate checkout --->  hosted checkout
+                                                                   <----  subscription.active
+record workout    ----->   completeDay (window + ownership + timing)
+open app          ----->   getDashboard -> chargeMissedDays  -------->  subscriptions.charge
+                                                                   <----  payment.succeeded/failed
+                           /api/webhooks/dodo (raw body, unwrap, idempotent)
+                           /api/cron/charge-missed (daily backstop, OQ-1)
 ```
 
-## 2. Module / file structure
+Postgres (Neon) via Drizzle is the source of truth for every money state.
 
-Keeps the existing `#/*` → `./src/*` alias and TanStack file-based routing. Demo-only code
-(`coffin-card`, `history/demo-controls`, `ledger-events`, `money-summary`, the localStorage
-`commitment.ts` ledger, `formatINR`, `plan-gate`, `reset-demo`, setup/commitment-form demo) is
-removed. Kept scaffolding: router, `db.ts`, `db/schema.ts`, `use-camera-recorder.ts` (refactored
-to feed a live `<video>` to MediaPipe), `components/ui/*`, Tailwind theme, vitest.
+## 2. Files
+
+Removed:
+
+- `src/lib/kelviq/*` (client, checkout, customers, refund, webhook + test)
+- `src/routes/api/webhooks/kelviq.ts`
+- `src/lib/server/settle.ts`, `src/lib/challenge/settlement.ts` + test, the settle cron route
+- `.kiro/steering/kelviq.md`
+
+Added:
 
 ```
-src/
-  lib/
-    auth.ts                     Better Auth instance (server)
-    auth.functions.ts           getSession / ensureSession server fns
-    auth-client.ts              authClient (Google + magic-link)
-    kelviq/client.ts            @kelviq/node-sdk singleton (server-only)
-    kelviq/checkout.ts          createCommitmentCheckout(challenge)
-    kelviq/webhook.ts           validateEvent + dispatch
-    kelviq/refund.ts            settleChallenge(challengeId)
-    challenge/
-      math.ts          pure: totals, invariant checks            (unit-tested)
-      windows.ts       pure: day windows from activatedAt+tz+startDayOffset (unit-tested)
-      state.ts         pure: day/challenge state transitions      (unit-tested)
-      settlement.ts    pure: idempotent settlement decision       (unit-tested)
-    server/
-      challenges.functions.ts   createChallenge, getDashboard, completeDay (server fns)
-      webhooks.route.ts        /api/webhooks/kelviq (raw body)
-      cron.route.ts            /api/cron/settle (Vercel Cron)
-    vision/
-      engine.ts               FilesetResolver + Pose/Hand landmarker lifecycle
-      rep-counter.ts          generic rep state machine (angle/threshold cycles)
-      exercises/
-        squat.ts  push-up.ts  jumping-jack.ts   custom-gesture.ts
-      liveness.ts             anti-cheat: frame continuity, rate, confidence
-      index.ts                registry: exerciseKey -> module
-  routes/
-    index.tsx  setup.tsx  dashboard.tsx  record.tsx  history.tsx  __root.tsx
-    api/auth/$.ts             Better Auth handler
-    api/webhooks/kelviq.ts     webhook route
-    api/cron/settle.ts         settlement sweep
-  db/schema.ts                Drizzle (Better Auth tables + new tables, drop dodo/todo)
-  components/                 app-shell, setup form, dashboard, rep-count UI, ledger
-public/wasm/                  @mediapipe/tasks-vision wasm + model .task (self-hosted)
-.kiro/
-  hooks/                      vision test-on-save hook (createHook)
-  steering/                   architecture, vision-conventions, kelviq, testing
-  specs/habit-stakes/         this spec
-vercel.json                   + crons: hourly /api/cron/settle
+src/lib/dodo/
+  client.ts          DodoPayments singleton: bearerToken, environment, webhookKey (server-only)
+  checkout.ts        createWeeklyCheckout, createLifetimeCheckout, createStakeMandateCheckout
+  customers.ts       ensureDodoCustomer(user) -> customer_id (stored on user)
+  charges.ts         chargeStake(), cancelMandate(), classifyDecline()
+src/lib/challenge/
+  charges.ts         pure: which days are due, retry schedule, hard-decline rules (unit-tested)
+src/lib/server/
+  stake-charges.server.ts   chargeMissedDays(userId, now) — claim, call Dodo, record
+  webhook-handler.ts        rewritten for Dodo events
+src/routes/api/webhooks/dodo.ts      raw body -> unwrap -> handler
+src/routes/api/cron/charge-missed.ts daily backstop guarded by CRON_SECRET (OQ-1)
+.kiro/steering/dodo.md               conventions (replaces kelviq.md)
 ```
 
-## 3. Data model (Drizzle, existing `appSchema`)
+Changed: `access.ts`/`access.server.ts` (Dodo plans), `challenges.server.ts`, `paywall.tsx`,
+`setup-form.tsx` (consent screen, no pot/escrow copy), `dashboard-view.tsx`, `money-summary.tsx`,
+`db/schema.ts`, `env.ts`, `.env.example`, `README.md`, `HANDOFF.md`, `architecture.md`.
 
-Keep Better Auth core: `user`, `session`, `account`, `verification`. **Drop** the
-DodoPayments-template `subscription` and `todo`. Add `kelviqCustomerId` to `user`.
+## 3. Data model
 
-New tables:
+`user`: drop `kelviqCustomerId`; add `dodoCustomerId text unique`.
 
-- `challenge`
-  - `id` uuid pk; `userId` text fk→user.id; `exerciseType` enum(squat,push_up,jumping_jack,custom);
-  - `customGesture` text nullable (pinch|fist|open_hand); `targetReps` int; `targetSets` int;
-  - `dailyStakeAmount` int (USD dollars); `totalDays` int; `totalCommitmentAmount` int (dollars);
-  - `status` enum(pending_charge, active, settling, settled);
-  - `timezone` text (IANA, pinned); `activatedAt` timestamptz (UTC, set on checkout.completed);
-  - `startDayOffset` int (0=Today, 1=Tomorrow); `day1LocalDate` date (computed);
-  - `kelviqCheckoutSessionId` text; `kelviqOrderId` text; `kelviqCustomerId` text;
-  - `settlementStatus` enum(pending, settled, none); `settlementRefundId` text **unique**;
-  - `settledAt` timestamptz; `createdAt`/`updatedAt`.
-  - Unique partial index on `settlementRefundId` (non-null) → enforces at-most-one refund at the DB.
-- `day`
-  - `id` uuid pk; `challengeId` fk; `dayNumber` int (1..totalDays); `localDate` date;
-  - `windowStartUtc` timestamptz; `windowEndUtc` timestamptz (deadline);
-  - `status` enum(locked, pending, completed, forfeited); `completedAt` timestamptz;
-  - Unique(`challengeId`,`dayNumber`); index(`status`).
-- `workout_verification` (audit completion record)
-  - `id` uuid pk; `challengeId` fk; `dayNumber` int; `exercise` text; `setsCompleted` int;
-  - `totalReps` int; `confidence` numeric; `durationSeconds` int; `recordedAt` timestamptz; `note` text.
-  - Unique(`challengeId`,`dayNumber`) → a day is completed exactly once.
-- `kelviq_event` (webhook idempotency + audit)
-  - `eventId` text **unique** (Kelviq `webhook-id`/event `id`); `eventType` text;
-  - `payload` jsonb; `processedAt` timestamptz.
+`challenge`:
 
-All money stored in **whole USD dollars** internally (Kelviq calls convert to cents × 100).
+- Drop `kelviqCheckoutSessionId`, `kelviqCheckoutUrl`, `kelviqOrderId`, `kelviqCustomerId`,
+  `totalCommitmentAmount`, `settlementStatus`, `settlementRefundId`, `settledAt`.
+- Add `routine jsonb not null` (replaces the routine stored in `kelviqCustomerId`).
+- Add `dodoSubscriptionId text unique`, `mandateCheckoutUrl text`.
+- Add `consentText text not null`, `consentedAt timestamptz not null`.
+- `status` enum becomes `pending_mandate | active | mandate_lost | completed`.
+- Unique partial index "one live challenge per user" covers `pending_mandate, active,
+mandate_lost`.
 
-## 4. Auth — Better Auth (Google + magic-link)
+`day`: unchanged.
 
-- `src/lib/auth.ts`: `betterAuth({ database: drizzleAdapter(db,...), secret: env.BETTER_AUTH_SECRET,
-socialProviders: { google: { clientId, clientSecret } },
-plugins: [magicLink({ sendMagicLink }), tanstackStartCookies()] })`.
-  `tanstackStartCookies()` is last (per Better Auth + TanStack guide).
-- `src/routes/api/auth/$.ts`: catch-all mounting `auth.handler` on GET/POST (confirmed pattern).
-- `src/lib/auth.functions.ts`: `getSession`/`ensureSession` server fns via `getRequestHeaders`.
-- Route protection via `beforeLoad` → `getSession` → redirect to `/login`; guarded routes under a
-  `_protected` layout. `createChallenge` and `completeDay` server fns call `ensureSession`.
-- Client: `createAuthClient({ plugins: [magicLinkClient()] })`; `signIn.social({provider:'google'})`
-  and `magicLink.sendMagicLinkEmail({email})` → `magicLink.verifyEmail({token})`.
-- Env: `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, magic-link email transport
-  (`RESEND_API_KEY` or SMTP). Exact plugin import names verified at impl.
+New `stake_charge`:
 
-## 5. Challenge lifecycle & state machine
+| column                | type        | notes                                            |
+| --------------------- | ----------- | ------------------------------------------------ |
+| id                    | text pk     |                                                  |
+| challengeId           | text fk     |                                                  |
+| dayNumber             | int         | unique with challengeId                          |
+| amountCents           | int         | = dailyStakeAmount × 100                         |
+| status                | enum        | `claimed, pending, succeeded, failed, abandoned` |
+| dodoPaymentId         | text unique | set from the charge response                     |
+| attempts              | int         |                                                  |
+| firstAttemptAt        | timestamptz | anchors the retry schedule                       |
+| nextAttemptAt         | timestamptz | null when no retry is due                        |
+| lastDeclineCode       | text        |                                                  |
+| createdAt / updatedAt | timestamptz |                                                  |
+
+`user_subscription` (weekly): rename `kelviqSubscriptionId` → `dodoSubscriptionId`.
+
+`lifetime_access`: rename `kelviqCheckoutSessionId` → `dodoPaymentId`; drop `kelviqOrderId`.
+
+`kelviq_event` → replaced by `payment_event(webhookId unique, eventType, payload jsonb,
+processedAt)`.
+
+Migration drops Kelviq data (test data per D-1). It is generated, reviewed, and only run with
+approval.
+
+## 4. Challenge state machine
 
 ```mermaid
 stateDiagram-v2
-  [*] --> pending_charge: createChallenge (persist) + Kelviq checkout session
-  pending_charge --> active: checkout.completed webhook (set activatedAt, tz, days)
-  active --> settling: final day window passed (cron/lazy) and wonBackBalance>0
-  active --> settled: final day window passed and wonBackBalance==0 (no refund)
-  settling --> settled: refund.updated status=SUCCEEDED
-  settling --> settling: transient retry (lock held)
+  [*] --> pending_mandate: consent + createChallenge + mandate checkout
+  pending_mandate --> active: subscription.active (metadata.challengeId)
+  active --> mandate_lost: subscription.cancelled / failed / expired
+  mandate_lost --> active: re-authorized (new mandate)
+  active --> completed: all days terminal and all charges resolved -> cancel mandate
+  mandate_lost --> completed: all days terminal
 ```
 
-Day state machine (per `day` row):
+## 5. Missed-day charging
 
-```mermaid
-stateDiagram-v2
-  [*] --> locked: windowStart in the future
-  locked --> pending: server now >= windowStart
-  pending --> completed: workout verified within window (once)
-  pending --> forfeited: server now >= windowEnd and not completed
-  completed --> [*]
-  forfeited --> [*]
-```
+`chargeMissedDays(userId, now)` runs on `getDashboard` and from the daily cron:
 
-Transitions are server-authoritative using **server UTC + stored timezone**, never the client
-clock. `forfeited` is derived lazily on dashboard load and persisted; the cron sweep also flips
-pending→forfeited for past days.
+1. Load the user's `active` challenge and days. Persist lazy `forfeited` status as today.
+2. Due days = `forfeited` days with no `stake_charge` row, plus rows in `failed` whose
+   `nextAttemptAt <= now` (pure `dueCharges()` in `challenge/charges.ts`).
+3. For each due day, oldest first, at most one in flight per subscription (Dodo rejects a new
+   charge with `409` while one is pending):
+   - **Claim**: `INSERT stake_charge ... ON CONFLICT DO NOTHING RETURNING` inside a transaction
+     that re-reads `day.status = 'forfeited'` with `FOR UPDATE`. A lost race returns nothing and is
+     skipped. `completeDay` also takes the day row `FOR UPDATE`, so a completion and a charge claim
+     can't both win.
+   - **Charge**: `dodo.subscriptions.charge(subscriptionId, { product_price: amountCents,
+product_currency: 'USD', product_description, metadata })` with request idempotency key
+     `stake:{challengeId}:{dayNumber}:{attempt}`. Store `dodoPaymentId`, status `pending`.
+   - **Errors**: `409` leaves the row `claimed` for the next run; `429` (too many failures) stops
+     charging this subscription; other errors mark `failed` with a scheduled retry.
+4. Webhooks settle the outcome (section 6).
 
-## 6. Day-window computation (`challenge/windows.ts`, pure, unit-tested)
+Retry schedule (pure, tested): attempts at `firstAttemptAt + 0, 3, 10, 17` days, same time of day.
+Hard declines are never retried. After attempt 4 fails the row becomes `abandoned`.
 
-Inputs: `activatedAt` (UTC), `timezone` (IANA), `startDayOffset` (0|1), `totalDays`. Use a
-TZ-aware library (`@js-joda`/`temporal`/`Intl`) to compute local-day boundaries, then convert back
-to UTC for storage. (DST is handled by computing each day's boundaries from its own local date, not
-by adding 24h — adding 24h breaks on DST transitions.)
+Each run is bounded (e.g. 10 charges) so a request can't time out on a long backlog.
 
-- `day1LocalDate = localDateInTz(activatedAt) + startDayOffset days`.
-- For day `d` (1..totalDays): `localDate = day1LocalDate + (d-1)`;
-  `windowEndUtc = toUtc(localMidnightStart(localDate + 1 day), tz)`;
-  `windowStartUtc` = `activatedAt` for d=1 with offset 0, else `toUtc(localMidnightStart(localDate), tz)`.
-- Precompute all `day` rows at activation: day 1 `pending` (or `locked` if offset 1), rest `locked`.
+## 6. Webhook handling (`/api/webhooks/dodo`)
 
-At activation the user chose **Today/Tomorrow** (OQ-1); `startDayOffset` captures it. After 20:00
-local the UI preselects Tomorrow with an explanatory note.
+- Read `await request.text()`, convert headers to a plain object, call
+  `dodo.webhooks.unwrap(raw, { headers })`. Failure → 401 and a `[webhook]` log.
+- In one transaction: insert `payment_event(webhookId)`; on a unique violation return 200 with no
+  changes. Then dispatch:
 
-## 7. Kelviq integration
+| Event                                           | Effect                                                                                                                                                                              |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `subscription.active`                           | `metadata.kind = stake_mandate`: activate the challenge (day rows, timezone). `weekly`: upsert `user_subscription` active/trialing. Re-authorized mandate: `mandate_lost → active`. |
+| `subscription.renewed` / `plan_changed`         | weekly: update status and period end.                                                                                                                                               |
+| `subscription.on_hold`                          | weekly: access off. stake mandate: informational (charges still allowed).                                                                                                           |
+| `subscription.cancelled` / `failed` / `expired` | weekly: access off at period end. stake mandate: `active → mandate_lost` unless the challenge is ending.                                                                            |
+| `payment.succeeded`                             | `kind = stake_charge`: row → `succeeded`. `kind = lifetime`: insert `lifetime_access`, then cancel any live weekly subscription after commit.                                       |
+| `payment.failed`                                | `kind = stake_charge`: row → `failed`, store decline code, schedule retry or stop.                                                                                                  |
 
-**Checkout (`kelviq/checkout.ts`, server-only):** `client.checkout.createSession({
-  planIdentifier: env.KELVIQ_COMMITMENT_PLAN_IDENTIFIER,   // one Kelviq product+one-time plan
-  chargePeriod: "ONE_TIME",
-  customAmount: totalCommitment,                          // USD major units (dollars)
-  currencyCode: "USD",
-  taxBehavior: "EXCLUSIVE",                               // tax added on top; pot = refundable order amount
-  successUrl, metadata: { challengeId, userId }
-})` → store `checkoutSessionId`, redirect to `checkoutUrl`.
+- Matching uses ids we stored (`dodoSubscriptionId`, `dodoPaymentId`) first and `metadata` second,
+  so a forged-but-signed metadata value can't move another user's state.
+- Returns 200 only after commit; a handler error returns 500 so Dodo retries.
 
-> Correction vs. the original brief: a checkout session **requires** `planIdentifier` +
-> `chargePeriod`; `customAmount` overrides the plan price per challenge. We must create one
-> Kelviq product + one-time plan in the dashboard and put its identifier in env. `customAmount`
-> is major units (dollars), confirmed against the refund `amount`(major)/`amountUnits`(minor) split.
+## 7. Checkouts
 
-**Webhook (`api/webhooks/kelviq.ts`):** raw body (`express.raw`-equivalent for TanStack), verify
-with `validateEvent(body, env.KELVIQ_WEBHOOK_SECRET, headers)`; on `WebhookVerificationError`
-return 400. Idempotency: insert into `kelviq_event(eventId)`; on unique-violation, ack 202 and stop.
-Dispatch:
+All use `dodo.checkoutSessions.create` and redirect to `checkout_url`:
 
-- `checkout.completed` → activate: set `status=active`, `activatedAt` = event time, `timezone`
-  from the challenge (captured at setup), compute+insert all `day` rows. Read `data.object.metadata`
-  for `challengeId`/`userId`; fetch the order id (retrieve checkout session → order, or from the
-  follow-up `order.created`) and store `kelviqOrderId`.
-- `order.created`/`order.updated` → link `kelviqOrderId` to the challenge if not yet set.
-- `refund.updated` with `status=SUCCEEDED` (and `refund.created`) → set `settlementStatus=settled`,
-  `settledAt`, `settlementRefundId` (refund uuid), challenge `status=settled`. Idempotent.
-- `order.refunded` → informational (partial vs full); do not drive logic from it.
+- Weekly: `product_cart: [{ product_id: DODO_WEEKLY_PRODUCT_ID, quantity: 1 }]`,
+  `subscription_data: { trial_period_days: 3 }` on the first subscription only.
+- Lifetime: `product_cart: [{ product_id: DODO_LIFETIME_PRODUCT_ID, quantity: 1 }]`.
+- Stake mandate: `product_cart: [{ product_id: DODO_STAKE_PRODUCT_ID, quantity: 1 }]`,
+  `subscription_data: { on_demand: { mandate_only: true } }`.
+- Every session: `customer: { customer_id: user.dodoCustomerId }`, `return_url`,
+  `metadata: { kind, userId, challengeId? }`.
 
-**Refund / settlement (`kelviq/refund.ts` + `api/cron/settle.ts`):** after the final day's window
-ends, compute `wonBackBalance`. If >0:
+Exact SDK field names and the idempotency request option are verified against
+`dodopayments@2.63.1` types during implementation.
 
-1. Atomic `UPDATE challenge SET status='settling' WHERE id=? AND status='active' RETURNING *` — only
-   one caller wins (DB-level lock). Losers stop.
-2. `client.refunds.create({ orderId, amountUnits: wonBackBalance*100, reason:'REQUESTED_BY_CUSTOMER',
-internalNote: 'habit-stakes settlement' })` → refund uuid.
-3. Store `settlementRefundId` (unique) + `settlementStatus=pending`, `status=settling`.
-4. On `refund.updated SUCCEEDED` webhook → `settlementStatus=settled`, `status=settled`.
-   Recovery for a crash between steps 2–3: if `status=settling` with no `settlementRefundId`, list
-   Kelviq refunds for the order to find the existing refund and store it (no second create).
-   If `wonBackBalance==0`: set `settlementStatus=none`, `status=settled` (no refund call).
-   Vercel Cron (`vercel.json` `crons: [{ path:'/api/cron/settle', schedule:'0 * * * *' }]`) runs the
-   sweep hourly, guarded by `CRON_SECRET`; the dashboard also triggers a lazy check on load.
+## 8. Access rules
 
-## 8. Workout verification (in-browser MediaPipe)
+Unchanged logic in `src/lib/access.ts`; only the data source moves to Dodo ids. Added rule:
+`canStartChallenge` is false while the user owes a stake charge or has a `mandate_lost`
+challenge.
 
-Engine (`vision/engine.ts`): `npm i @mediapipe/tasks-vision`; self-host the WASM + `pose_landmarker.task`
-/`hand_landmarker.task` under `/public/wasm` (Vercel-friendly, no CDN dependency). `FilesetResolver.forVisionTasks('/wasm')`
-→ `PoseLandmarker.createFromOptions(fileset,{baseOptions:{modelAssetPath,delegate:'GPU'},runningMode:'VIDEO',numPoses:1})`
-(and `HandLandmarker` for custom). Per `requestAnimationFrame` call `detectForVideo(videoEl, performance.now())`
-→ `result.landmarks[0]` (33 pose points; hand = 21). Landmark indices (confirmed): hip 23/24, knee
-25/26, ankle 27/28, shoulder 11/12, elbow 13/14, wrist 15/16; hand thumb tip 4, index tip 8, wrist 0.
+## 9. UI changes
 
-Rep modules (`vision/exercises/*.ts`) implement a common `RepModule` interface
-(`{ init, onFrame(landmarks, ts): {repCounted, confidence, warn} }`) using a shared state machine in
-`rep-counter.ts` (extended→flexed→extended cycle with hysteresis + min-duration):
+- Onboarding review step becomes the consent step: amounts, the FR-2 statement, an explicit
+  checkbox, then "Authorize card". No "deposit", "pot" or "escrow" wording anywhere.
+- Paywall: unchanged layout; prices from Dodo constants.
+- Dashboard: charged so far, owed, remaining exposure, per-day charge badges, "Update card"
+  when a charge failed, "Re-authorize" when the mandate is lost.
 
-- squat: knee angle (hip→knee→ankle); standing(>160°)→down(<140°)→standing = 1 rep.
-- push-up: elbow angle (shoulder→elbow→wrist); up(>160°)→down(<100°)→up = 1 rep.
-- jumping-jack: arm spread (wrist distance ÷ shoulder width, wrists above shoulders) + ankle
-  distance; closed→open→closed = 1 rep.
-- custom gesture (HandLandmarker): pinch = dist(tip4,tip8) < k·handSize; or fist/open-hand; one
-  gesture cycle = 1 rep (selected at setup).
+## 10. Tests (vitest, pure)
 
-Anti-cheat (`vision/liveness.ts`): live `getUserMedia` stream only (no file/upload input); frame
-continuity (timestamps must advance ~real-time; reject jumps/drops); max rep rate (reject >3 reps/s);
-min rep duration; landmark visibility/confidence thresholds (pause counter + warn below threshold,
-since `visibility`/`presence` can be absent in some builds — fall back to z/normalized depth).
+- `challenge/charges.ts`: due-day selection (only past forfeited, never completed/pending/locked),
+  one charge per day, retry schedule at +3/+10/+17 days, hard-decline stop, 4-attempt cap,
+  total ≤ maxExposure.
+- `access.ts`: existing tests plus "owed charge blocks new challenge".
+- Webhook: signature failure → 401, duplicate `webhook-id` → no-op (with a mocked db layer).
+- Existing window, state and vision tests stay green.
 
-Trust boundary: pose counting is client-side (MediaPipe can't run on Vercel serverless). Server
-guards: `completeDay` requires a server-issued session nonce bound to the open day, validates the
-day window by **server time**, and enforces a minimum wall-clock session duration consistent with
-the rep count (measured server-side from session start → claim). The client submits
-`{setsCompleted, totalReps, confidence, durationSeconds}`; server rejects if the day isn't `pending`,
-the window is closed, or timing is implausible. This is honestly weaker than server-side CV — noted
-as an accepted trade-off for serverless hosting.
-
-## 9. Ledger & dashboard
-
-Dashboard server fn returns `totalCommitmentAmount`, `wonBackBalance = (#completed)×stake`,
-`forfeitedBalance = (#forfeited)×stake`, `remainingDays`, and per-day statuses. All money in USD,
-whole dollars (display); the single refund amount is `wonBackBalance×100` cents.
-
-## 10. InteractionKit DX port (`.kiro/hooks` + `.kiro/steering`)
-
-- `.kiro/steering/architecture.md` — client/server split, where vision/Kelviq/auth logic lives.
-- `.kiro/steering/vision-conventions.md` — how to add a new exercise: implement `RepModule`, register
-  in `vision/index.ts`, add an anti-cheat + min-duration, and a unit test for the state machine.
-- `.kiro/steering/kelviq.md` — server-only API key, `metadata` for `challengeId`/`userId`, raw-body
-  webhook verification, idempotency by event id, at-most-once refund lock.
-- `.kiro/steering/testing.md` — the invariant + state-machine tests that must stay green.
-- `.kiro/hooks/vision-test-on-save.json` — `PostFileSave` matcher `src/lib/vision/.*\.ts` running the
-  vision unit tests, so a rep module edit is validated immediately (created via `createHook`).
-
-## 11. Tests (vitest, pure functions — the brief's required coverage)
-
-- `challenge/math.ts`: totals math; invariant `wonBack+forfeited+remaining×stake = totalCommitment`.
-- `challenge/windows.ts`: window boundaries across timezones + DST; Today vs Tomorrow start; late
-  activation; day numbering.
-- `challenge/state.ts`: locked→pending→completed|forfeited transitions; completed is irreversible;
-  out-of-window completion rejected; sequential settling.
-- `challenge/settlement.ts`: idempotent single-refund (only one `settling` win; refund once; none
-  when `wonBackBalance==0`); recovery after crash; double-call rejected.
-- `vision/exercises/*`: each rep state machine via synthetic landmark sequences (rep counted on a
-  valid cycle, rejected on too-fast/no-confidence).
-
-## 12. Environment variables (you provide later)
+## 11. Environment
 
 ```
-DATABASE_URL=postgres://...neon...
-BETTER_AUTH_SECRET=
-GOOGLE_CLIENT_ID=  GOOGLE_CLIENT_SECRET=
-RESEND_API_KEY=                # magic-link email transport (or SMTP)
-KELVIQ_SERVER_API_KEY=         KELVIQ_WEBHOOK_SECRET=
-KELVIQ_ENV=sandbox             # default sandbox; production to go live
-KELVIQ_COMMITMENT_PLAN_IDENTIFIER=   # the one-time plan created in the Kelviq dashboard
-CRON_SECRET=                   # protects /api/cron/settle
+DODO_API_KEY=              # Dodo dashboard -> Developer -> API keys (test key first)
+DODO_WEBHOOK_SECRET=       # Developer -> Webhooks -> endpoint signing secret
+DODO_MODE=test_mode        # live_mode to go live
+DODO_WEEKLY_PRODUCT_ID=    # subscription product, $2/week
+DODO_LIFETIME_PRODUCT_ID=  # one-time product, $49
+DODO_STAKE_PRODUCT_ID=     # subscription product used for on-demand mandates
+CRON_SECRET=               # protects /api/cron/charge-missed
 ```
 
-## 13. Edge cases & risks
+Removed: every `KELVIQ_*` variable, and the two Kelviq signing secrets hardcoded in the old
+webhook route.
 
-- **Refund window:** Kelviq docs state no hard refund-by date (bounded only by remaining refundable
-  balance). If a processor window surfaces in practice, fallback is a pre-window sweep that refunds
-  the balance-so-far and marks partial — not needed by current docs.
-- **Crash between refund create and persist:** recover by listing Kelviq refunds for the order.
-- **Clock spoofing:** all deadlines/wallets use server UTC + stored tz.
-- **DST:** compute each day's boundaries from its own local date, not by 24h addition.
-- **Kelviq setup dependency:** a product + one-time plan must exist in the Kelviq dashboard first.
-- **MediaPipe model hosting:** self-host wasm + `.task` in `/public/wasm` for reliability.
-- **Verification trust:** client-side CV is an accepted serverless trade-off; mitigated by server
-  timing/ownership/window guards + liveness heuristics, not by re-running CV on the server.
+## 12. Risks
+
+- **Users who stop opening the app** are only charged by the cron backstop (OQ-1).
+- **Chargebacks:** penalty charges invite disputes; the stored consent text and time are the
+  evidence. Handle `dispute.*` events later if they occur.
+- **Card testing flags:** retries follow Dodo's schedule; no bursts.
+- **Mandate revoked mid-challenge:** later missed days can't be charged; accepted and shown.
+- **Timezone gaming:** deadlines use the timezone pinned at activation, as before.

@@ -14,6 +14,19 @@ const pool = new Pool({
   connectionString,
   ...(dbSchema !== 'public' ? { options: `-c search_path=${dbSchema}` } : {}),
   ...(needsSsl ? { ssl: { rejectUnauthorized: false } } : {}),
+  // Hosted poolers (Supabase Supavisor, Neon) close idle connections on their side. Without
+  // these, pg keeps the dead socket and the next query fails with "Connection terminated
+  // unexpectedly". Release idle clients early and keep live ones from being dropped silently.
+  idleTimeoutMillis: 10_000,
+  connectionTimeoutMillis: 10_000,
+  keepAlive: true,
+  max: 5,
+})
+
+// An idle client killed by the server emits here. Without a listener Node treats it as an
+// unhandled error; with one, pg discards the client and the next query gets a fresh one.
+pool.on('error', (error) => {
+  console.error('[db] idle connection closed by the server:', error.message)
 })
 
 // A factory keeps the schema-typed return type so the HMR global reuses the same type

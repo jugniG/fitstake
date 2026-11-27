@@ -1,7 +1,15 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { isValidTimeZone } from '#/lib/challenge'
-import type { DayStatus, ExerciseType, RoutineExercise, SettlementStatus } from '#/lib/challenge'
+import type {
+  ChallengeStatus,
+  DayStatus,
+  ExerciseType,
+  LedgerTotals,
+  RoutineExercise,
+  StakeChargeStatus,
+} from '#/lib/challenge'
+import type { ChallengeBlocker } from '#/lib/access'
 import * as server from './challenges.server'
 
 export const routineExerciseSchema = z.object({
@@ -12,17 +20,13 @@ export const routineExerciseSchema = z.object({
 })
 
 const createChallengeSchema = z.object({
-  exercises: z.array(routineExerciseSchema).min(1).optional(),
-  exerciseType: z
-    .enum(['squat', 'push_up', 'jumping_jack', 'custom_gesture', 'leg_raise'])
-    .optional(),
-  customGesture: z.enum(['pinch', 'fist', 'open_hand']).nullable().optional(),
-  targetReps: z.number().int().min(1).max(1000).optional(),
-  targetSets: z.number().int().min(1).max(100).optional(),
-  dailyStakeAmount: z.number().int().min(1).max(100_000),
+  exercises: z.array(routineExerciseSchema).min(1).max(10),
+  dailyStakeAmount: z.number().int().min(1).max(10_000),
   totalDays: z.number().int().min(1).max(365),
   startDayOffset: z.union([z.literal(0), z.literal(1)]),
   timezone: z.string().min(1).max(64).refine(isValidTimeZone, 'Choose a valid IANA timezone.'),
+  // The user ticked the consent box. The statement itself is rebuilt on the server.
+  consentAccepted: z.literal(true),
 })
 
 export type CreateChallengeInput = z.infer<typeof createChallengeSchema>
@@ -36,14 +40,12 @@ export type DashboardView = {
     targetSets: number
     dailyStakeAmount: number
     totalDays: number
-    totalCommitmentAmount: number
-    status: string
-    settlementStatus: SettlementStatus
-    timezone: string | null
+    status: ChallengeStatus
+    timezone: string
     activatedAt: string | null
-    kelviqCheckoutUrl: string | null
-    kelviqOrderId: string | null
-    startDayOffset: number | null
+    startDayOffset: number
+    mandateCheckoutUrl: string | null
+    consentText: string
     routine: RoutineExercise[]
   } | null
   days: Array<{
@@ -53,18 +55,15 @@ export type DashboardView = {
     windowStartUtc: string
     windowEndUtc: string
     completedAt: string | null
+    charge: {
+      status: StakeChargeStatus
+      amount: number
+      nextAttemptAt: string | null
+      declineMessage: string | null
+    } | null
   }>
-  totals: {
-    totalCommitment: number
-    dailyStake: number
-    totalDays: number
-    completedDays: number
-    forfeitedDays: number
-    remainingDays: number
-    wonBackBalance: number
-    forfeitedBalance: number
-    remainingAmount: number
-  }
+  totals: LedgerTotals
+  newChallengeBlocker: ChallengeBlocker
 }
 
 export const createChallenge = createServerFn({ method: 'POST' })
@@ -73,8 +72,12 @@ export const createChallenge = createServerFn({ method: 'POST' })
     return server.createChallengeImpl(data)
   })
 
-export const startChallengeCheckout = createServerFn({ method: 'POST' }).handler(async () => {
-  return server.startChallengeCheckoutImpl()
+export const resumeMandateCheckout = createServerFn({ method: 'POST' }).handler(async () => {
+  return server.resumeMandateCheckoutImpl()
+})
+
+export const startUpdateCard = createServerFn({ method: 'POST' }).handler(async () => {
+  return server.startUpdateCardImpl()
 })
 
 export const getDashboard = createServerFn({ method: 'GET' }).handler(async () => {
@@ -114,7 +117,7 @@ export const completeDay = createServerFn({ method: 'POST' })
   })
 
 const updateRoutineSchema = z.object({
-  routine: z.array(routineExerciseSchema).min(1),
+  routine: z.array(routineExerciseSchema).min(1).max(10),
 })
 
 export const updateRoutine = createServerFn({ method: 'POST' })

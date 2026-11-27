@@ -12,7 +12,7 @@ const STEPS = [
   {
     num: '02',
     title: 'Stake real skin in the game',
-    desc: 'Deposit your daily stake into a secure refund vault. Zero hidden subscriptions or traps.',
+    desc: 'Pick your daily stake and authorize your card. Nothing is charged upfront.',
   },
   {
     num: '03',
@@ -22,12 +22,12 @@ const STEPS = [
   {
     num: '04',
     title: 'Beat the midnight cutoff',
-    desc: 'Finish all sets before your local midnight. That day’s stake moves immediately into your Won-Back balance.',
+    desc: 'Finish all sets before your local midnight and that day costs nothing.',
   },
   {
     num: '05',
-    title: 'Reclaim your cash payout',
-    desc: 'At challenge completion, one automated settlement refunds every single dollar you won back to your card.',
+    title: 'Miss a day, pay the stake',
+    desc: 'Skip a day and your card is charged that day’s stake. Show up every day and the whole challenge is free.',
   },
 ]
 
@@ -50,8 +50,8 @@ export function MethodSteps() {
             How the StakeFit method works.
           </h2>
           <p className="mt-3 text-sm text-[#5a6678] sm:text-base">
-            From discovering your baseline to staking real skin in the game, optical form checks,
-            and reclaiming 100% of your deposit.
+            From discovering your baseline to staking real skin in the game and optical form checks.
+            Show up every day and it costs you nothing.
           </p>
         </div>
 
@@ -82,7 +82,7 @@ export function MethodSteps() {
                   <Flame className="size-3.5" /> Interactive Stakes Simulator
                 </span>
                 <h3 className="mt-3 text-2xl font-extrabold text-[#0d1b2a] sm:text-3xl">
-                  Simulate your daily stake & refund.
+                  Simulate your daily stake.
                 </h3>
               </div>
 
@@ -134,22 +134,22 @@ export function MethodSteps() {
             {/* Total Stake Preview */}
             <div className="rounded-2xl border border-[#0d1b2a14] bg-[#faf8f5] p-6 lg:min-w-[320px] text-center sm:text-left">
               <span className="text-xs font-bold uppercase tracking-wider text-[#5a6678]">
-                Total Upfront Pot
+                Most you can be charged
               </span>
               <p className="mt-1 font-mono text-4xl font-extrabold text-[#0d1b2a]">
                 {formatUSD(total)}
               </p>
               <p className="mt-1 text-xs text-[#5a6678]">
-                {formatUSD(dailyStake)} × {durationDays} days in escrow
+                {formatUSD(dailyStake)} × {durationDays} days, only if you miss every day
               </p>
 
               <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-emerald-800">
                 <div className="flex items-center gap-1.5 font-bold">
-                  <Check className="size-4 shrink-0" /> Won-Back Guarantee:
+                  <Check className="size-4 shrink-0" /> Show up, pay nothing:
                 </div>
                 <p className="mt-1 text-[0.7rem] leading-relaxed">
-                  Every day you complete on camera locks {formatUSD(dailyStake)} into your refund
-                  vault. Zero cost if you honor your word.
+                  Nothing is charged upfront. Each day you complete on camera costs {formatUSD(0)};
+                  each day you miss costs {formatUSD(dailyStake)}.
                 </p>
               </div>
 

@@ -1,53 +1,68 @@
-import type { ChallengeConfig } from './types'
+import type { StakeChargeStatus } from './types'
 
-export function totalCommitmentAmount(
-  config: Pick<ChallengeConfig, 'dailyStakeAmount' | 'totalDays'>,
-): number {
-  return config.dailyStakeAmount * config.totalDays
+// The most a challenge can ever cost: every day missed.
+export function maxExposure(plan: { dailyStakeAmount: number; totalDays: number }): number {
+  return plan.dailyStakeAmount * plan.totalDays
+}
+
+// The statement shown before the card mandate and stored with the challenge. The server builds
+// it from the validated amounts, so the stored text always matches what is charged.
+export function consentStatement(plan: { dailyStakeAmount: number; totalDays: number }): string {
+  const stake = `$${plan.dailyStakeAmount}`
+  const max = `$${maxExposure(plan)}`
+  const days = plan.totalDays === 1 ? '1 day' : `${plan.totalDays} days`
+  return (
+    `I authorize StakeFit to charge my card ${stake} for each day I miss my workout, ` +
+    `up to ${max} over ${days}. Days I complete on camera cost nothing. ` +
+    `Missed days are charged the next time I open the app, or within a day.`
+  )
 }
 
 export type LedgerTotals = {
-  totalCommitment: number
   dailyStake: number
   totalDays: number
   completedDays: number
-  forfeitedDays: number
+  missedDays: number
   remainingDays: number
-  wonBackBalance: number
-  forfeitedBalance: number
-  remainingAmount: number
+  maxExposure: number
+  // Dollars actually collected for missed days.
+  chargedAmount: number
+  // Dollars for missed days whose charge has not succeeded yet (pending, failed, abandoned).
+  owedAmount: number
+  // The most the user can still lose on the days that are left.
+  remainingExposure: number
 }
 
 export function computeTotals(
-  plan: { dailyStakeAmount: number; totalDays: number; totalCommitmentAmount: number },
-  counts: { completed: number; forfeited: number },
+  plan: { dailyStakeAmount: number; totalDays: number },
+  counts: { completed: number; missed: number },
+  charges: Array<{ status: StakeChargeStatus }>,
 ): LedgerTotals {
   const { dailyStakeAmount: dailyStake, totalDays } = plan
-  const completed = counts.completed
-  const forfeited = counts.forfeited
-  const remaining = Math.max(0, totalDays - completed - forfeited)
+  const remainingDays = Math.max(0, totalDays - counts.completed - counts.missed)
+  const succeeded = charges.filter((charge) => charge.status === 'succeeded').length
 
   return {
-    totalCommitment: plan.totalCommitmentAmount,
     dailyStake,
     totalDays,
-    completedDays: completed,
-    forfeitedDays: forfeited,
-    remainingDays: remaining,
-    wonBackBalance: completed * dailyStake,
-    forfeitedBalance: forfeited * dailyStake,
-    remainingAmount: remaining * dailyStake,
+    completedDays: counts.completed,
+    missedDays: counts.missed,
+    remainingDays,
+    maxExposure: maxExposure(plan),
+    chargedAmount: succeeded * dailyStake,
+    owedAmount: Math.max(0, counts.missed - succeeded) * dailyStake,
+    remainingExposure: remainingDays * dailyStake,
   }
 }
 
-// The two invariants the ledger must always satisfy:
-//   money:   wonBack + forfeited + remaining == totalCommitment
-//   days:    completed + forfeited + remaining == totalDays
+// Ledger invariants:
+//   days:   completed + missed + remaining == totalDays
+//   money:  charged + owed == missed × stake, and never more than the max exposure
 export function invariantHolds(totals: LedgerTotals): boolean {
-  const moneyBalanced =
-    totals.wonBackBalance + totals.forfeitedBalance + totals.remainingAmount ===
-    totals.totalCommitment
   const daysBalanced =
-    totals.completedDays + totals.forfeitedDays + totals.remainingDays === totals.totalDays
-  return moneyBalanced && daysBalanced
+    totals.completedDays + totals.missedDays + totals.remainingDays === totals.totalDays
+  const missedBalanced =
+    totals.chargedAmount + totals.owedAmount === totals.missedDays * totals.dailyStake
+  const withinExposure = totals.chargedAmount + totals.owedAmount <= totals.maxExposure
+  return daysBalanced && missedBalanced && withinExposure
 }

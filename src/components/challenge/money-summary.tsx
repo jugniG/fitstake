@@ -2,22 +2,29 @@ import type { DashboardView } from '#/lib/server/challenges'
 import { formatUSD } from '#/lib/format'
 import { Card } from '#/components/ui/card'
 
-export function MoneySummary({
-  totals,
-  challenge,
-}: {
-  totals: DashboardView['totals']
-  challenge: DashboardView['challenge']
-}) {
+export function MoneySummary({ totals }: { totals: DashboardView['totals'] }) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:gap-4">
-      <Cell label="Total committed" value={formatUSD(challenge?.totalCommitmentAmount ?? 0)} />
-      <Cell label="Remaining at risk" value={formatUSD(totals.remainingAmount)} />
-      <Cell label="Won back (safe)" value={formatUSD(totals.wonBackBalance)} tone="emerald" />
       <Cell
-        label="Forfeited"
-        value={formatUSD(totals.forfeitedBalance)}
-        tone={totals.forfeitedBalance > 0 ? 'rose' : 'default'}
+        label="Days completed"
+        value={`${totals.completedDays}/${totals.totalDays}`}
+        tone="emerald"
+      />
+      <Cell
+        label="Charged for missed days"
+        value={formatUSD(totals.chargedAmount)}
+        tone={totals.chargedAmount > 0 ? 'rose' : 'default'}
+      />
+      <Cell
+        label="Still at risk"
+        value={formatUSD(totals.remainingExposure)}
+        hint={`${totals.remainingDays} days left × ${formatUSD(totals.dailyStake)}`}
+      />
+      <Cell
+        label="Owed"
+        value={formatUSD(totals.owedAmount)}
+        tone={totals.owedAmount > 0 ? 'rose' : 'default'}
+        hint={totals.owedAmount > 0 ? 'Missed days not paid yet' : 'Nothing owed'}
       />
     </div>
   )
@@ -26,10 +33,12 @@ export function MoneySummary({
 function Cell({
   label,
   value,
+  hint,
   tone = 'default',
 }: {
   label: string
   value: string
+  hint?: string
   tone?: 'default' | 'emerald' | 'rose'
 }) {
   const containerClasses = {
@@ -50,6 +59,7 @@ function Cell({
       <p className={`mt-1 font-mono text-2xl font-extrabold tabular-nums ${textClasses}`}>
         {value}
       </p>
+      {hint ? <p className="mt-0.5 text-[0.7rem] text-[#5a6678]">{hint}</p> : null}
     </Card>
   )
 }

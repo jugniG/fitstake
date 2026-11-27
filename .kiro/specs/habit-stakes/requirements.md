@@ -1,197 +1,173 @@
 # Habit-Stakes — Requirements
 
-> Status: LOCKED — open questions resolved. Ready for design.
-> Owner: engineering. Currency: USD (whole dollars, no cents). MoR: Kelviq. Hosting: Vercel (serverless).
+> Status: DRAFT v2 — payment model changed from "upfront pot + end refund" (Kelviq) to
+> "charge each missed day" (Dodo Payments). Awaiting review. Currency: USD, whole dollars.
+> Payments: Dodo Payments (merchant of record). Hosting: Vercel (serverless).
 
 ## 1. Overview
 
-Habit-Stakes is a real-money habit-accountability app. A user locks a commitment pot
-upfront via Kelviq, completes daily camera-verified workouts to win each day's stake into a
-"Won Back" balance, and receives a **single** refund of the total won-back amount at the end
-of the challenge. Forfeited days' stakes are lost — the loss-aversion mechanism. It is built by
-stitching the Kiro-InteractionKit gesture/pose approach (MediaPipe) into this TanStack Start app,
-with Kelviq as the merchant of record.
+Habit-Stakes (StakeFit) is a real-money habit-accountability app. A user sets up a challenge
+(duration, daily stake, exercises), authorizes a card once, and does a camera-verified workout
+each day. **A completed day costs nothing. Each missed day is charged that day's stake.** There
+is no upfront pot and no refund at the end.
 
-This replaces the existing local-only "Workout Commitment" demo (localStorage, manual
-settlement, no verification, no payments) with the real product. The TanStack Start + Drizzle
-scaffolding is kept; the demo-specific logic and UI are removed.
+Access to the app itself is a separate plan: **$2/week with a 3-day free trial**, or **$49 once
+for lifetime**. All payments, including stakes and plans, go through Dodo Payments. Kelviq is
+removed entirely.
 
-## 2. Background & decisions already made
+## 2. Decisions
 
-- **Kiro-InteractionKit** is a separate Python/OpenCV desktop template. We port its MediaPipe +
-  gesture/pose controller pattern and its `.kiro/hooks` + `.kiro/steering` developer experience
-  into this browser stack. We do **not** run a Python sidecar (it cannot run on Vercel serverless).
-  MediaPipe ships a Web runtime (`@mediapipe/tasks-vision`) using the same models.
-- **Kelviq** is the merchant of record. Real API surface (from docs.kelviq.com):
-  - Node SDK `@kelviq/node-sdk`; `new Kelviq({ accessToken, environment })`, `environmentFromEnv()`
-    reads `KELVIQ_ENV` (defaults to sandbox).
-  - Checkout: `client.checkout.createSession({ customAmount, currencyCode, taxBehavior, successUrl, customerId, metadata })`
-    → `{ checkoutSessionId, checkoutUrl }`. `customAmount` is major units (e.g. `100.00`).
-  - `metadata` round-trips into `checkout.completed` at `data.object.metadata`. (`custom_fields_data`
-    is a different field for customer-entered checkout form answers — not used for our IDs.)
-  - Webhook events: `checkout.completed`, `order.created`, `order.updated`, `order.refunded`,
-    `refund.created`, `refund.updated` (subscription/invoice events not needed).
-  - Signature: headers `webhook-id`, `webhook-timestamp`, `webhook-signature` (HMAC-SHA256, `v1,`),
-    verified via SDK `validateEvent(rawBody, secret, headers)` on the raw body.
-  - Refund: `client.refunds.create({ orderId, amountUnits, reason, internalNote })`. `amountUnits`
-    is minor units (cents); bounded by the order's "remaining refundable balance." No documented
-    hard refund-by date exists (the "30-day refund window" in the original brief is not a Kelviq
-    rule), so the single settlement can run at the natural end of any user-chosen duration.
-- **Auth:** Better Auth, using the existing `user`/`session`/`account`/`verification` Drizzle
-  tables. The `better-auth` package is not yet installed; it will be added and wired. The
-  DodoPayments-template `subscription` and `todo` tables are removed. Auth methods: **Google
-  OAuth and email magic-link. No email/password.**
-- **Deadline model:** local calendar day in the user's pinned IANA timezone (multi-country).
-- **Hosting:** Vercel serverless. Pose verification is client-side (browser WASM); Kelviq calls +
-  webhooks via TanStack Start server routes; settlement via Vercel Cron; persistence via Neon
-  Postgres + Drizzle.
+- **D-1 Provider:** Dodo Payments only. Every Kelviq module, route, table, column, env var and
+  steering doc is removed. Existing Kelviq rows are test data and are not migrated.
+- **D-2 Stake billing:** a Dodo **on-demand subscription** per challenge. Checkout authorizes a
+  mandate without charging (`mandate_only: true`). Missed days are charged later with
+  `POST /subscriptions/{id}/charge` and a custom amount. Dodo usage meters are not used: they bill
+  per cycle at a dashboard-fixed unit price, and stakes vary per user.
+- **D-3 Charge timing:** when the user opens the app, the server charges every past missed day
+  that hasn't been charged yet. See OQ-1 for a backstop.
+- **D-4 Access plans:** both move to Dodo. Weekly is a Dodo subscription product with
+  `trial_period_days: 3`. Lifetime is a one-time Dodo product. Lifetime cancels an active weekly
+  subscription.
+- **D-5 Integration pattern:** follow `C:\s\opencmo`: the `dodopayments` Node SDK,
+  `checkoutSessions.create`, `metadata.userId` for correlation and `webhooks.unwrap` for
+  verification. Add what opencmo lacks: webhook idempotency, stored Dodo customer and
+  subscription ids, `payment.*` handling and the on-demand charge call.
+- **Unchanged:** Better Auth (Google + magic link), local-calendar day windows in a pinned IANA
+  timezone, in-browser MediaPipe verification, step-by-step onboarding before the plan step.
 
 ## 3. Goals
 
-- User-defined challenges: `exerciseType`, `targetReps`, `targetSets`, `dailyStakeAmount` (USD),
-  `totalDays` (any duration). `totalCommitment = totalDays × dailyStakeAmount`.
-- A real, one-time Kelviq upfront charge of `totalCommitment`.
-- Live in-browser pose rep verification per user-chosen exercise, with anti-cheat.
-- Per-day lifecycle `PENDING → COMPLETED | FORFEITED` on the user's local calendar.
-- A virtual ledger: `wonBackBalance`, `forfeitedBalance`, remaining days, per-day status.
-- A single settlement refund of `wonBackBalance` at challenge end — idempotent, at most once.
-- Better Auth accounts (Google + magic-link); timezone-aware (multi-country).
+- User-defined challenges: exercises, sets, reps, `dailyStakeAmount` (whole USD),
+  `totalDays` (1–365). `maxExposure = totalDays × dailyStakeAmount`.
+- An explicit, informed card mandate per challenge. No money moves until a day is missed.
+- At most one charge per missed day, never more than `maxExposure` in total per challenge.
+- Safe handling of declined charges, following Dodo's retry guidance.
+- App access gated by the weekly or lifetime plan.
 
-## 4. Non-Goals / Out of Scope
+## 4. Non-goals
 
-- Fitbit/wearable integrations; calorie or nutrition tracking.
-- Solana / blockchain / smart contracts.
-- Per-day refund payouts (exactly one settlement refund per challenge).
-- A Python/OpenCV server sidecar (not Vercel-hostable).
-- Recurring subscriptions (one-time charges only).
-- Social features, sharing, viewers, voting, leaderboards.
-- Recovering or refunding forfeited stakes.
-- User-calibrated/free-form movement definition (every supported exercise uses an authored
-  MediaPipe rep module; "custom" means choosing a hand-gesture rep cycle, not arbitrary motion).
+- Upfront pots, escrow wording, end-of-challenge refunds, settlement sweeps.
+- Refunding a charged missed day (support can refund manually in the Dodo dashboard).
+- Dodo usage meters, credits, or adaptive pricing.
+- Wearables, nutrition, blockchain, social features, Python sidecar.
 
-## 5. Functional Requirements
+## 5. Functional requirements
 
-### FR-1 Challenge configuration
+### FR-1 Challenge configuration (unchanged in shape)
 
-- The user selects `exerciseType` ∈ {squat, push-up, jumping-jack, custom gesture}, `targetReps > 0`,
-  `targetSets > 0`, `dailyStakeAmount` (whole USD dollars, no cents), `totalDays ≥ 1`.
-- `totalCommitmentAmount = totalDays × dailyStakeAmount`, held in USD minor units (cents) internally.
-- The challenge is persisted in a `PENDING_CHARGE` state before checkout, owned by the signed-in user.
+- Onboarding collects duration, daily stake, exercises and start day (Today/Tomorrow), one
+  question per screen, saved as a browser draft until the mandate step.
+- The routine is stored in a proper `routine` jsonb column. (The current code stores it in
+  `challenge.kelviqCustomerId`; this is fixed.)
+- The challenge is persisted as `pending_mandate` before the mandate checkout.
 
-### FR-2 Kelviq upfront checkout
+### FR-2 Consent
 
-- The server creates a one-time Kelviq checkout session: `customAmount = totalCommitment`,
-  `currencyCode: "USD"`, `metadata: { challengeId, userId }`, `successUrl`.
-- The user is redirected to `checkoutUrl`; on return to `successUrl` the UI shows an
-  "activating" state until the webhook confirms.
-- The Kelviq Server API Key is never exposed to the client.
+- Before the mandate checkout the user sees, and must actively confirm, a statement that names
+  the amounts, for example: "You authorize StakeFit to charge your card $10 for each day you miss,
+  up to $300 over 30 days. Completed days cost nothing."
+- The confirmation time and the exact statement shown are stored on the challenge.
 
-### FR-3 Webhooks
+### FR-3 Mandate checkout (stakes)
 
-- One endpoint receives Kelviq webhooks on the **raw** request body and verifies every delivery
-  with `validateEvent` + `KELVIQ_WEBHOOK_SECRET`.
-- Idempotent by event `id` (reject duplicates).
-- `checkout.completed` → activate the challenge: set `activatedAt` to the verified server time,
-  pin the user's IANA timezone, open Day 1, and capture the resulting order id.
-- `order.created` / `order.updated` → link the Kelviq order id to the challenge (needed to refund).
-- `refund.created` / `refund.updated` / `order.refunded` → record settlement completion (use
-  `refund.updated` with `status: SUCCEEDED` as the terminal confirmation; `order.refunded` only
-  signals partial vs full, not the amount).
+- `checkoutSessions.create` with the stake product, `customer: { customer_id }`,
+  `subscription_data: { on_demand: { mandate_only: true } }`,
+  `metadata: { kind: 'stake_mandate', challengeId, userId }` and a `return_url` back to the app.
+- The webhook `subscription.active` (matched by `metadata.challengeId`) activates the challenge:
+  stores the Dodo subscription id, sets `activatedAt` from server time, pins the timezone and
+  creates the day rows. A return to the app before the webhook shows "activating" and polls.
 
-### FR-4 Activation & timezone
+### FR-4 Day lifecycle (unchanged)
 
-- The user's IANA timezone is captured from the browser at setup and **pinned** for the
-  challenge's lifetime (so the calendar is consistent even if the user travels).
-- `activatedAt` is the server UTC from the verified `checkout.completed` event, never the
-  client clock.
-- At activation the user explicitly chooses Day-1's start day — **Today** or **Tomorrow**.
-  **Today** is preselected normally; **Tomorrow** is preselected (with an explanatory note) when
-  activation occurs after 20:00 in the user's local time. Day 1 is then anchored to the chosen
-  start day; before that day's local midnight, Day 1 is `LOCKED`.
+- `locked → pending → completed | forfeited`, derived from server UTC and the pinned timezone.
+- `completed` is irreversible. A day becomes `forfeited` once its window ends without completion.
 
-### FR-5 Day lifecycle (local calendar, server-authoritative)
+### FR-5 Missed-day charges
 
-- Day 1 is the user-chosen start day (Today or Tomorrow at activation); Day _d_ is the _d_-th
-  consecutive local calendar day from Day 1 in the pinned timezone.
-- Day 1 window = `[effective start, local-midnight ending Day 1]`, where the effective start is
-  `activatedAt` if Day 1 = Today, or the local midnight beginning Day 1 if Day 1 = Tomorrow.
-- Day _d_ > 1 window = `[local-midnight start, local-midnight end]` of that local day.
-- Statuses: `LOCKED` (future day / before its window), `PENDING` (window open, not yet completed),
-  `COMPLETED` (workout verified within the window), `FORFEITED` (window ended without completion).
-- All status and transition checks use **server UTC + the stored timezone**, never the client
-  clock. `FORFEITED` is derived lazily on read; the dashboard always reflects current status.
+- On every app open (`getDashboard`), the server finds this user's `forfeited` days that have no
+  charge record, oldest first, and charges each one `dailyStakeAmount`.
+- Each charge is first claimed by inserting a `stake_charge` row with a unique
+  `(challengeId, dayNumber)`, then sent to Dodo with an idempotency key
+  `stake:{challengeId}:{dayNumber}` and `metadata: { kind: 'stake_charge', challengeId, dayNumber }`.
+- `payment.succeeded` marks the row `succeeded`. `payment.failed` marks it `failed` with the
+  decline reason.
+- The charge description names the day, for example "StakeFit: missed Day 4 (Nov 24)".
+- A charge never runs for a day that is `completed`, `pending` or `locked`.
 
-### FR-6 Workout verification (in-browser MediaPipe)
+### FR-6 Failed charges
 
-- Live camera only (`getUserMedia`); file, upload, and pre-recorded inputs are rejected.
-- We author a dedicated MediaPipe rep module for every supported exercise (v1 catalog, extensible):
-  - squat → knee/hip-angle state machine (`PoseLandmarker`);
-  - push-up → elbow-angle state machine (`PoseLandmarker`);
-  - jumping-jack → arm + leg spread state machine (`PoseLandmarker`);
-  - custom gesture → a chosen hand-gesture rep cycle (e.g. pinch or fist) tracked with `HandLandmarker`.
-- Anti-cheat: live-stream liveness (frame continuity, no static images), minimum rep duration
-  (reject impossibly fast reps), landmark visibility + confidence thresholds, real-time
-  per-frame processing (no post-hoc batch replay).
-- The counter tracks `targetSets × targetReps`. On completion the client submits a signed
-  completion record (timestamp, exercise, completed sets/reps, confidence). The server validates
-  ownership of the open day and that server time is within the day's window, then marks the day
-  `COMPLETED` and `wonBackBalance += dailyStakeAmount`.
+- Dodo does not retry on-demand charges, so the app does, following Dodo's guidance: retry at
+  +3, +10 and +17 days from the first attempt, at most 4 attempts in total.
+- Hard declines are never retried: `STOLEN_CARD`, `LOST_CARD`, `PICKUP_CARD`, `FRAUDULENT`,
+  `TRANSACTION_NOT_APPROVED`, `AUTHENTICATION_FAILURE`.
+- A `409` (a payment still pending) defers the attempt; it is not counted as a failure.
+- While any stake charge is unpaid, the user cannot start a new challenge, and the dashboard
+  shows the amount owed and an "Update card" action (Dodo
+  `POST /subscriptions/{id}/update-payment-method`).
+- After the final attempt fails, the charge is marked `abandoned` and the debt stays visible.
 
-### FR-7 Ledger & dashboard
+### FR-7 Mandate lifecycle
 
-- Display `totalCommitmentAmount`, `wonBackBalance` (safe to refund), `forfeitedBalance`,
-  remaining days, and a per-day status list.
-- All amounts shown in USD.
+- If the user cancels the mandate in the Dodo portal, or it fails, mid-challenge
+  (`subscription.cancelled` / `subscription.failed` / `subscription.expired`), the challenge moves
+  to `mandate_lost`. Days missed afterwards cannot be charged; the dashboard explains this and
+  offers to re-authorize. New challenges are blocked until resolved.
+- When the challenge ends (all days terminal and all charges resolved), the server cancels the
+  on-demand subscription via `PATCH /subscriptions/{id}` `{ status: 'cancelled' }` and marks the
+  challenge `completed`.
 
-### FR-8 Single settlement refund
+### FR-8 Access plans
 
-- After the final day's window ends (all days `COMPLETED` or `FORFEITED`):
-  - if `wonBackBalance > 0`: one `client.refunds.create({ orderId, amountUnits: wonBackBalance×100,
-reason: "REQUESTED_BY_CUSTOMER", internalNote })`;
-  - if `wonBackBalance == 0`: mark the challenge `SETTLED` with no refund and close it.
-- Strict per-challenge idempotency: a `settlement_status` of `PENDING → SETTLED` guarded by a
-  unique row/lock; a challenge is refunded **at most once**. Kelviq's "remaining refundable
-  balance" is a secondary guard.
-- Triggered by a Vercel Cron sweep (hourly) over challenges past their final-day window with
-  `settlement_status = PENDING`, plus a lazy check on dashboard load.
-- The refund outcome is recorded from `refund.updated` (`status: SUCCEEDED`), idempotently.
+- Weekly: Dodo subscription product priced $2/week, checkout with `trial_period_days: 3` for a
+  user's first subscription only. Card required.
+- Lifetime: Dodo one-time product priced $49. Granted on `payment.succeeded` with
+  `metadata.kind = 'lifetime'`. Cancels an active weekly subscription.
+- Access rules are unchanged: lifetime, trial or active weekly grants access; a user with a
+  running challenge keeps access to finish it; a new challenge needs a plan.
 
-### FR-9 Auth & users
+### FR-9 Webhooks
 
-- Install and wire Better Auth (server route + client) on the existing
-  `user`/`session`/`account`/`verification` tables.
-- Auth methods: **Google OAuth and email magic-link. No email/password.**
-- Each user has a stable id used as `userId` in Kelviq `metadata`.
-- Link a user to their Kelviq customer id.
+- One route, `POST /api/webhooks/dodo`, reads the raw body and verifies it with
+  `dodo.webhooks.unwrap(raw, { headers })` before any side effect. Invalid signatures return 401.
+- Idempotency: the `webhook-id` header is stored in a unique `payment_event` row inside the same
+  transaction as the side effects; duplicates are acknowledged with no changes.
+- Handled: `subscription.active`, `subscription.renewed`, `subscription.on_hold`,
+  `subscription.cancelled`, `subscription.failed`, `subscription.expired`,
+  `subscription.plan_changed`, `payment.succeeded`, `payment.failed`. Others are logged and acked.
 
-## 6. Non-Functional / Technical Constraints
+### FR-10 Dashboard
 
-- Vercel serverless end-to-end: pose verification client-side (browser WASM); Kelviq calls and
-  webhooks via TanStack Start server routes (Nitro); settlement via Vercel Cron; persistence via
-  Neon Postgres + Drizzle. No Python runtime.
-- Secrets in env only: `KELVIQ_SERVER_API_KEY`, `KELVIQ_WEBHOOK_SECRET`, `KELVIQ_ENV` (default
-  sandbox), `DATABASE_URL` (Neon), `BETTER_AUTH_SECRET`, Google OAuth client id/secret, and a
-  magic-link email transport config. Never in client bundles or logs.
-- Sandbox-first; production via env switch. Never expose the Server API Key to the browser.
-- Security: webhook signature verified before any side effect; idempotency keys/locks on
-  activation and settlement; parameterized queries (Drizzle); least privilege.
-- Accessibility: contrast, visible focus, real labels, live-region status, reduced-motion.
+- Shows days completed, days missed, amount charged so far, amount owed (failed charges),
+  remaining days, remaining maximum exposure, and per-day status with each day's charge status.
 
-## 7. Invariants (must hold at all times)
+### FR-11 Auth (unchanged)
 
-- A challenge is charged exactly once and refunded at most once.
-- A day transitions to a terminal state at most once; `COMPLETED` is irreversible.
-- `wonBackBalance = (#COMPLETED days) × dailyStake`.
-- `forfeitedBalance = (#FORFEITED days) × dailyStake`.
-- `wonBackBalance + forfeitedBalance + (remainingDays × dailyStake) = totalCommitmentAmount`.
-- Settlement refund `amountUnits ≤ wonBackBalance × 100 ≤ totalCommitmentAmount × 100`.
-- Day status is determined solely by server UTC + the pinned timezone.
+- Better Auth, Google OAuth and email magic link. The Dodo customer id is stored on `user`.
 
-## 8. Resolved decisions
+## 6. Non-functional
 
-- **OQ-1 (late activation):** the app asks the user at activation — Day 1 starts **Today** or
-  **Tomorrow**; "Tomorrow" is preselected after 20:00 local. (Not auto-decided.)
-- **OQ-2 (stake granularity):** whole USD dollars, no cents.
-- **OQ-3 (auth method):** Google OAuth + email magic-link. No email/password.
-- **OQ-4 (custom exercise):** every supported exercise has an authored MediaPipe rep module.
-  v1 catalog = squat, push-up, jumping-jack, custom hand-gesture. Catalog is extensible.
+- Secrets server-only, in env: `DODO_API_KEY`, `DODO_WEBHOOK_SECRET`. Never logged or bundled.
+- Test mode first (`DODO_MODE=test_mode`); live via env switch.
+- Every caught error is logged with a prefix (`[dodo]`, `[stake-charge]`, `[webhook]`) and shown
+  to the user as an actionable message.
+- Accessibility rules from `AGENTS.md` apply to the consent, paywall and dashboard UI.
+
+## 7. Invariants
+
+- A day is charged at most once: unique `stake_charge(challengeId, dayNumber)`.
+- Only `forfeited` days are charged, and only after their window has ended (server time).
+- Each charge amount equals the challenge's `dailyStakeAmount`.
+- Total charged per challenge ≤ `forfeitedDays × dailyStakeAmount` ≤ `maxExposure`.
+- `completed` days are never charged, including if a charge job races with a late completion:
+  completion and charge claim both check the stored status in one transaction.
+- No charge is attempted without an active mandate and recorded consent.
+
+## 8. Open questions
+
+- **OQ-1 Users who stop opening the app.** With charges only on app open, a user who quits the
+  app is never charged, which defeats the stake. Proposal: keep app-open as the primary trigger
+  and add a daily Vercel Cron backstop that charges any missed day older than 24 hours.
+- **OQ-2 One or two checkouts.** Onboarding has two Dodo checkouts: the plan, then the stake
+  mandate. Proposal: keep them separate for now (different product types).
+- **OQ-3 Merchant terms.** Confirm with Dodo that charging a penalty for a missed workout is
+  allowed under their merchant policy before going live.

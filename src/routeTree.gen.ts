@@ -18,7 +18,8 @@ import { Route as ProtectedHistoryRouteImport } from './routes/_protected/histor
 import { Route as ProtectedRecordRouteImport } from './routes/_protected/record'
 import { Route as ProtectedSetupRouteImport } from './routes/_protected/setup'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as ApiWebhooksKelviqRouteImport } from './routes/api/webhooks/kelviq'
+import { Route as ApiCronChargeMissedRouteImport } from './routes/api/cron/charge-missed'
+import { Route as ApiWebhooksDodoRouteImport } from './routes/api/webhooks/dodo'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -64,9 +65,14 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiWebhooksKelviqRoute = ApiWebhooksKelviqRouteImport.update({
-  id: '/api/webhooks/kelviq',
-  path: '/api/webhooks/kelviq',
+const ApiCronChargeMissedRoute = ApiCronChargeMissedRouteImport.update({
+  id: '/api/cron/charge-missed',
+  path: '/api/cron/charge-missed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWebhooksDodoRoute = ApiWebhooksDodoRouteImport.update({
+  id: '/api/webhooks/dodo',
+  path: '/api/webhooks/dodo',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -79,7 +85,8 @@ export interface FileRoutesByFullPath {
   '/record': typeof ProtectedRecordRoute
   '/setup': typeof ProtectedSetupRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/webhooks/kelviq': typeof ApiWebhooksKelviqRoute
+  '/api/cron/charge-missed': typeof ApiCronChargeMissedRoute
+  '/api/webhooks/dodo': typeof ApiWebhooksDodoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -90,7 +97,8 @@ export interface FileRoutesByTo {
   '/record': typeof ProtectedRecordRoute
   '/setup': typeof ProtectedSetupRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/webhooks/kelviq': typeof ApiWebhooksKelviqRoute
+  '/api/cron/charge-missed': typeof ApiCronChargeMissedRoute
+  '/api/webhooks/dodo': typeof ApiWebhooksDodoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -103,7 +111,8 @@ export interface FileRoutesById {
   '/_protected/record': typeof ProtectedRecordRoute
   '/_protected/setup': typeof ProtectedSetupRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/webhooks/kelviq': typeof ApiWebhooksKelviqRoute
+  '/api/cron/charge-missed': typeof ApiCronChargeMissedRoute
+  '/api/webhooks/dodo': typeof ApiWebhooksDodoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -116,7 +125,8 @@ export interface FileRouteTypes {
     | '/record'
     | '/setup'
     | '/api/auth/$'
-    | '/api/webhooks/kelviq'
+    | '/api/cron/charge-missed'
+    | '/api/webhooks/dodo'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -127,7 +137,8 @@ export interface FileRouteTypes {
     | '/record'
     | '/setup'
     | '/api/auth/$'
-    | '/api/webhooks/kelviq'
+    | '/api/cron/charge-missed'
+    | '/api/webhooks/dodo'
   id:
     | '__root__'
     | '/'
@@ -139,7 +150,8 @@ export interface FileRouteTypes {
     | '/_protected/record'
     | '/_protected/setup'
     | '/api/auth/$'
-    | '/api/webhooks/kelviq'
+    | '/api/cron/charge-missed'
+    | '/api/webhooks/dodo'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -148,7 +160,8 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PaywallRoute: typeof PaywallRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  ApiWebhooksKelviqRoute: typeof ApiWebhooksKelviqRoute
+  ApiCronChargeMissedRoute: typeof ApiCronChargeMissedRoute
+  ApiWebhooksDodoRoute: typeof ApiWebhooksDodoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -216,11 +229,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/webhooks/kelviq': {
-      id: '/api/webhooks/kelviq'
-      path: '/api/webhooks/kelviq'
-      fullPath: '/api/webhooks/kelviq'
-      preLoaderRoute: typeof ApiWebhooksKelviqRouteImport
+    '/api/cron/charge-missed': {
+      id: '/api/cron/charge-missed'
+      path: '/api/cron/charge-missed'
+      fullPath: '/api/cron/charge-missed'
+      preLoaderRoute: typeof ApiCronChargeMissedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/webhooks/dodo': {
+      id: '/api/webhooks/dodo'
+      path: '/api/webhooks/dodo'
+      fullPath: '/api/webhooks/dodo'
+      preLoaderRoute: typeof ApiWebhooksDodoRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -250,7 +270,8 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PaywallRoute: PaywallRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
-  ApiWebhooksKelviqRoute: ApiWebhooksKelviqRoute,
+  ApiCronChargeMissedRoute: ApiCronChargeMissedRoute,
+  ApiWebhooksDodoRoute: ApiWebhooksDodoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

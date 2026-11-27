@@ -55,10 +55,10 @@ function HistoryPage() {
           Day-by-day record
         </h1>
         <p className="text-sm text-[#5a6678]">
-          Every rep verified on camera. Every day defended in audited escrow.
+          Every rep verified on camera. Every missed day charged once.
         </p>
       </header>
-      <MoneySummary totals={data.totals} challenge={data.challenge} />
+      <MoneySummary totals={data.totals} />
       <DayList days={data.days} />
     </div>
   )

@@ -28,7 +28,7 @@ export function FinalCta() {
         </div>
 
         <p className="mt-4 text-xs font-medium text-[#5a6678]">
-          Start your commitment · 100% on-device privacy · Secure Money-Back Escrow
+          Start your commitment · 100% on-device privacy · Nothing charged upfront
         </p>
 
         {/* Talk with me */}

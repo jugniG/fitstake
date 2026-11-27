@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { Check } from 'lucide-react'
+import { Check, Loader2 } from 'lucide-react'
 import { getSession } from '#/lib/auth.functions'
 import { signOut } from '#/lib/auth-client'
 import { getAppAccess, startAccessCheckout } from '#/lib/server/access'
@@ -15,7 +15,10 @@ import { formatUSD } from '#/lib/format'
 import { cn } from '#/lib/utils'
 
 const CONFIRM_POLL_MS = 2000
-const CONFIRM_MAX_ATTEMPTS = 15
+// Total wait, not attempt count: a slow database call shouldn't stretch the wait to minutes.
+const CONFIRM_MAX_MS = 45_000
+
+type ConfirmState = 'idle' | 'confirming' | 'failed' | 'timed_out'
 
 export const Route = createFileRoute('/paywall')({
   validateSearch: (search: Record<string, unknown>) =>
@@ -25,8 +28,9 @@ export const Route = createFileRoute('/paywall')({
     if (!session) throw redirect({ to: '/login' })
     const access = await getAppAccess()
     // On return from checkout the page itself redirects, because only the browser knows whether
-    // an onboarding draft is waiting for its pot deposit. A server redirect here skipped it.
-    if (access.reason === 'lifetime' && search.checkout !== 'return') {
+    // an onboarding draft is waiting for its card authorization. A server redirect skipped it.
+    const onLifetime = access.plan === 'lifetime' || access.plan === 'lifetime_trial'
+    if (onLifetime && search.checkout !== 'return') {
       throw redirect({ to: '/dashboard' })
     }
     return { access }
@@ -41,9 +45,12 @@ function PaywallPage() {
   const navigate = useNavigate()
   const [startingPlan, setStartingPlan] = useState<AccessPlan | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [confirming, setConfirming] = useState(checkout === 'return')
+  const [confirmState, setConfirmState] = useState<ConfirmState>(
+    checkout === 'return' ? 'confirming' : 'idle',
+  )
+  const confirming = confirmState === 'confirming'
 
-  const weeklyActive = access.reason === 'trial' || access.reason === 'subscribed'
+  const weeklyActive = access.plan === 'weekly'
   const [draft, setDraft] = useState<SetupDraft | null>(null)
   useEffect(() => setDraft(readSetupDraft()), [])
   const draftExerciseCount = draft?.exercises.filter((e) => e.enabled).length ?? 0
@@ -53,8 +60,8 @@ function PaywallPage() {
   useEffect(() => {
     if (checkout !== 'return') return
     let active = true
-    let attempts = 0
     let timer: number | undefined
+    const startedAt = Date.now()
     const waitForLifetime = weeklyActive
 
     async function poll() {
@@ -63,16 +70,19 @@ function PaywallPage() {
         if (!active) return
         const done = waitForLifetime ? latest.reason === 'lifetime' : latest.hasAccess
         if (done) {
-          // Onboarding users still need to deposit the pot for the challenge they built.
+          // Onboarding users still need to authorize their card for the challenge they built.
           void navigate({ to: readSetupDraft() ? '/setup' : '/dashboard', replace: true })
+          return
+        }
+        if (latest.recentCheckoutFailed) {
+          setConfirmState('failed')
           return
         }
       } catch (cause) {
         console.error('[paywall] could not confirm payment:', cause)
       }
-      attempts += 1
-      if (attempts >= CONFIRM_MAX_ATTEMPTS) {
-        if (active) setConfirming(false)
+      if (Date.now() - startedAt >= CONFIRM_MAX_MS) {
+        if (active) setConfirmState('timed_out')
         return
       }
       timer = window.setTimeout(poll, CONFIRM_POLL_MS)
@@ -110,6 +120,42 @@ function PaywallPage() {
       </div>
 
       <div className="w-full max-w-2xl space-y-5">
+        <div aria-live="polite">
+          {confirmState === 'confirming' ? (
+            <div
+              role="status"
+              className="flex items-center justify-center gap-3 rounded-2xl border-2 border-[#2b66f2] bg-[#2b66f2] px-5 py-4 text-base font-bold text-white shadow-md"
+            >
+              <Loader2 className="size-5 shrink-0 motion-safe:animate-spin" aria-hidden="true" />
+              Confirming your payment with Dodo…
+            </div>
+          ) : null}
+          {confirmState === 'failed' ? (
+            <div
+              role="alert"
+              className="rounded-2xl border-2 border-rose-500 bg-rose-50 px-5 py-4 text-center text-rose-800 shadow-md"
+            >
+              <p className="text-base font-bold">Your payment didn't go through.</p>
+              <p className="mt-1 text-sm">
+                Dodo reported the checkout as failed, usually a declined card. Nothing was charged.
+                Choose a plan below to try again with another card.
+              </p>
+            </div>
+          ) : null}
+          {confirmState === 'timed_out' ? (
+            <div
+              role="status"
+              className="rounded-2xl border-2 border-amber-400 bg-amber-50 px-5 py-4 text-center text-amber-900 shadow-md"
+            >
+              <p className="text-base font-bold">Still waiting for Dodo to confirm.</p>
+              <p className="mt-1 text-sm">
+                If you finished checkout, reload this page in a minute. If you didn't, choose a plan
+                below.
+              </p>
+            </div>
+          ) : null}
+        </div>
+
         <header className="space-y-1.5 text-center">
           {draft && !weeklyActive ? (
             <p className="font-mono text-xs font-bold uppercase tracking-wider text-[#2b66f2]">
@@ -126,14 +172,25 @@ function PaywallPage() {
           {draft && !weeklyActive ? (
             <p className="text-sm font-semibold text-[#0d1b2a]">
               {draftExerciseCount} {draftExerciseCount === 1 ? 'exercise' : 'exercises'} a day,{' '}
-              {formatUSD(draft.dailyStakeAmount * draft.totalDays)} pot. Pick a plan to lock it in.
+              {formatUSD(draft.dailyStakeAmount)} for each missed day. Pick a plan to lock it in.
             </p>
           ) : null}
           <p className="text-sm text-[#5a6678]">
-            Camera-verified workouts and daily stakes you win back. A card is required for both
-            plans.
+            {access.trialAvailable
+              ? `Both plans start with a ${TRIAL_DAYS}-day free trial. A card is required; nothing is charged until the trial ends.`
+              : 'Camera-verified workouts with real stakes. A card is required for both plans.'}
           </p>
         </header>
+
+        {access.lifetimeChargeFailed ? (
+          <p
+            role="alert"
+            className="rounded-2xl border border-rose-500/20 bg-rose-50 p-3 text-center text-xs font-semibold text-rose-700"
+          >
+            Your trial ended and the ${LIFETIME_PRICE_USD} lifetime charge was declined. Choose a
+            plan to keep using StakeFit.
+          </p>
+        ) : null}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <PlanCard
@@ -153,34 +210,26 @@ function PaywallPage() {
           <PlanCard
             highlighted
             title={`$${LIFETIME_PRICE_USD} once`}
-            badge="Lifetime"
+            badge={access.trialAvailable ? `${TRIAL_DAYS}-day free trial` : 'Lifetime'}
             description={
               weeklyActive
                 ? `Pay $${LIFETIME_PRICE_USD} once. Your weekly plan is cancelled automatically.`
-                : `Pay $${LIFETIME_PRICE_USD} once and keep StakeFit forever. No trial.`
+                : access.trialAvailable
+                  ? `Your card is charged $${LIFETIME_PRICE_USD} once when the ${TRIAL_DAYS}-day trial ends. Cancel before then and pay nothing.`
+                  : `Pay $${LIFETIME_PRICE_USD} once and keep StakeFit forever.`
             }
             perks={['Unlimited challenges, forever', 'No renewals']}
-            cta={`Get lifetime for $${LIFETIME_PRICE_USD}`}
+            cta={
+              access.trialAvailable
+                ? `Start ${TRIAL_DAYS}-day free trial`
+                : `Get lifetime for $${LIFETIME_PRICE_USD}`
+            }
             disabled={confirming || startingPlan !== null}
             loading={startingPlan === 'lifetime'}
             onChoose={() => void onChoose('lifetime')}
           />
         </div>
 
-        {confirming ? (
-          <p
-            role="status"
-            className="rounded-2xl border border-[#2b66f2]/20 bg-[#2b66f2]/10 p-3 text-center text-xs font-semibold text-[#2b66f2]"
-          >
-            Confirming your payment…
-          </p>
-        ) : null}
-        {checkout === 'return' && !confirming ? (
-          <p role="status" className="text-center text-xs font-semibold text-[#5a6678]">
-            We have not received your payment confirmation yet. Reload in a minute, or choose a plan
-            again if you did not finish checkout.
-          </p>
-        ) : null}
         {error ? (
           <p
             role="alert"

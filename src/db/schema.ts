@@ -22,8 +22,6 @@ export function getSchemaName(url?: string) {
 // unified schema - extracted from DATABASE_URL ?schema= param (like Prisma did)
 // falls back to 'public'; drizzle-kit generate reads .env at generation time
 export const appSchema = pgSchema(getSchemaName())
-// keep alias for backward compat during migration
-export const testSchema = appSchema
 
 // All instants are stored with a timezone. Day windows are absolute UTC deadlines; a
 // timezone-less column would make their meaning depend on the database session timezone.
@@ -41,7 +39,8 @@ export const user = appSchema.table('user', {
   email: text('email').notNull().unique(),
   emailVerified: boolean('emailVerified').notNull().default(false),
   image: text('image'),
-  kelviqCustomerId: text('kelviqCustomerId'),
+  // Dodo's id for this user; every checkout attaches to it so saved cards and subscriptions line up.
+  dodoCustomerId: text('dodoCustomerId').unique(),
   createdAt: timestampTz('createdAt').notNull().defaultNow(),
   updatedAt: timestampTz('updatedAt')
     .notNull()
@@ -116,23 +115,24 @@ export const verification = appSchema.table(
   (t) => [index('verification_identifier_idx').on(t.identifier)],
 )
 
-// ── Habit-stakes domain tables ──
-// All money is whole USD dollars (Kelviq calls convert to cents: ×100).
+// ── StakeFit domain tables ──
+// Stakes are whole USD dollars; anything sent to Dodo is cents (×100).
 
 export const exerciseTypeEnum = appSchema.enum('ExerciseType', [
   'squat',
   'push_up',
   'jumping_jack',
   'custom_gesture',
+  'leg_raise',
 ])
 
 export const customGestureEnum = appSchema.enum('CustomGesture', ['pinch', 'fist', 'open_hand'])
 
-export const challengeStatusEnum = appSchema.enum('ChallengeStatus', [
-  'pending_charge',
+export const challengeStateEnum = appSchema.enum('ChallengeState', [
+  'pending_mandate',
   'active',
-  'settling',
-  'settled',
+  'mandate_lost',
+  'completed',
 ])
 
 export const dayStatusEnum = appSchema.enum('DayStatus', [
@@ -142,10 +142,12 @@ export const dayStatusEnum = appSchema.enum('DayStatus', [
   'forfeited',
 ])
 
-export const settlementStatusEnum = appSchema.enum('SettlementStatus', [
+export const stakeChargeStatusEnum = appSchema.enum('StakeChargeStatus', [
+  'claimed',
   'pending',
-  'settled',
-  'none',
+  'succeeded',
+  'failed',
+  'abandoned',
 ])
 
 export const challenge = appSchema.table(
@@ -157,25 +159,25 @@ export const challenge = appSchema.table(
     userId: text('userId')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
+    // First exercise of the routine, kept for the record screen and history labels.
     exerciseType: exerciseTypeEnum('exerciseType').notNull(),
     customGesture: customGestureEnum('customGesture'),
     targetReps: integer('targetReps').notNull(),
     targetSets: integer('targetSets').notNull(),
+    routine: jsonb('routine').notNull(), // RoutineExercise[]
     dailyStakeAmount: integer('dailyStakeAmount').notNull(), // USD dollars
     totalDays: integer('totalDays').notNull(),
-    totalCommitmentAmount: integer('totalCommitmentAmount').notNull(), // USD dollars
-    status: challengeStatusEnum('status').notNull().default('pending_charge'),
-    timezone: text('timezone'), // IANA tz, pinned at activation
-    activatedAt: timestampTz('activatedAt'), // UTC, set on checkout.completed
-    startDayOffset: integer('startDayOffset'), // 0 = Today, 1 = Tomorrow
+    status: challengeStateEnum('status').notNull().default('pending_mandate'),
+    timezone: text('timezone').notNull(), // IANA tz from setup, pinned for the challenge
+    startDayOffset: integer('startDayOffset').notNull(), // 0 = Today, 1 = Tomorrow
+    activatedAt: timestampTz('activatedAt'), // server time of the mandate's subscription.active
     day1LocalDate: text('day1LocalDate'), // yyyy-MM-dd in the pinned timezone
-    kelviqCheckoutSessionId: text('kelviqCheckoutSessionId'),
-    kelviqCheckoutUrl: text('kelviqCheckoutUrl'),
-    kelviqOrderId: text('kelviqOrderId'),
-    kelviqCustomerId: text('kelviqCustomerId'),
-    settlementStatus: settlementStatusEnum('settlementStatus').notNull().default('pending'),
-    settlementRefundId: text('settlementRefundId'),
-    settledAt: timestampTz('settledAt'),
+    // The exact statement the user agreed to before authorizing their card. Chargeback evidence.
+    consentText: text('consentText').notNull(),
+    consentedAt: timestampTz('consentedAt').notNull(),
+    dodoSubscriptionId: text('dodoSubscriptionId').unique(), // on-demand mandate
+    mandateCheckoutUrl: text('mandateCheckoutUrl'),
+    completedAt: timestampTz('completedAt'),
     createdAt: timestampTz('createdAt').notNull().defaultNow(),
     updatedAt: timestampTz('updatedAt')
       .notNull()
@@ -185,12 +187,11 @@ export const challenge = appSchema.table(
   (t) => [
     index('challenge_userId_idx').on(t.userId),
     index('challenge_status_idx').on(t.status),
-    uniqueIndex('challenge_settlement_refund_id_unique').on(t.settlementRefundId),
     // The application checks this before inserting, but only the database can stop two
     // concurrent setup requests from creating two live challenges for one user.
     uniqueIndex('challenge_one_live_per_user')
       .on(t.userId)
-      .where(sql`${t.status} in ('pending_charge', 'active', 'settling')`),
+      .where(sql`${t.status} in ('pending_mandate', 'active', 'mandate_lost')`),
   ],
 )
 
@@ -243,35 +244,70 @@ export const workoutVerification = appSchema.table(
   (t) => [uniqueIndex('workout_verification_challenge_day_unique').on(t.challengeId, t.dayNumber)],
 )
 
-// Access to the app. One row per user, written only by Kelviq subscription webhooks.
-export const userSubscription = appSchema.table(
-  'user_subscription',
+// One row per missed day. The unique (challengeId, dayNumber) is what guarantees a day is
+// charged at most once, even if two requests race to charge it. Days missed since the last run
+// are charged together in one Dodo payment (Dodo rejects a new charge while one is
+// processing), so several rows can share a claimId and dodoPaymentId.
+export const stakeCharge = appSchema.table(
+  'stake_charge',
   {
     id: text('id')
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-    userId: text('userId')
+    challengeId: text('challengeId')
       .notNull()
-      .unique()
-      .references(() => user.id, { onDelete: 'cascade' }),
-    kelviqSubscriptionId: text('kelviqSubscriptionId').notNull(),
-    status: text('status').notNull(), // Kelviq status, lower-cased: trialing | active | cancelled ...
-    trialEndsAt: timestampTz('trialEndsAt'),
-    currentPeriodEndsAt: timestampTz('currentPeriodEndsAt'),
-    endsAt: timestampTz('endsAt'), // set when cancellation is scheduled or has happened
-    // Kelviq's modified_on of the last applied event; webhooks can arrive out of order.
-    sourceModifiedAt: timestampTz('sourceModifiedAt'),
+      .references(() => challenge.id, { onDelete: 'cascade' }),
+    dayNumber: integer('dayNumber').notNull(),
+    amountCents: integer('amountCents').notNull(),
+    status: stakeChargeStatusEnum('status').notNull().default('claimed'),
+    // Groups the rows sent in one charge; also the Dodo idempotency key, so re-sending a claim
+    // after a crash returns the original payment instead of charging again.
+    claimId: text('claimId'),
+    claimedAt: timestampTz('claimedAt'),
+    dodoPaymentId: text('dodoPaymentId'),
+    attempts: integer('attempts').notNull().default(0),
+    firstAttemptAt: timestampTz('firstAttemptAt'),
+    nextAttemptAt: timestampTz('nextAttemptAt'),
+    lastDeclineCode: text('lastDeclineCode'),
+    lastDeclineMessage: text('lastDeclineMessage'),
     createdAt: timestampTz('createdAt').notNull().defaultNow(),
     updatedAt: timestampTz('updatedAt')
       .notNull()
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (t) => [uniqueIndex('user_subscription_kelviq_id_unique').on(t.kelviqSubscriptionId)],
+  (t) => [
+    uniqueIndex('stake_charge_challenge_day_unique').on(t.challengeId, t.dayNumber),
+    index('stake_charge_status_idx').on(t.status),
+    index('stake_charge_payment_idx').on(t.dodoPaymentId),
+    index('stake_charge_claim_idx').on(t.claimId),
+  ],
 )
 
-// One-time $49 lifetime purchase. Written only by the checkout.completed webhook; the unique
-// checkout session id keeps a re-delivered event from recording a second purchase.
+// Weekly app plan. One row per user, written only by Dodo subscription webhooks.
+export const userSubscription = appSchema.table('user_subscription', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text('userId')
+    .notNull()
+    .unique()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  dodoSubscriptionId: text('dodoSubscriptionId').notNull().unique(),
+  status: text('status').notNull(), // Dodo status: pending | active | on_hold | cancelled | failed | expired
+  trialEndsAt: timestampTz('trialEndsAt'),
+  currentPeriodEndsAt: timestampTz('currentPeriodEndsAt'),
+  endsAt: timestampTz('endsAt'), // set when cancellation is scheduled or has happened
+  // Timestamp of the last applied webhook; Dodo can deliver events out of order.
+  sourceEventAt: timestampTz('sourceEventAt'),
+  createdAt: timestampTz('createdAt').notNull().defaultNow(),
+  updatedAt: timestampTz('updatedAt')
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+})
+
+// One-time $49 lifetime purchase, written only by the payment.succeeded webhook.
 export const lifetimeAccess = appSchema.table('lifetime_access', {
   id: text('id')
     .primaryKey()
@@ -280,19 +316,43 @@ export const lifetimeAccess = appSchema.table('lifetime_access', {
     .notNull()
     .unique()
     .references(() => user.id, { onDelete: 'cascade' }),
-  kelviqCheckoutSessionId: text('kelviqCheckoutSessionId').notNull().unique(),
-  kelviqOrderId: text('kelviqOrderId'),
-  amountUnits: integer('amountUnits'), // minor units charged, as reported by Kelviq
+  dodoPaymentId: text('dodoPaymentId').notNull().unique(),
+  amountCents: integer('amountCents'),
   currency: text('currency'),
   purchasedAt: timestampTz('purchasedAt').notNull().defaultNow(),
   createdAt: timestampTz('createdAt').notNull().defaultNow(),
 })
 
-export const kelviqEvent = appSchema.table('kelviq_event', {
+// Lifetime bought with a 3-day trial: the card is authorized as an on-demand mandate and the
+// app charges $49 once the trial ends. A paid trial also gets a lifetime_access row; this row
+// stays as the record that the user's one trial is used.
+export const lifetimeTrial = appSchema.table('lifetime_trial', {
   id: text('id')
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  eventId: text('eventId').notNull().unique(), // Kelviq webhook-id / event id
+  userId: text('userId')
+    .notNull()
+    .unique()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  dodoSubscriptionId: text('dodoSubscriptionId').notNull().unique(),
+  status: text('status').notNull(), // trialing | charging | paid | failed | cancelled
+  trialEndsAt: timestampTz('trialEndsAt').notNull(),
+  chargeClaimedAt: timestampTz('chargeClaimedAt'),
+  dodoPaymentId: text('dodoPaymentId'),
+  failureMessage: text('failureMessage'),
+  createdAt: timestampTz('createdAt').notNull().defaultNow(),
+  updatedAt: timestampTz('updatedAt')
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+})
+
+// Webhook idempotency and audit. The webhook-id header is unique per delivery.
+export const paymentEvent = appSchema.table('payment_event', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  webhookId: text('webhookId').notNull().unique(),
   eventType: text('eventType').notNull(),
   payload: jsonb('payload').notNull(),
   processedAt: timestampTz('processedAt').notNull().defaultNow(),
@@ -316,6 +376,11 @@ export const accountRelations = relations(account, ({ one }) => ({
 export const challengeRelations = relations(challenge, ({ one, many }) => ({
   user: one(user, { fields: [challenge.userId], references: [user.id] }),
   days: many(day),
+  charges: many(stakeCharge),
+}))
+
+export const stakeChargeRelations = relations(stakeCharge, ({ one }) => ({
+  challenge: one(challenge, { fields: [stakeCharge.challengeId], references: [challenge.id] }),
 }))
 
 // The reverse `one` is required for Drizzle to infer the join keys of the `days` many-relation.

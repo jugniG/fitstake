@@ -40,7 +40,8 @@ export function Hero() {
                   <Check className="size-3.5 stroke-[2.5]" />
                 </span>
                 <span>
-                  <strong>Deposit money</strong> according to what your pocket allows.
+                  <strong>Pick a daily stake</strong> that your pocket allows. Nothing is charged
+                  upfront.
                 </span>
               </li>
               <li className="flex items-start gap-3">
@@ -56,7 +57,7 @@ export function Hero() {
                   <Check className="size-3.5 stroke-[2.5]" />
                 </span>
                 <span>
-                  <strong>Get your deposit refunded</strong> every single day you complete.
+                  <strong>Pay nothing</strong> for every day you complete.
                 </span>
               </li>
               <li className="flex items-start gap-3">
@@ -64,7 +65,7 @@ export function Hero() {
                   <X className="size-3.5 stroke-[2.5]" />
                 </span>
                 <span className="text-rose-600 font-semibold">
-                  Feeling lazy and wanna skip? You will lose your money.
+                  Feeling lazy and wanna skip? Your card is charged that day's stake.
                 </span>
               </li>
             </ul>
@@ -140,7 +141,7 @@ export function Hero() {
                 </div>
               </div>
 
-              {/* Stakes & Won-Back Ledger Preview */}
+              {/* Stakes ledger preview */}
               <div className="mt-5 grid grid-cols-2 gap-3 text-left">
                 <div className="rounded-2xl border border-[#0d1b2a10] bg-[#faf8f5] p-3.5">
                   <span className="text-[0.7rem] font-bold uppercase tracking-wider text-[#5a6678]">
@@ -152,12 +153,10 @@ export function Hero() {
 
                 <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-3.5">
                   <span className="text-[0.7rem] font-bold uppercase tracking-wider text-emerald-800">
-                    Won-Back Vault
+                    Charged So Far
                   </span>
-                  <p className="font-mono text-xl font-bold text-emerald-700 mt-0.5">$40.00</p>
-                  <p className="text-[0.65rem] text-emerald-800/80 mt-0.5">
-                    100% refundable at end
-                  </p>
+                  <p className="font-mono text-xl font-bold text-emerald-700 mt-0.5">$0.00</p>
+                  <p className="text-[0.65rem] text-emerald-800/80 mt-0.5">3 of 3 days completed</p>
                 </div>
               </div>
 

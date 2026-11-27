@@ -1,7 +1,7 @@
 const FAQS = [
   {
     q: 'How does StakeFit work?',
-    a: 'Pick your daily exercise (e.g. Deep Squats 3×15), set your daily stake (e.g. $10/day), and deposit the pot upfront. Complete your daily reps in front of your camera before your local midnight cutoff. Each finished day locks that day’s stake into your Won-Back vault. At the end of your challenge, 100% of your won-back balance is refunded to your card.',
+    a: 'Pick your daily exercise (e.g. Deep Squats 3×15), set your daily stake (e.g. $10/day), and authorize your card. Nothing is charged upfront. Complete your daily reps in front of your camera before your local midnight cutoff and that day costs nothing. Miss a day and your card is charged that day’s stake.',
   },
   {
     q: 'Do I have to put money on the line?',
@@ -13,11 +13,11 @@ const FAQS = [
   },
   {
     q: 'What happens if I miss a day?',
-    a: 'If you fail to finish your required sets before your local midnight cutoff, that day’s daily allocation is permanently forfeited. There are no doctor excuses, rollovers, or pause buttons. The remaining days of your challenge continue normally.',
+    a: 'If you don’t finish your required sets before your local midnight cutoff, your card is charged that day’s stake the next time you open the app (or within a day if you don’t). Each missed day is charged once, and never more than your daily stake. There are no rollovers or pause buttons. The remaining days continue normally.',
   },
   {
-    q: 'How does the refund reach my bank account?',
-    a: 'Your deposit is held safely in automated escrow. When your challenge finishes, 100% of your won-back balance is refunded straight back to the original payment card you used at checkout.',
+    q: 'What is the most I can be charged?',
+    a: 'Your daily stake times the number of days, and only if you miss every single day. You see that maximum before you authorize your card. When your challenge ends, the card authorization is cancelled so nothing else can be charged.',
   },
   {
     q: 'Do I need any special hardware or wearables?',

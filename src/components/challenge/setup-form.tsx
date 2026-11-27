@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { createChallenge } from '#/lib/server/challenges'
-import { CUSTOM_GESTURE_LABELS } from '#/lib/challenge'
+import { CUSTOM_GESTURE_LABELS, consentStatement } from '#/lib/challenge'
 import type { CustomGesture, ExerciseType } from '#/lib/challenge'
 import { formatUSD } from '#/lib/format'
 import { Button } from '#/components/ui/button'
@@ -32,6 +32,8 @@ const setupSchema = z
     dailyStakeAmount: z.number().int().min(1).max(10_000),
     exercises: z.array(exerciseItemSchema),
     startDayOffset: z.enum(['0', '1']).transform((value) => (value === '1' ? 1 : 0)),
+    // Required only on the final step for users with a plan; never saved in the draft.
+    consentAccepted: z.boolean(),
   })
   .refine((data) => data.exercises.some((e) => e.enabled), {
     message: 'Please choose at least 1 exercise for your daily workout.',
@@ -50,7 +52,7 @@ const STEP_COUNT = STEP_FIELDS.length
 const LAST_STEP = STEP_COUNT - 1
 
 // Without a plan this is onboarding: the user builds the challenge first, then picks a plan on
-// /paywall, then comes back here to deposit the pot.
+// /paywall, then comes back here to agree to the terms and authorize their card.
 export function SetupForm({ hasPlan }: { hasPlan: boolean }) {
   const navigate = useNavigate()
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -72,6 +74,7 @@ export function SetupForm({ hasPlan }: { hasPlan: boolean }) {
     setValue,
     reset,
     trigger,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<SetupInput, unknown, SetupValues>({
     resolver: zodResolver(setupSchema),
@@ -79,6 +82,7 @@ export function SetupForm({ hasPlan }: { hasPlan: boolean }) {
       totalDays: 30,
       dailyStakeAmount: 10,
       startDayOffset: late ? '1' : '0',
+      consentAccepted: false,
       exercises: EXERCISE_CATALOG.map((item) => ({
         enabled: item.type === 'push_up' || item.type === 'leg_raise',
         exerciseType: item.type,
@@ -93,8 +97,9 @@ export function SetupForm({ hasPlan }: { hasPlan: boolean }) {
   useEffect(() => {
     const draft = readSetupDraft()
     if (draft) {
-      reset(draft)
-      // Back from the plan checkout: everything is answered, so go straight to the deposit.
+      // Consent is never restored: the user must tick it again for the terms on screen.
+      reset({ ...draft, consentAccepted: false })
+      // Back from the plan checkout: everything is answered, so go straight to the consent step.
       if (hasPlan) setStep(LAST_STEP)
     }
     setDraftRestored(true)
@@ -208,24 +213,29 @@ export function SetupForm({ hasPlan }: { hasPlan: boolean }) {
       return
     }
 
+    if (!values.consentAccepted) {
+      setError('consentAccepted', {
+        message: 'Tick the box to agree to the charges before authorizing your card.',
+      })
+      return
+    }
+
     try {
       localStorage.setItem('stakefit:active-routine', JSON.stringify(selectedExercises))
-    } catch {
-      // ignore
+    } catch (error) {
+      // Only a local cache for the record screen; the server has the routine.
+      console.error('[setup] could not cache the routine locally:', error)
     }
 
     try {
       const result = await createChallenge({
         data: {
           exercises: selectedExercises,
-          exerciseType: selectedExercises[0].exerciseType,
-          customGesture: selectedExercises[0].customGesture ?? null,
-          targetSets: selectedExercises.reduce((sum, e) => sum + e.targetSets, 0),
-          targetReps: selectedExercises[0].targetReps,
           dailyStakeAmount: values.dailyStakeAmount,
           totalDays: values.totalDays,
           startDayOffset: values.startDayOffset === 1 ? 1 : 0,
           timezone,
+          consentAccepted: true,
         },
       })
       // The challenge now exists server-side; a stale draft would re-open onboarding later.
@@ -610,7 +620,7 @@ export function SetupForm({ hasPlan }: { hasPlan: boolean }) {
           </div>
         ) : null}
 
-        {/* Step 4: Commitment Review & Escrow Deposit */}
+        {/* Step 4: Review, consent and card authorization */}
         <section
           ref={stepRefs[3]}
           tabIndex={-1}
@@ -622,27 +632,23 @@ export function SetupForm({ hasPlan }: { hasPlan: boolean }) {
                 <Sparkles className="size-3.5" />
               </span>
               <h2 className="font-display text-base font-bold text-[#0d1b2a] sm:text-lg">
-                Commitment Summary & Guarantee
+                Review your commitment
               </h2>
             </div>
             <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-              <ShieldCheck className="size-3.5" /> 100% Refundable
+              <ShieldCheck className="size-3.5" /> Nothing charged today
             </div>
           </div>
 
-          {/* User-Requested Exact Statement */}
           <div className="rounded-2xl border border-[#0d1b2a14] bg-white/70 p-4 sm:p-5 space-y-2.5 shadow-2xs">
             <p className="text-sm sm:text-base font-bold text-[#0d1b2a] leading-relaxed">
-              You are betting{' '}
-              <span className="font-mono text-[#2b66f2]">{formatUSD(dailyStake)}</span> daily for{' '}
-              <span className="font-mono text-[#2b66f2]">{totalDays} days</span>. Each day you fail
-              to record yourself doing your exercises, you will lose{' '}
-              <span className="font-mono text-rose-600">{formatUSD(dailyStake)}</span>. All the
-              amounts you earn will get refunded to you at the end of{' '}
+              Every day for{' '}
               <span className="text-[#0d1b2a] underline decoration-[#2b66f2] underline-offset-4">
                 {durationLabel}
               </span>
-              .
+              , record your workout on camera before midnight. A completed day costs nothing. Each
+              day you miss costs{' '}
+              <span className="font-mono text-rose-600">{formatUSD(dailyStake)}</span>.
             </p>
 
             {/* Daily Exercise Sequence */}
@@ -667,22 +673,25 @@ export function SetupForm({ hasPlan }: { hasPlan: boolean }) {
             </div>
           </div>
 
-          {/* Escrow Pot Banner */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-4 sm:p-5">
-            <div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
               <span className="text-[0.7rem] font-bold uppercase tracking-wider text-emerald-800">
-                Total Upfront Deposit (Refundable Escrow)
+                If you show up every day
               </span>
-              <p className="mt-0.5 font-mono text-2xl sm:text-3xl font-extrabold text-[#0d1b2a]">
-                {formatUSD(total)}
-              </p>
-              <p className="text-[0.72rem] text-emerald-800 mt-0.5">
-                {formatUSD(dailyStake)} × {totalDays} days in secure vault. 100% refunded when you
-                honor your commitment.
+              <p className="mt-0.5 font-mono text-2xl font-extrabold text-[#0d1b2a]">
+                {formatUSD(0)}
               </p>
             </div>
-            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 shrink-0">
-              <Check className="size-4" /> 100% Money-Back Guarantee
+            <div className="rounded-2xl border border-rose-500/20 bg-rose-50 p-4">
+              <span className="text-[0.7rem] font-bold uppercase tracking-wider text-rose-800">
+                The most you can be charged
+              </span>
+              <p className="mt-0.5 font-mono text-2xl font-extrabold text-[#0d1b2a]">
+                {formatUSD(total)}
+              </p>
+              <p className="text-[0.7rem] text-rose-800">
+                {formatUSD(dailyStake)} × {totalDays} days
+              </p>
             </div>
           </div>
 
@@ -718,6 +727,27 @@ export function SetupForm({ hasPlan }: { hasPlan: boolean }) {
             ) : null}
           </div>
 
+          {hasPlan ? (
+            <div className="space-y-1.5">
+              <label className="flex items-start gap-3 rounded-2xl border border-[#0d1b2a14] bg-white/70 p-4 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 shrink-0 accent-[#2b66f2] cursor-pointer"
+                  aria-describedby={errors.consentAccepted ? 'consent-error' : undefined}
+                  {...register('consentAccepted')}
+                />
+                <span className="text-xs leading-relaxed text-[#0d1b2a]">
+                  {consentStatement({ dailyStakeAmount: dailyStake, totalDays })}
+                </span>
+              </label>
+              {errors.consentAccepted ? (
+                <p id="consent-error" role="alert" className="text-xs font-semibold text-rose-600">
+                  {errors.consentAccepted.message}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
           {submitError ? (
             <p
               role="alert"
@@ -737,7 +767,7 @@ export function SetupForm({ hasPlan }: { hasPlan: boolean }) {
               className="flex-1 py-4 text-base shadow-sm flex items-center justify-center gap-2 font-bold cursor-pointer"
               disabled={isSubmitting || activeExercises.length === 0}
             >
-              {hasPlan ? <>Deposit {formatUSD(total)}</> : <>Next: choose your plan</>}{' '}
+              {hasPlan ? <>Authorize card</> : <>Next: choose your plan</>}{' '}
               <ArrowRight className="size-4" />
             </Button>
           </div>

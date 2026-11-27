@@ -20,8 +20,8 @@ const PILLARS = [
     color: 'text-emerald-500 bg-emerald-50 border-emerald-100',
   },
   {
-    title: '100% Financial Return',
-    desc: 'Defend your stakes day by day. Every single dollar you pledged is refunded to your card upon completion.',
+    title: 'Zero Stake Cost',
+    desc: 'Defend your stakes day by day. Show up every day and your stakes never cost you a cent.',
     icon: Wallet,
     color: 'text-blue-500 bg-blue-50 border-blue-100',
   },

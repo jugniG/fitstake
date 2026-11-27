@@ -9,15 +9,17 @@ description: The invariant and state-machine tests that must stay green for Habi
 Domain logic is pure and unit-tested with Vitest in `src/lib/challenge/*.test.ts` and
 `src/lib/vision/*.test.ts`. These must stay green for any change to the rules:
 
-- **Challenge math** (`math.test.ts`): totals and the `wonBack + forfeited + remaining == total`
-  invariant.
+- **Challenge math** (`math.test.ts`): `completed + missed + remaining == totalDays`,
+  `charged + owed == missed × stake`, and never more than `days × stake`.
 - **Day windows** (`windows.test.ts`): local-calendar-day boundaries across timezones, the
   Today/Tomorrow start, and DST (23h spring-forward / 25h fall-back).
 - **Rep/set state transitions** (`state.test.ts`): locked → pending → completed | forfeited;
   completed is irreversible; out-of-window completion is rejected.
 - **Forfeiture rules** (`state.test.ts`): a pending day lapses to forfeited past its deadline.
-- **Idempotent single-refund settlement** (`settlement.test.ts`): only one caller acquires the
-  lock; a challenge is refunded at most once; won-back == 0 closes without a refund.
+- **Missed-day charges** (`charges.test.ts`): only forfeited days are charged, each at most once;
+  retries at +3/+10/+17 days, 4 attempts max, never after a hard decline.
+- **Access** (`src/lib/access.test.ts`): plan rules, trial once per user, and unpaid charges or a
+  lost card mandate block new challenges.
 - **Rep counter** (`rep-counter.test.ts`): a held cycle counts a rep; a too-short cycle does not;
   low-confidence frames do not advance state.
 - **Liveness** (`liveness.test.ts`): duplicate frames and long gaps are rejected.

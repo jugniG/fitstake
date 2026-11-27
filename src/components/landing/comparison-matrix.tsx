@@ -3,7 +3,7 @@ import { Check, X } from 'lucide-react'
 const COMPARISONS = [
   {
     feature: 'Real money on the line (Loss Aversion)',
-    hs: 'Yes · Locked in Escrow',
+    hs: 'Yes · Charged when you skip',
     gym: 'No · Auto-debited regardless',
     apps: 'No · Soft push alerts',
     willpower: 'No · Zero penalty',
@@ -24,7 +24,7 @@ const COMPARISONS = [
   },
   {
     feature: 'Net financial cost if you succeed',
-    hs: '$0.00 (100% Refunded)',
+    hs: '$0.00 in stakes',
     gym: '$600–$1,200/yr lost',
     apps: '$150–$300/yr lost',
     willpower: 'Free (Cost: Inconsistency)',

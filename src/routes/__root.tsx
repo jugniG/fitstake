@@ -20,7 +20,7 @@ export const Route = createRootRoute({
       {
         name: 'description',
         content:
-          'Lock a commitment pot, win each day back with camera-verified workouts, settle once.',
+          'Do your workout on camera every day. Miss a day and your card is charged your stake.',
       },
     ],
     links: [

@@ -11,7 +11,7 @@ const STATUS_BADGE: Record<
   locked: { label: 'Locked', variant: 'outline' },
   pending: { label: 'Open Today', variant: 'default' },
   completed: { label: 'Completed', variant: 'success' },
-  forfeited: { label: 'Forfeited', variant: 'destructive' },
+  forfeited: { label: 'Missed', variant: 'destructive' },
 }
 
 export function DayList({ days }: { days: DashboardView['days'] }) {
