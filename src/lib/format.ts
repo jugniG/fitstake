@@ -18,7 +18,7 @@ export function formatDate(iso: string): string {
       new Date(iso),
     )
   } catch {
-    return '—'
+    return '-'
   }
 }
 

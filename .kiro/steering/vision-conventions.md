@@ -25,4 +25,4 @@ To add a new exercise:
 
 Anti-cheat is enforced by `rep-counter.ts` (min flexed-phase duration rejects bouncing/impossibly
 fast reps and low-confidence frames never advance state) and `liveness.ts` (frame continuity).
-Keep these guards on every exercise — never count reps without them.
+Keep these guards on every exercise - never count reps without them.

@@ -49,7 +49,7 @@ export function HonestQuestions() {
           <div className="mx-auto w-full max-w-3xl rounded-3xl border border-[#0d1b2a14] bg-white p-7 shadow-sm sm:p-10">
             <div className="flex flex-col gap-4">
               <h3 className="text-2xl font-extrabold tracking-tight text-[#0d1b2a] sm:text-4xl">
-                Let me tell you —{' '}
+                Let me tell you -{' '}
                 <span className="serif text-[#2b66f2]">you still don’t do it.</span>
               </h3>
 

@@ -1,4 +1,4 @@
-# Habit-Stakes — Design (v2: Dodo Payments, charge per missed day)
+# Habit-Stakes - Design (v2: Dodo Payments, charge per missed day)
 
 > Companion to `requirements.md` v2. Sections on auth, day windows and MediaPipe are unchanged
 > from v1 and summarized only where they touch payments.
@@ -42,7 +42,7 @@ src/lib/dodo/
 src/lib/challenge/
   charges.ts         pure: which days are due, retry schedule, hard-decline rules (unit-tested)
 src/lib/server/
-  stake-charges.server.ts   chargeMissedDays(userId, now) — claim, call Dodo, record
+  stake-charges.server.ts   chargeMissedDays(userId, now) - claim, call Dodo, record
   webhook-handler.ts        rewritten for Dodo events
 src/routes/api/webhooks/dodo.ts      raw body -> unwrap -> handler
 src/routes/api/cron/charge-missed.ts daily backstop guarded by CRON_SECRET (OQ-1)

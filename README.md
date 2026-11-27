@@ -13,8 +13,8 @@ App access is a separate plan: **$2/week with a 3-day free trial**, or **$49 onc
 ## Stack
 
 - **Framework:** TanStack Start (React 19 + Vite + Nitro), TanStack Router, Tailwind v4
-- **Auth:** Better Auth — Google OAuth + email magic-link (no password)
-- **Payments:** Dodo Payments (`dodopayments`) — hosted checkouts, on-demand subscription
+- **Auth:** Better Auth - Google OAuth + email magic-link (no password)
+- **Payments:** Dodo Payments (`dodopayments`) - hosted checkouts, on-demand subscription
   mandates for missed-day charges, Standard Webhooks signatures
 - **Vision:** `@mediapipe/tasks-vision` (`PoseLandmarker` / `HandLandmarker`) in the browser; WASM
   self-hosted in `public/wasm`, models load from the MediaPipe CDN

@@ -49,7 +49,7 @@ describe('evaluateSquat', () => {
     })
 
     const result = evaluateSquat(laptopBend)
-    // Must remain phase 'a' — must NOT count as a squat!
+    // Must remain phase 'a' - must NOT count as a squat!
     expect(result.phase).toBe('a')
   })
 

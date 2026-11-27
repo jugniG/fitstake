@@ -66,11 +66,11 @@ AGENT INSTRUCTIONS & KEY CONVENTIONS
 
 COMMANDS
 
-npm run generate-routes — regenerate the TanStack Router route tree
-npm run lint — ESLint
-npm run check — Prettier check
-npm test — Vitest, including ledger invariant tests
-npx tsc --noEmit — typecheck
+npm run generate-routes - regenerate the TanStack Router route tree
+npm run lint - ESLint
+npm run check - Prettier check
+npm test - Vitest, including ledger invariant tests
+npx tsc --noEmit - typecheck
 
 - Never run the dev server yourself.
 - Never run the production build; use typecheck to verify.

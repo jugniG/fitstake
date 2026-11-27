@@ -1,6 +1,6 @@
-# Habit-Stakes — Requirements
+# Habit-Stakes - Requirements
 
-> Status: DRAFT v2 — payment model changed from "upfront pot + end refund" (Kelviq) to
+> Status: DRAFT v2 - payment model changed from "upfront pot + end refund" (Kelviq) to
 > "charge each missed day" (Dodo Payments). Awaiting review. Currency: USD, whole dollars.
 > Payments: Dodo Payments (merchant of record). Hosting: Vercel (serverless).
 

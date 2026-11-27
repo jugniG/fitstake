@@ -25,4 +25,4 @@ Domain logic is pure and unit-tested with Vitest in `src/lib/challenge/*.test.ts
 - **Liveness** (`liveness.test.ts`): duplicate frames and long gaps are rejected.
 
 Run with `npm test`. Typecheck with `npx tsc --noEmit`. Never weaken an invariant test to make a
-change pass — fix the logic instead.
+change pass - fix the logic instead.

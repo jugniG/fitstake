@@ -1,7 +1,7 @@
 ---
 inclusion: auto
 name: dodo
-description: Dodo Payments conventions for StakeFit — checkouts, on-demand stake mandates, missed-day charges and webhooks
+description: Dodo Payments conventions for StakeFit - checkouts, on-demand stake mandates, missed-day charges and webhooks
 ---
 
 # Dodo Payments conventions

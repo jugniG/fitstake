@@ -1,7 +1,7 @@
 ---
 inclusion: auto
 name: architecture
-description: App architecture for Habit-Stakes — client/server split, where vision, Dodo payments, and auth logic live
+description: App architecture for Habit-Stakes - client/server split, where vision, Dodo payments, and auth logic live
 ---
 
 # Architecture

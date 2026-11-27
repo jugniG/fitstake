@@ -11,7 +11,7 @@ import { BrandMark } from '#/components/brand-mark'
 // The public production address. Link-preview crawlers can't fetch localhost, so the image URL
 // must point here even in development. Change it when the custom domain is live.
 const SITE_URL = 'https://fitstake-two.vercel.app'
-const SITE_TITLE = 'StakeFit — Make showing up the only option'
+const SITE_TITLE = 'StakeFit - Make showing up the only option'
 const SITE_DESCRIPTION =
   'Do your workout on camera every day. Miss a day and your card is charged your stake.'
 

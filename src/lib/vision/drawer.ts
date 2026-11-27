@@ -157,7 +157,7 @@ export function getExerciseFeedback(
 ): { message: string; isError: boolean } {
   if (!landmarks || landmarks.length === 0) {
     return {
-      message: 'Step into frame — looking for your body…',
+      message: 'Step into frame - looking for your body…',
       isError: true,
     }
   }
@@ -166,7 +166,7 @@ export function getExerciseFeedback(
     if (warning === 'no-body' || warning === 'low-confidence') {
       return { message: 'Hold hand clearly inside the frame', isError: true }
     }
-    return { message: 'Hand tracked — perform the gesture', isError: false }
+    return { message: 'Hand tracked - perform the gesture', isError: false }
   }
 
   // Check specific landmark visibility for standing movements
@@ -184,7 +184,7 @@ export function getExerciseFeedback(
     }
     if (hasUpper && hasHips && hasKnees && !hasAnkles) {
       return {
-        message: 'Hips & knees tracked — squat until thighs are parallel to ground',
+        message: 'Hips & knees tracked - squat until thighs are parallel to ground',
         isError: false,
       }
     }
@@ -200,7 +200,7 @@ export function getExerciseFeedback(
         isError: true,
       }
     }
-    return { message: 'Body tracked — squat until thighs are parallel to ground', isError: false }
+    return { message: 'Body tracked - squat until thighs are parallel to ground', isError: false }
   }
 
   if (exerciseType === 'push_up') {
@@ -213,7 +213,7 @@ export function getExerciseFeedback(
     if (warning === 'rep-too-fast') {
       return { message: 'Lower chest fully and pause briefly before pushing up', isError: true }
     }
-    return { message: 'In position — lower chest to ground, then press up', isError: false }
+    return { message: 'In position - lower chest to ground, then press up', isError: false }
   }
 
   if (exerciseType === 'leg_raise') {
@@ -225,12 +225,12 @@ export function getExerciseFeedback(
     }
     if (warning === 'rep-too-fast') {
       return {
-        message: 'Lower legs with control — do not let them drop',
+        message: 'Lower legs with control - do not let them drop',
         isError: true,
       }
     }
     return {
-      message: 'Lower abs engaged — raise legs toward 90° then lower smoothly',
+      message: 'Lower abs engaged - raise legs toward 90° then lower smoothly',
       isError: false,
     }
   }

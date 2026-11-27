@@ -1,8 +1,8 @@
-# HANDOFF — Habit-Stakes
+# HANDOFF - Habit-Stakes
 
 > Read this first. It is the single source of truth for what this product is, what's built, what's
 > left, and the corrections you must NOT undo. The full spec lives in `.kiro/specs/habit-stakes/`
-> (`requirements.md` — locked, `design.md`, `tasks.md`).
+> (`requirements.md` - locked, `design.md`, `tasks.md`).
 
 ## TL;DR
 
@@ -13,13 +13,13 @@ Forfeited days' stakes are lost (loss aversion). Built by stitching the Kiro-Int
 gesture/pose approach (MediaPipe) into this TanStack Start app, with Kelviq as merchant of record.
 
 **Current state:** all code is written; `npx tsc --noEmit` is clean and `npm test` is green (33 tests).
-The app has **not** been run end-to-end (dev server never started — see AGENTS.md rule) and the DB
+The app has **not** been run end-to-end (dev server never started - see AGENTS.md rule) and the DB
 has **not** been migrated. Manual setup (Neon, Kelviq dashboard, Google OAuth, env) is pending.
 
 ## Product & goals
 
 - User chooses: exercise type (squat / push-up / jumping-jack / custom hand gesture), target reps,
-  target sets, daily stake (USD, whole dollars — no cents), total days (any duration).
+  target sets, daily stake (USD, whole dollars - no cents), total days (any duration).
 - `totalCommitment = totalDays × dailyStake`, charged once upfront via Kelviq.
 - Per-day lifecycle: `PENDING → COMPLETED | FORFEITED` on the **user's local calendar day**
   (pinned IANA timezone). Completing a day moves `dailyStake` into `wonBackBalance`; missing the
@@ -36,22 +36,22 @@ The kickoff prompt contained several inaccuracies; these are the real, verified 
 1. **Kiro-InteractionKit is a separate _Python_/OpenCV desktop repo.** We did NOT run a Python
    sidecar (it can't run on Vercel serverless). We ported its gesture/pose _pattern_ + the `.kiro`
    DX into the browser stack using `@mediapipe/tasks-vision` (same MediaPipe model family).
-2. **Kelviq** — verified against `docs.kelviq.com`:
+2. **Kelviq** - verified against `docs.kelviq.com`:
    - A checkout session **requires** `planIdentifier` + `chargePeriod` (we use `'ONE_TIME'`) plus
      `customAmount` (major units, dollars) + `currencyCode` + `taxBehavior`. A product + one-time
      plan must exist in the Kelviq dashboard → env `KELVIQ_COMMITMENT_PLAN_IDENTIFIER`.
    - Correlation channel is **`metadata`** (`{ challengeId, userId }`), which round-trips on
      `checkout.completed`. `custom_fields_data` is a _different_ field for customer-entered
-     checkout form answers — we do NOT use it.
+     checkout form answers - we do NOT use it.
    - Real webhook events: `checkout.completed`, `order.created`, `order.updated`, `order.refunded`,
      `refund.created`, `refund.updated`. There is **no** `order.completed` (the brief was wrong).
      Activate on `checkout.completed`; record settlement on `refund.updated` with
      `status: 'SUCCEEDED'` (NOT on `order.refunded`, which only signals partial vs full).
-   - `validateEvent(rawBody, headers, secret)` — **argument order is body, headers, secret.**
+   - `validateEvent(rawBody, headers, secret)` - **argument order is body, headers, secret.**
    - Refund: `client.refunds.create({ orderId, amountUnits, reason })` in **minor units (cents)**.
-   - **No documented hard refund window** — the brief's "must refund by Day 29 / 30-day window" is
+   - **No documented hard refund window** - the brief's "must refund by Day 29 / 30-day window" is
      not a Kelviq rule. Single end-of-challenge settlement works for any duration.
-3. **Better Auth** — the `better-auth` package was **not** installed in the repo originally (only the
+3. **Better Auth** - the `better-auth` package was **not** installed in the repo originally (only the
    Drizzle `user/session/account/verification` tables existed from the SaaS template). We installed
    and wired it. Methods: **Google OAuth + email magic-link, no password.** The DodoPayments
    `subscription` + `todo` tables were removed as template cruft.
@@ -59,9 +59,9 @@ The kickoff prompt contained several inaccuracies; these are the real, verified 
    the user picks **Today/Tomorrow** (Tomorrow preselected after 20:00 local). Server-authoritative:
    all status/transition checks use server UTC + stored tz, never the client clock. DST is handled by
    deriving each day's boundaries from its own local date (not by adding 24h).
-5. **One active/pending challenge per user** — enforced. Needed because Kelviq orders don't carry our
+5. **One active/pending challenge per user** - enforced. Needed because Kelviq orders don't carry our
    `challengeId`, so we link order → challenge by Kelviq `customer_id` + the one-challenge rule.
-6. **Client-side computer vision** — MediaPipe runs in the browser (CV can't run on Vercel
+6. **Client-side computer vision** - MediaPipe runs in the browser (CV can't run on Vercel
    serverless). The client only _proposes_ a completion; the server validates ownership, the open
    window (server time), and a plausible session duration. This is an accepted, documented
    trade-off, not full server-side CV.
@@ -87,7 +87,7 @@ src/
     auth.functions.ts          getSession / ensureSession server fns
     challenge/                 PURE, unit-tested: types, math, windows(TZ/DST), state, settlement + index
     vision/                    engine (MediaPipe), geometry, rep-counter, exercises/{squat,push-up,
-                               jumping-jack,custom-gesture}, liveness, index — pure parts unit-tested
+                               jumping-jack,custom-gesture}, liveness, index - pure parts unit-tested
     kelviq/                    client.ts, checkout.ts (one-time session), refund.ts (create/retrieve)
     server/                    challenges.ts (createChallenge/getDashboard/completeDay), webhook-handler.ts,
                                settle.ts (settlePendingChallenges)
@@ -111,7 +111,7 @@ drizzle/0000_greedy_nomad.sql  generated migration (not yet applied)
 vercel.json                    deployment configuration
 ```
 
-Removed: the entire old "Workout Commitment" demo — `src/lib/commitment.ts`, `commitment-store.tsx`,
+Removed: the entire old "Workout Commitment" demo - `src/lib/commitment.ts`, `commitment-store.tsx`,
 `commitment.test.ts`, and demo components (`coffin-card`, `exercise-list`, `money-summary`,
 `plan-gate`, `reset-demo`, `setup/*`, `history/*`) and the old flat routes. `use-camera-recorder.ts`
 is now unused (optional cleanup).
@@ -127,14 +127,14 @@ vision test-on-save hook; route tree regenerated.
 
 **Not done / pending:**
 
-- `npm run lint` and `npm run check` (Prettier) were **not** run — run them; fix with `npm run format` if needed.
-- DB **not migrated** — user must run `npm run db:migrate` against Neon.
-- **Runtime never verified** — dev server was never started (AGENTS.md rule). End-to-end flows
+- `npm run lint` and `npm run check` (Prettier) were **not** run - run them; fix with `npm run format` if needed.
+- DB **not migrated** - user must run `npm run db:migrate` against Neon.
+- **Runtime never verified** - dev server was never started (AGENTS.md rule). End-to-end flows
   (auth sign-up, Kelviq checkout → webhook → activation, camera rep counting, settlement cron)
   are unverified. Run `npm run dev` and exercise them.
 - Manual setup (below) is the user's responsibility.
 
-## Manual setup (the user must do — you can't)
+## Manual setup (the user must do - you can't)
 
 1. Copy `.env.example` → `.env` and fill: `DATABASE_URL` (Neon, `?sslmode=require`),
    `BETTER_AUTH_SECRET`, `APP_URL`, `GOOGLE_CLIENT_ID/SECRET`, `RESEND_API_KEY/RESEND_FROM`
@@ -148,10 +148,10 @@ vision test-on-save hook; route tree regenerated.
 ## Verification commands
 
 ```bash
-npm test                 # vitest — 33 domain + vision tests
+npm test                 # vitest - 33 domain + vision tests
 npx tsc --noEmit         # typecheck (currently clean)
-npm run lint             # ESLint (run this — not yet checked)
-npm run check            # Prettier check (run this — not yet checked)
+npm run lint             # ESLint (run this - not yet checked)
+npm run check            # Prettier check (run this - not yet checked)
 npm run generate-routes  # after adding/renaming routes
 # npm run dev            # run manually to test end-to-end (don't leave it to an agent)
 ```
@@ -161,19 +161,19 @@ npm run generate-routes  # after adding/renaming routes
 - **AGENTS.md is partly stale.** It still describes the old demo. Its conventions (routing, forms,
   error handling, naming, a11y, never edit `routeTree.gen.ts`, run `generate-routes`, don't run the
   dev server, ask before migrations) **still apply**. But rule #9 ("Do not add automatic forfeiture,
-  self-declared payouts or real payment code to the demo") is **superseded** — this product
+  self-declared payouts or real payment code to the demo") is **superseded** - this product
   deliberately does automatic forfeiture + real Kelviq payments.
-- **TanStack server-fn client calls use `{ data: {...} }`** — e.g. `createChallenge({ data: {...} })`,
+- **TanStack server-fn client calls use `{ data: {...} }`** - e.g. `createChallenge({ data: {...} })`,
   `completeDay({ data: {...} })`. `getDashboard()` takes no args.
 - **date-fns-tz v3** renamed `zonedTimeToUtc` → `fromZonedTime` (used in `windows.ts`).
 - **`db.query.<table>`** only types correctly because `db.server.ts` uses a schema-typed factory
-  (`createDb`) for the HMR global — don't "simplify" it back to an untyped global or relational
+  (`createDb`) for the HMR global - don't "simplify" it back to an untyped global or relational
   queries lose their types.
-- **MediaPipe `createFromOptions` is async** (returns a Promise) — it's awaited in `engine.ts`.
-- **`validateEvent` argument order:** `(body, headers, secret)` — getting this wrong 400s every webhook.
+- **MediaPipe `createFromOptions` is async** (returns a Promise) - it's awaited in `engine.ts`.
+- **`validateEvent` argument order:** `(body, headers, secret)` - getting this wrong 400s every webhook.
 - **Client CV trust:** the rep count is client-side; do not weaken the server-side guards
   (window/ownership/duration) in `completeDay` or the liveness/min-duration guards in `vision/`.
-- Better Auth runtime is **unverified** — confirm sign-up (Google + magic-link) actually creates a
+- Better Auth runtime is **unverified** - confirm sign-up (Google + magic-link) actually creates a
   session and that the drizzle adapter writes to the existing tables. If Better Auth expects a
   different column set, adjust the schema + regenerate the migration.
 

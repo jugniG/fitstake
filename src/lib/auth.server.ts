@@ -27,7 +27,7 @@ export const auth = betterAuth({
         await sendMagicLinkEmail(email, url)
       },
     }),
-    // must be the last plugin — handles TanStack Start cookie setting for server fns.
+    // must be the last plugin - handles TanStack Start cookie setting for server fns.
     tanstackStartCookies(),
   ],
 })
