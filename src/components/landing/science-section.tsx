@@ -17,9 +17,9 @@ const PILLARS = [
   },
   {
     tag: '03 / THE INTEGRITY',
-    title: 'Honest Physiological Verification',
+    title: 'Honest Biometric Verification',
     description:
-      'StakeFit introduces financial accountability backed by contactless physiological sensing and on-device computer vision. It tracks genuine cardiac effort and exercise form—no self-reported honor system, no cheating.',
+      'StakeFit puts real money on the line—backed by smart camera verification that tracks your reps and reads your heart rate in real time. No self-reported honor system, zero wearables required, no cheating.',
     icon: ShieldCheck,
   },
 ]

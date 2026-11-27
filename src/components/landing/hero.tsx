@@ -29,10 +29,9 @@ export function Hero() {
             </h1>
 
             <p className="mt-4 text-base sm:text-lg font-medium text-[#5a6678] max-w-lg leading-relaxed">
-              <strong className="text-[#0d1b2a]">
-                StakeFit introduces financial accountability
-              </strong>{' '}
-              backed by contactless physiological sensing and camera-verified workouts.
+              <strong className="text-[#0d1b2a]">StakeFit puts real money on the line</strong>
+              —backed by smart camera verification that tracks your reps and reads your heart rate,
+              zero wearables required.
             </p>
 
             <ul className="mt-6 w-full max-w-lg space-y-3 text-left text-sm font-medium text-[#0d1b2a] sm:text-base">
