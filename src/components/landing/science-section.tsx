@@ -17,9 +17,9 @@ const PILLARS = [
   },
   {
     tag: '03 / THE INTEGRITY',
-    title: 'Honest Biometric Verification',
+    title: 'Camera-Verified Reps',
     description:
-      'StakeFit puts real money on the line—backed by smart camera verification that tracks your reps and reads your heart rate in real time. No self-reported honor system, zero wearables required, no cheating.',
+      'StakeFit puts real money on the line, backed by live camera verification that counts every rep and checks your form in real time. No self-reported honor system, and no wearables required.',
     icon: ShieldCheck,
   },
 ]

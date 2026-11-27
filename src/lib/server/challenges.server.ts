@@ -374,12 +374,6 @@ export async function completeDayImpl(data: {
   totalReps: number
   confidence: number
   sessionToken: string
-  biometrics?: {
-    baselineBpm: number
-    peakBpm: number
-    recoveryBpmDrop: number
-    cardioExertionScore: number
-  }
 }) {
   const session = await ensureSession()
   const userId = session.user.id
@@ -465,7 +459,6 @@ export async function completeDayImpl(data: {
       totalReps: data.totalReps,
       confidence: String(data.confidence),
       durationSeconds,
-      note: data.biometrics ? JSON.stringify(data.biometrics) : null,
     })
     await tx
       .update(day)

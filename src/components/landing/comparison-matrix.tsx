@@ -16,13 +16,6 @@ const COMPARISONS = [
     willpower: false,
   },
   {
-    feature: 'Contactless vitals & HR recovery (Presage)',
-    hs: true,
-    gym: false,
-    apps: false,
-    willpower: false,
-  },
-  {
     feature: '100% Client-side privacy (zero video stored)',
     hs: true,
     gym: 'Public space',
