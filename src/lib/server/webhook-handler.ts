@@ -1,5 +1,18 @@
 import { and, desc, eq, inArray, isNull, or } from 'drizzle-orm'
-import { db, challenge, day, user, kelviqEvent } from '#/db.server'
+import { CANCELLATION_TYPES } from '@kelviq/node-sdk'
+import {
+  db,
+  challenge,
+  day,
+  user,
+  kelviqEvent,
+  lifetimeAccess,
+  userSubscription,
+} from '#/db.server'
+import { env } from '#/lib/env'
+import { parseSubscriptionObject, subscriptionGrantsAccess } from '#/lib/access'
+import { kelviq } from '#/lib/kelviq/client'
+import { LIFETIME_CHECKOUT_KIND, SUBSCRIPTION_CHECKOUT_KIND } from '#/lib/kelviq/checkout'
 import {
   computeDayWindows,
   derivePendingStatus,
@@ -32,8 +45,9 @@ export async function handleKelviqEvent(
 ): Promise<HandleKelviqEventResult> {
   if (!eventId) throw new Error('Kelviq webhook event id is required.')
 
+  let weeklySubscriptionToCancel: string | null = null
   try {
-    await db.transaction(async (tx) => {
+    weeklySubscriptionToCancel = await db.transaction(async (tx): Promise<string | null> => {
       try {
         await tx.insert(kelviqEvent).values({
           eventId,
@@ -46,24 +60,53 @@ export async function handleKelviqEvent(
       }
 
       switch (event.type) {
-        case 'checkout.completed':
+        case 'checkout.completed': {
+          const kind = event.data.object.metadata?.kind
+          if (kind === LIFETIME_CHECKOUT_KIND) return grantLifetimeAccess(event, tx)
+          // Weekly access is recorded from subscription.* events, which carry status and dates.
+          if (kind === SUBSCRIPTION_CHECKOUT_KIND) return null
           await activateChallenge(event, tx)
-          return
+          return null
+        }
+        case 'subscription.created':
+        case 'subscription.updated':
+        case 'subscription.cancelled':
+        case 'subscription.plan_changed':
+        case 'subscription.paused':
+        case 'subscription.resumed':
+        case 'subscription.trial_will_end':
+          return syncSubscription(event, tx)
         case 'order.created':
         case 'order.updated':
           await linkOrder(event, tx)
-          return
+          return null
         case 'refund.created':
         case 'refund.updated':
           await completeRefund(event, tx)
-          return
+          return null
         default:
-          return
+          return null
       }
     })
   } catch (error) {
     if (error instanceof DuplicateKelviqEventError) return 'duplicate'
     throw error
+  }
+
+  // Runs after commit: the lifetime grant must not roll back if Kelviq's cancel call fails. A
+  // failure is logged loudly because the user would keep being billed weekly.
+  if (weeklySubscriptionToCancel) {
+    try {
+      await kelviq.subscriptions.cancel({
+        subscriptionId: weeklySubscriptionToCancel,
+        cancellationType: CANCELLATION_TYPES.IMMEDIATE,
+      })
+    } catch (error) {
+      console.error(
+        `[kelviq] ACTION NEEDED: lifetime user still has weekly subscription ${weeklySubscriptionToCancel}; cancel failed:`,
+        error,
+      )
+    }
   }
 
   return 'processed'
@@ -189,6 +232,10 @@ async function linkOrder(event: KelviqEvent, tx: DbTransaction): Promise<void> {
   const customerId = obj.customer_id
   if (orderId == null || !customerId) return
 
+  // Access purchases share the Kelviq customer with the commitment pot. Linking one of their
+  // orders would make the end-of-challenge refund target it instead of the pot.
+  if (isLifetimePlan(obj.plan) || isWeeklyPlan(obj.plan)) return
+
   const matchedUsers = await tx
     .select({ id: user.id })
     .from(user)
@@ -216,6 +263,146 @@ async function linkOrder(event: KelviqEvent, tx: DbTransaction): Promise<void> {
     .update(challenge)
     .set({ kelviqOrderId: String(orderId) })
     .where(eq(challenge.id, challengeRow.id))
+}
+
+function planIdentifierOf(plan: unknown): unknown {
+  return (plan as { identifier?: unknown } | null | undefined)?.identifier
+}
+
+function isLifetimePlan(plan: unknown): boolean {
+  return (
+    !!env.KELVIQ_LIFETIME_PLAN_IDENTIFIER &&
+    planIdentifierOf(plan) === env.KELVIQ_LIFETIME_PLAN_IDENTIFIER
+  )
+}
+
+function isWeeklyPlan(plan: unknown): boolean {
+  return (
+    !!env.KELVIQ_SUBSCRIPTION_PLAN_IDENTIFIER &&
+    planIdentifierOf(plan) === env.KELVIQ_SUBSCRIPTION_PLAN_IDENTIFIER
+  )
+}
+
+// Returns the weekly subscription id to cancel after commit, if the buyer had a live one.
+async function syncSubscription(event: KelviqEvent, tx: DbTransaction): Promise<string | null> {
+  const parsed = parseSubscriptionObject(event.data.object)
+  if (!parsed) {
+    console.error('[kelviq] subscription event has no id or status:', event.type)
+    return null
+  }
+  // Commitment pots can also produce subscription events; only the weekly plan gates access.
+  if (parsed.planIdentifier !== env.KELVIQ_SUBSCRIPTION_PLAN_IDENTIFIER) return null
+
+  const owner = (
+    await tx
+      .select({ id: user.id })
+      .from(user)
+      .where(
+        or(
+          parsed.userId ? eq(user.id, parsed.userId) : undefined,
+          parsed.kelviqCustomerId ? eq(user.kelviqCustomerId, parsed.kelviqCustomerId) : undefined,
+        ),
+      )
+      .limit(1)
+  ).at(0)
+  if (!owner) {
+    console.error('[kelviq] subscription event for unknown customer', parsed.kelviqSubscriptionId)
+    return null
+  }
+
+  const existing = (
+    await tx
+      .select()
+      .from(userSubscription)
+      .where(eq(userSubscription.userId, owner.id))
+      .for('update')
+      .limit(1)
+  ).at(0)
+
+  const now = new Date()
+  const incoming = { status: parsed.status, trialEndsAt: parsed.trialEndsAt, endsAt: parsed.endsAt }
+  if (existing) {
+    const sameSubscription = existing.kelviqSubscriptionId === parsed.kelviqSubscriptionId
+    const isStale =
+      sameSubscription &&
+      !!existing.sourceModifiedAt &&
+      !!parsed.modifiedAt &&
+      parsed.modifiedAt.getTime() < existing.sourceModifiedAt.getTime()
+    // A superseded subscription's late cancel event must not revoke a newer live one.
+    const wouldRevokeNewer =
+      !sameSubscription &&
+      subscriptionGrantsAccess(existing, now) &&
+      !subscriptionGrantsAccess(incoming, now)
+    if (isStale || wouldRevokeNewer) return null
+  }
+
+  const values = {
+    kelviqSubscriptionId: parsed.kelviqSubscriptionId,
+    status: parsed.status,
+    trialEndsAt: parsed.trialEndsAt,
+    currentPeriodEndsAt: parsed.currentPeriodEndsAt,
+    endsAt: parsed.endsAt,
+    sourceModifiedAt: parsed.modifiedAt,
+  }
+  if (existing) {
+    await tx.update(userSubscription).set(values).where(eq(userSubscription.id, existing.id))
+  } else {
+    await tx.insert(userSubscription).values({ userId: owner.id, ...values })
+  }
+
+  // Covers a weekly subscription that starts after the lifetime purchase (e.g. two open tabs).
+  if (!subscriptionGrantsAccess(incoming, now)) return null
+  const purchase = (
+    await tx
+      .select({ id: lifetimeAccess.id })
+      .from(lifetimeAccess)
+      .where(eq(lifetimeAccess.userId, owner.id))
+      .limit(1)
+  ).at(0)
+  return purchase ? parsed.kelviqSubscriptionId : null
+}
+
+// Returns the weekly subscription id to cancel after commit, if the buyer had a live one.
+async function grantLifetimeAccess(event: KelviqEvent, tx: DbTransaction): Promise<string | null> {
+  const obj = event.data.object
+  const userId = typeof obj.metadata?.userId === 'string' ? obj.metadata.userId : null
+  const checkoutSessionId = typeof obj.id === 'string' ? obj.id : null
+  if (!userId || !checkoutSessionId) {
+    console.error('[kelviq] lifetime checkout.completed is missing userId or session id')
+    return null
+  }
+  // Metadata is set by our server, but checking the plan stops a session on another plan from
+  // granting access just by carrying our metadata.
+  if (!isLifetimePlan(obj.plan)) {
+    throw new Error(`lifetime checkout ${checkoutSessionId} is not on the lifetime plan`)
+  }
+
+  const owner = (
+    await tx.select({ id: user.id }).from(user).where(eq(user.id, userId)).limit(1)
+  ).at(0)
+  if (!owner) {
+    console.error('[kelviq] lifetime checkout for unknown user', userId)
+    return null
+  }
+
+  const amountUnits = typeof obj.amount_units === 'number' ? obj.amount_units : null
+  const currency = typeof obj.currency === 'string' ? obj.currency : null
+  // A second purchase by the same user (two tabs) keeps the first row; access is already granted.
+  await tx
+    .insert(lifetimeAccess)
+    .values({
+      userId,
+      kelviqCheckoutSessionId: checkoutSessionId,
+      kelviqOrderId: obj.order_id == null ? null : String(obj.order_id),
+      amountUnits,
+      currency,
+    })
+    .onConflictDoNothing()
+
+  const weekly = (
+    await tx.select().from(userSubscription).where(eq(userSubscription.userId, userId)).limit(1)
+  ).at(0)
+  return weekly && subscriptionGrantsAccess(weekly, new Date()) ? weekly.kelviqSubscriptionId : null
 }
 
 async function completeRefund(event: KelviqEvent, tx: DbTransaction): Promise<void> {

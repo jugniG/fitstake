@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PaywallRouteImport } from './routes/paywall'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
 import { Route as ProtectedHistoryRouteImport } from './routes/_protected/history'
 import { Route as ProtectedRecordRouteImport } from './routes/_protected/record'
@@ -31,6 +32,11 @@ const ProtectedRoute = ProtectedRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaywallRoute = PaywallRouteImport.update({
+  id: '/paywall',
+  path: '/paywall',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProtectedDashboardRoute = ProtectedDashboardRouteImport.update({
@@ -67,6 +73,7 @@ const ApiWebhooksKelviqRoute = ApiWebhooksKelviqRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/paywall': typeof PaywallRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/history': typeof ProtectedHistoryRoute
   '/record': typeof ProtectedRecordRoute
@@ -77,6 +84,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/paywall': typeof PaywallRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/history': typeof ProtectedHistoryRoute
   '/record': typeof ProtectedRecordRoute
@@ -89,6 +97,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_protected': typeof ProtectedRouteWithChildren
   '/login': typeof LoginRoute
+  '/paywall': typeof PaywallRoute
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/_protected/history': typeof ProtectedHistoryRoute
   '/_protected/record': typeof ProtectedRecordRoute
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/paywall'
     | '/dashboard'
     | '/history'
     | '/record'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/paywall'
     | '/dashboard'
     | '/history'
     | '/record'
@@ -122,6 +133,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_protected'
     | '/login'
+    | '/paywall'
     | '/_protected/dashboard'
     | '/_protected/history'
     | '/_protected/record'
@@ -134,6 +146,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ProtectedRoute: typeof ProtectedRouteWithChildren
   LoginRoute: typeof LoginRoute
+  PaywallRoute: typeof PaywallRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiWebhooksKelviqRoute: typeof ApiWebhooksKelviqRoute
 }
@@ -159,6 +172,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/paywall': {
+      id: '/paywall'
+      path: '/paywall'
+      fullPath: '/paywall'
+      preLoaderRoute: typeof PaywallRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_protected/dashboard': {
@@ -228,6 +248,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ProtectedRoute: ProtectedRouteWithChildren,
   LoginRoute: LoginRoute,
+  PaywallRoute: PaywallRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiWebhooksKelviqRoute: ApiWebhooksKelviqRoute,
 }

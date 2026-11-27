@@ -8,6 +8,27 @@
       "when": 1795177560302,
       "tag": "0000_lowly_scalphunter",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795430886518,
+      "tag": "0001_nervous_plazm",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795433566462,
+      "tag": "0002_conscious_stepford_cuckoos",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795436369132,
+      "tag": "0003_lifetime_access",
+      "breakpoints": true
     }
   ]
 }

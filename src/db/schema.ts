@@ -243,6 +243,51 @@ export const workoutVerification = appSchema.table(
   (t) => [uniqueIndex('workout_verification_challenge_day_unique').on(t.challengeId, t.dayNumber)],
 )
 
+// Access to the app. One row per user, written only by Kelviq subscription webhooks.
+export const userSubscription = appSchema.table(
+  'user_subscription',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text('userId')
+      .notNull()
+      .unique()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    kelviqSubscriptionId: text('kelviqSubscriptionId').notNull(),
+    status: text('status').notNull(), // Kelviq status, lower-cased: trialing | active | cancelled ...
+    trialEndsAt: timestampTz('trialEndsAt'),
+    currentPeriodEndsAt: timestampTz('currentPeriodEndsAt'),
+    endsAt: timestampTz('endsAt'), // set when cancellation is scheduled or has happened
+    // Kelviq's modified_on of the last applied event; webhooks can arrive out of order.
+    sourceModifiedAt: timestampTz('sourceModifiedAt'),
+    createdAt: timestampTz('createdAt').notNull().defaultNow(),
+    updatedAt: timestampTz('updatedAt')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [uniqueIndex('user_subscription_kelviq_id_unique').on(t.kelviqSubscriptionId)],
+)
+
+// One-time $49 lifetime purchase. Written only by the checkout.completed webhook; the unique
+// checkout session id keeps a re-delivered event from recording a second purchase.
+export const lifetimeAccess = appSchema.table('lifetime_access', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text('userId')
+    .notNull()
+    .unique()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  kelviqCheckoutSessionId: text('kelviqCheckoutSessionId').notNull().unique(),
+  kelviqOrderId: text('kelviqOrderId'),
+  amountUnits: integer('amountUnits'), // minor units charged, as reported by Kelviq
+  currency: text('currency'),
+  purchasedAt: timestampTz('purchasedAt').notNull().defaultNow(),
+  createdAt: timestampTz('createdAt').notNull().defaultNow(),
+})
+
 export const kelviqEvent = appSchema.table('kelviq_event', {
   id: text('id')
     .primaryKey()

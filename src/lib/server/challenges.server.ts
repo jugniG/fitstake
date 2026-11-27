@@ -1,5 +1,7 @@
 import { and, asc, desc, eq, inArray } from 'drizzle-orm'
 import { db, challenge, day, user, workoutVerification } from '#/db.server'
+import { canStartChallenge } from '#/lib/access'
+import { resolveAppAccess } from '#/lib/server/access.server'
 import { ensureSession } from '#/lib/auth.functions'
 import { env } from '#/lib/env'
 import { createCommitmentCheckout } from '#/lib/kelviq/checkout'
@@ -53,9 +55,16 @@ async function beginCheckout(challengeRow: ChallengeRow, sessionUser: SessionUse
   return checkout
 }
 
+// Only new pots are gated. Workout recording and settlement stay open for users whose trial
+// ended mid-challenge, so their staked money is never forfeited by a paywall.
 export async function createChallengeImpl(data: CreateChallengeInput) {
   const session = await ensureSession()
   const sessionUser = session.user as SessionUser
+
+  const access = await resolveAppAccess(sessionUser.id)
+  if (!canStartChallenge(access.reason)) {
+    throw new Error('Choose a plan on the pricing page to create a new challenge.')
+  }
 
   const existing = await db.query.challenge.findFirst({
     where: and(eq(challenge.userId, sessionUser.id), inArray(challenge.status, [...ACTIVE_STATES])),
