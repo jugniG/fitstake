@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { NavHeader } from '#/components/landing/nav-header'
-import { Hero } from '#/components/landing/hero'
+import { Hero, HeroSky } from '#/components/landing/hero'
 import { FounderStory } from '#/components/landing/founder-story'
 import { HonestQuestions } from '#/components/landing/honest-questions'
 import { RelatableMoments } from '#/components/landing/relatable-moments'
@@ -22,8 +22,10 @@ function IndexPage() {
       <NavHeader />
 
       <main className="flex-1">
-        <Hero />
-        <FounderStory />
+        <HeroSky>
+          <Hero />
+          <FounderStory />
+        </HeroSky>
         <HonestQuestions />
         <RelatableMoments />
         <ScienceSection />

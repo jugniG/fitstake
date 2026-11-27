@@ -7,6 +7,13 @@ export function FinalCta() {
   return (
     <footer className="border-t border-[#0d1b2a14] bg-[#faf8f5] pt-20 pb-12">
       <div className="mx-auto max-w-4xl px-5 text-center">
+        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#2b66f2]/20 bg-[#2b66f2]/5 px-4 py-1.5 text-xs font-bold text-[#0d1b2a] shadow-xs">
+          <span className="size-2 rounded-full bg-[#2b66f2] motion-safe:animate-pulse" />
+          <span>
+            Finally, a fitness app that actually gives you a fit body by the end of the year.
+          </span>
+        </div>
+
         <h2 className="text-4xl font-extrabold tracking-tight text-[#0d1b2a] sm:text-6xl lg:text-7xl leading-[1.08]">
           Willpower is a bad plan.
           <br />
@@ -14,8 +21,8 @@ export function FinalCta() {
         </h2>
 
         <p className="mx-auto mt-6 max-w-lg text-base text-[#5a6678] sm:text-lg">
-          Lock in your workout commitment today. Move on camera, verify your reps daily, and reclaim
-          100% of your cash.
+          Lock in your workout commitment today. Move on camera, verify your reps daily, and keep
+          every dollar by showing up.
         </p>
 
         <div className="mt-8 flex justify-center">
@@ -45,7 +52,7 @@ export function FinalCta() {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-6 text-[0.75rem] font-medium">
-            <span>Real-Time Effort Sensing</span>
+            <span>Live Rep Counting</span>
             <span>·</span>
             <span>On-Device Form Tracking</span>
             <span>·</span>

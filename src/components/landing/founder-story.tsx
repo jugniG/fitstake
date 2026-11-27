@@ -1,16 +1,22 @@
 import { Flame, CheckCircle2 } from 'lucide-react'
+import founderPhoto from '#/assets/founder-sahil.jpg'
 
 export function FounderStory() {
   return (
-    <section className="relative border-y border-[#0d1b2a14] bg-white/70 py-16 sm:py-20">
+    <section className="relative py-16 sm:py-20">
       <div className="mx-auto max-w-4xl px-5">
         <div className="card-hover-lift relative rounded-3xl border border-[#0d1b2a14] bg-white p-7 sm:p-10 shadow-xs">
           {/* Header row */}
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#0d1b2a10] pb-6">
             <div className="flex items-center gap-3">
-              <div className="grid size-11 place-items-center rounded-2xl bg-[#2b66f2] font-mono text-base font-bold text-white shadow-xs">
-                SG
-              </div>
+              <img
+                src={founderPhoto}
+                alt="Sahil Gupta, founder of StakeFit"
+                width={44}
+                height={44}
+                loading="lazy"
+                className="size-11 rounded-2xl object-cover shadow-xs ring-1 ring-[#0d1b2a14]"
+              />
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-base font-bold text-[#0d1b2a]">Sahil Gupta</h3>

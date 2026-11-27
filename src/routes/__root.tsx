@@ -16,7 +16,7 @@ export const Route = createRootRoute({
       { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
       { name: 'theme-color', content: '#070807' },
       { name: 'color-scheme', content: 'dark' },
-      { title: 'StakeFit — lock your word with real stakes' },
+      { title: 'StakeFit — Make showing up the only option' },
       {
         name: 'description',
         content:

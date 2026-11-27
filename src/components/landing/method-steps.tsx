@@ -17,7 +17,7 @@ const STEPS = [
   {
     num: '03',
     title: 'Step in front of the lens',
-    desc: 'Step in front of your camera. Smart camera tracking counts your reps and checks real effort in 15 minutes at home.',
+    desc: 'Step in front of your camera. Smart camera tracking counts your reps and checks your form in 15 minutes at home.',
   },
   {
     num: '04',

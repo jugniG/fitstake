@@ -1,28 +1,70 @@
 import { Link } from '@tanstack/react-router'
-import { ArrowRight, Check, CheckCircle2, Shield, X } from 'lucide-react'
-import { BrandMark } from '#/components/brand-mark'
+import type { ReactNode } from 'react'
+import { ArrowRight } from 'lucide-react'
+import { cn } from '#/lib/utils'
+import { ConsistencyLoop } from './consistency-loop'
+
+const HOW_IT_WORKS = [
+  { title: 'Log in', detail: 'to create your account.', warning: false },
+  {
+    title: 'Set up your workout plan:',
+    detail: 'your exercises and how many days.',
+    warning: false,
+  },
+  {
+    title: 'Set up auto-pay for any amount you choose.',
+    detail: "That's your daily stake. Nothing is charged upfront.",
+    warning: false,
+  },
+  {
+    title: 'Show up every day.',
+    detail: "Miss a day and you're charged that day's stake.",
+    warning: true,
+  },
+]
+
+// A soft cloud made of overlapping blurred puffs, positioned by the className.
+function Cloud({ className }: { className: string }) {
+  return (
+    <div className={cn('absolute aspect-[5/2]', className)}>
+      <div className="absolute bottom-0 left-[8%] h-[55%] w-[84%] rounded-full bg-white blur-xl" />
+      <div className="absolute bottom-[25%] left-[20%] h-[60%] w-[34%] rounded-full bg-white blur-lg" />
+      <div className="absolute bottom-[30%] left-[42%] h-[75%] w-[38%] rounded-full bg-white blur-lg" />
+      <div className="absolute bottom-[18%] left-[64%] h-[50%] w-[26%] rounded-full bg-white blur-lg" />
+    </div>
+  )
+}
+
+// One soft sky behind the hero and the founder story, so the two read as a single section:
+// pale blue at the top, warm peach in the middle, ending in the page colour. Decorative only.
+export function HeroSky({ children }: { children: ReactNode }) {
+  return (
+    <div className="relative isolate overflow-hidden">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,#d6e8f0_0%,#e6eff0_25%,#f1ece4_55%,#f6efe6_80%,#faf8f5_100%)]" />
+        {/* Warm sun glow where the hero meets the founder story */}
+        <div className="absolute top-[42%] left-1/2 h-[28rem] w-[60rem] -translate-x-1/2 rounded-[50%] bg-[#f8c9a4]/35 blur-[110px]" />
+        <Cloud className="-left-24 top-[20%] w-[26rem] opacity-90" />
+        <Cloud className="-left-10 top-[33%] w-[16rem] opacity-70" />
+        <Cloud className="-right-28 top-[28%] w-[30rem] opacity-90" />
+        <Cloud className="right-[18%] top-[4%] w-[12rem] opacity-50" />
+        <Cloud className="-left-20 top-[72%] w-[22rem] opacity-60" />
+        <Cloud className="-right-16 top-[82%] w-[18rem] opacity-50" />
+      </div>
+      {children}
+    </div>
+  )
+}
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden pt-16 pb-16 md:pt-24 md:pb-24">
-      {/* Warm glow background */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(120%_90%_at_80%_10%,rgba(43,102,242,0.12),transparent_60%)] opacity-70"
-      />
+    <section className="relative pt-16 pb-16 md:pt-24 md:pb-24">
 
       <div className="mx-auto max-w-6xl px-5">
         <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-16">
           {/* Left Column Text */}
           <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#2b66f2]/20 bg-[#2b66f2]/5 px-4 py-1.5 text-xs font-bold text-[#0d1b2a] shadow-xs">
-              <span className="size-2 rounded-full bg-[#2b66f2] animate-pulse" />
-              <span>
-                Finally, a fitness app that actually gives you a fit body by the end of the year.
-              </span>
-            </div>
-
-            <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-[#0d1b2a] sm:text-6xl lg:text-7xl leading-[1.08] sm:leading-[1.04]">
+            <h1 className="text-4xl font-extrabold tracking-tight text-[#0d1b2a] sm:text-6xl lg:text-7xl leading-[1.08] sm:leading-[1.04]">
               You skip because
               <br />
               there’s <span className="serif text-[#2b66f2]">zero consequence.</span>
@@ -30,45 +72,30 @@ export function Hero() {
 
             <p className="mt-4 text-base sm:text-lg font-medium text-[#5a6678] max-w-lg leading-relaxed">
               <strong className="text-[#0d1b2a]">StakeFit puts real money on the line</strong>
-              —backed by smart camera verification that tracks your reps and reads your heart rate,
-              zero wearables required.
+              —backed by camera verification that counts your reps and checks your form, zero
+              wearables required.
             </p>
 
-            <ul className="mt-6 w-full max-w-lg space-y-3 text-left text-sm font-medium text-[#0d1b2a] sm:text-base">
-              <li className="flex items-start gap-3">
-                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-[#2b66f2]/10 text-[#2b66f2]">
-                  <Check className="size-3.5 stroke-[2.5]" />
-                </span>
-                <span>
-                  <strong>Pick a daily stake</strong> that your pocket allows. Nothing is charged
-                  upfront.
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-[#2b66f2]/10 text-[#2b66f2]">
-                  <Check className="size-3.5 stroke-[2.5]" />
-                </span>
-                <span>
-                  <strong>Perform exercises in front of camera daily</strong>
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-emerald-500/15 text-emerald-600">
-                  <Check className="size-3.5 stroke-[2.5]" />
-                </span>
-                <span>
-                  <strong>Pay nothing</strong> for every day you complete.
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-rose-500/15 text-rose-600">
-                  <X className="size-3.5 stroke-[2.5]" />
-                </span>
-                <span className="text-rose-600 font-semibold">
-                  Feeling lazy and wanna skip? Your card is charged that day's stake.
-                </span>
-              </li>
-            </ul>
+            <ol className="mt-6 w-full max-w-lg space-y-3 text-left text-sm font-medium text-[#0d1b2a] sm:text-base">
+              {HOW_IT_WORKS.map((step, index) => (
+                <li key={step.title} className="flex items-start gap-3">
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      'mt-0.5 grid size-5 shrink-0 place-items-center rounded-full font-mono text-[0.7rem] font-bold',
+                      step.warning
+                        ? 'bg-rose-500/15 text-rose-600'
+                        : 'bg-[#2b66f2]/10 text-[#2b66f2]',
+                    )}
+                  >
+                    {index + 1}
+                  </span>
+                  <span className={step.warning ? 'font-semibold text-rose-600' : undefined}>
+                    <strong>{step.title}</strong> {step.detail}
+                  </span>
+                </li>
+              ))}
+            </ol>
 
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
               <Link
@@ -90,85 +117,9 @@ export function Hero() {
             </p>
           </div>
 
-          {/* Right Column Interactive Preview Card */}
+          {/* Right column: steady push-ups while the days fly by, day 1 to day 365 */}
           <div className="relative mx-auto w-full max-w-md lg:max-w-none">
-            <div className="animate-float animate-card-glow relative rounded-3xl border border-[#0d1b2a14] bg-white p-6 shadow-xl transition-all duration-300">
-              {/* Card Header */}
-              <div className="flex items-center justify-between border-b border-[#0d1b2a10] pb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="grid size-9 place-items-center rounded-xl bg-[#eef3fb] text-[#2b66f2] font-bold text-xs shadow-xs">
-                    <BrandMark className="size-5 text-[#2b66f2]" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-[#0d1b2a]">Deep Squats Challenge</h3>
-                    <p className="text-xs text-[#5a6678]">3 sets × 15 reps · Day 4 of 14</p>
-                  </div>
-                </div>
-                <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
-                  Active
-                </span>
-              </div>
-
-              {/* Simulated Camera Window */}
-              <div className="relative mt-5 aspect-4/3 overflow-hidden rounded-2xl bg-[#0d1b2a] p-4 text-white flex flex-col justify-between shadow-inner">
-                {/* Overlay Top Bar */}
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 backdrop-blur-md font-mono">
-                    <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>VISION HUD</span>
-                  </div>
-                  <div className="flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 backdrop-blur-md font-mono text-rose-300 font-bold">
-                    ❤️ 136 BPM
-                  </div>
-                </div>
-
-                {/* Simulated Pose Skeleton Visual */}
-                <div className="my-auto text-center">
-                  <div className="inline-block rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 backdrop-blur-xs">
-                    <p className="font-mono text-xs font-bold text-emerald-300">
-                      ✓ Parallel Depth: Knee Angle 96°
-                    </p>
-                    <p className="mt-0.5 font-mono text-[0.65rem] text-slate-300">
-                      Heart Rate Effort: Aerobic Zone
-                    </p>
-                  </div>
-                </div>
-
-                {/* Overlay Bottom Bar */}
-                <div className="flex items-center justify-between rounded-lg bg-black/60 px-3 py-1.5 text-xs font-mono backdrop-blur-md">
-                  <span>SET: 2/3 · REP: 12/15</span>
-                  <span className="text-emerald-400">100% PRIVATE (ON-DEVICE)</span>
-                </div>
-              </div>
-
-              {/* Stakes ledger preview */}
-              <div className="mt-5 grid grid-cols-2 gap-3 text-left">
-                <div className="rounded-2xl border border-[#0d1b2a10] bg-[#faf8f5] p-3.5">
-                  <span className="text-[0.7rem] font-bold uppercase tracking-wider text-[#5a6678]">
-                    Daily Stake
-                  </span>
-                  <p className="font-mono text-xl font-bold text-[#0d1b2a] mt-0.5">$10.00</p>
-                  <p className="text-[0.65rem] text-[#5a6678] mt-0.5">At risk before midnight</p>
-                </div>
-
-                <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-3.5">
-                  <span className="text-[0.7rem] font-bold uppercase tracking-wider text-emerald-800">
-                    Charged So Far
-                  </span>
-                  <p className="font-mono text-xl font-bold text-emerald-700 mt-0.5">$0.00</p>
-                  <p className="text-[0.65rem] text-emerald-800/80 mt-0.5">3 of 3 days completed</p>
-                </div>
-              </div>
-
-              <div className="mt-4 flex items-center justify-between text-xs text-[#5a6678] pt-2 border-t border-[#0d1b2a10]">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Shield className="size-3.5 text-[#2b66f2]" /> Real-time Effort & Form Check
-                </span>
-                <span className="flex items-center gap-1 text-emerald-700 font-bold">
-                  <CheckCircle2 className="size-3.5" /> Zero Video Saved
-                </span>
-              </div>
-            </div>
+            <ConsistencyLoop />
           </div>
         </div>
       </div>

@@ -497,6 +497,17 @@ export function SetupForm({ hasPlan }: { hasPlan: boolean }) {
             </span>
           </div>
 
+          <div className="rounded-2xl border border-[#2b66f2]/20 bg-[#2b66f2]/5 p-4">
+            <p className="font-display text-base font-extrabold text-[#2b66f2]">
+              Consistency over intensity.
+            </p>
+            <p className="mt-0.5 text-xs leading-relaxed text-[#0d1b2a]">
+              Pick a routine you can finish on your worst day, not your best. A short workout you do
+              every day beats a hard one you skip, and every skipped day costs you{' '}
+              {formatUSD(dailyStake)}.
+            </p>
+          </div>
+
           {errors.exercises ? (
             <p
               role="alert"
