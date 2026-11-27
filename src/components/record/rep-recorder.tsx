@@ -81,6 +81,7 @@ export function RepRecorder({
     isError: false,
   })
   const [isWideFraming, setIsWideFraming] = useState(false)
+  const [isSpoofDetected, setIsSpoofDetected] = useState(false)
 
   const currentExercise = routineList[currentExerciseIdx] ?? routineList[0]
   const currentTargetSets = currentExercise.targetSets
@@ -123,6 +124,7 @@ export function RepRecorder({
     lastReps: -1,
     lastFeedbackTime: 0,
     lastVitalsTime: 0,
+    isSpoof: false,
   })
 
   const isMounted = () => mountedRef.current
@@ -204,6 +206,7 @@ export function RepRecorder({
     clearInterval(ref.current.scanTimer)
     const reading = ref.current.sensor.processFrame(videoRef.current, performance.now())
     ref.current.sensor.setBaseline(reading.pulseBpm, reading.breathingRate, reading.hrvMs)
+    ref.current.sensor.startActiveSet(performance.now())
     setStatus('live')
   }
 
@@ -234,6 +237,7 @@ export function RepRecorder({
 
   function resumeAfterRest() {
     clearInterval(ref.current.restTimer)
+    ref.current.sensor.startActiveSet(performance.now())
     ref.current.resting = false
     setStatus('live')
   }
@@ -297,6 +301,7 @@ export function RepRecorder({
 
     ref.current.transitioning = false
     ref.current.resting = false
+    ref.current.sensor.startActiveSet(performance.now())
     setStatus('live')
   }
 
@@ -466,11 +471,13 @@ export function RepRecorder({
       setElapsed(nextElapsed)
     }
 
+    const totalReps = current.totalRepsCompleted + current.repCounter.reps
     const reading = current.sensor.processFrame(
       video,
       nowMs,
       current.resting || current.transitioning,
-      current.totalRepsCompleted + reps,
+      totalReps,
+      current.isSpoof,
     )
     if (nowMs - current.lastVitalsTime > 400) {
       current.lastVitalsTime = nowMs
@@ -500,10 +507,16 @@ export function RepRecorder({
       }
     }
 
-    const live = current.liveness.onFrame(nowMs)
+    const live = current.liveness.onFrame(nowMs, landmarks, currentExercise.exerciseType)
     if (!live.ok) {
+      current.isSpoof = Boolean(live.isSpoof)
+      setIsSpoofDetected(current.isSpoof)
       setFeedback({ message: live.reason ?? 'Looking for movement…', isError: true })
       return
+    }
+    if (current.isSpoof) {
+      current.isSpoof = false
+      setIsSpoofDetected(false)
     }
 
     const result = current.repCounter.onFrame(landmarks, nowMs)
@@ -693,11 +706,15 @@ export function RepRecorder({
           role="status"
           className={`flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-xs sm:text-sm font-semibold transition-colors shadow-xs ${
             feedback.isError
-              ? 'border-amber-500/40 bg-amber-50 text-amber-900'
+              ? isSpoofDetected
+                ? 'border-rose-500/50 bg-rose-50 text-rose-950 font-bold'
+                : 'border-amber-500/40 bg-amber-50 text-amber-900'
               : 'border-emerald-500/30 bg-emerald-50 text-emerald-900'
           }`}
         >
-          <span className="shrink-0 text-base">{feedback.isError ? '⚠️' : '✓'}</span>
+          <span className="shrink-0 text-base">
+            {feedback.isError ? (isSpoofDetected ? '🚫' : '⚠️') : '✓'}
+          </span>
           <span>{feedback.message}</span>
         </div>
       ) : null}
@@ -846,6 +863,12 @@ export function RepRecorder({
                   {vitals.exertionZone}
                 </span>
               </div>
+              {isSpoofDetected ? (
+                <div className="flex items-center gap-1.5 rounded-full border border-rose-500/70 bg-rose-950/90 px-2.5 py-1 text-rose-300 font-mono text-xs font-bold animate-pulse backdrop-blur-md">
+                  <span>⚠️</span>
+                  <span>SPOOF BLOCKED</span>
+                </div>
+              ) : null}
             </div>
 
             <div className="flex items-center gap-2">
@@ -895,8 +918,9 @@ export function RepRecorder({
               <div className="mt-1 flex items-center justify-between text-[0.65rem] text-slate-400 font-mono">
                 <span>Peak: {ref.current.sensor.getSummary().peakBpm} BPM</span>
                 <span className="text-emerald-400 font-medium">
-                  -{Math.max(0, ref.current.sensor.getSummary().peakBpm - vitals.pulseBpm)} BPM
-                  recovery
+                  {ref.current.sensor.getSummary().peakBpm > vitals.pulseBpm
+                    ? `-${ref.current.sensor.getSummary().peakBpm - vitals.pulseBpm} BPM recovery`
+                    : 'Stabilizing…'}
                 </span>
               </div>
             </div>

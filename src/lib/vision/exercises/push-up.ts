@@ -7,6 +7,14 @@ const SIDES: ReadonlyArray<readonly [number, number, number]> = [
   [12, 14, 16],
 ]
 
+/**
+ * Evaluates whether the user is in the lowered push-up position.
+ *
+ * Designed for webcam angles:
+ * - Flexed (bottom) threshold set to <= 128° to accommodate perspective foreshortening
+ *   when viewed from a desk or laptop camera.
+ * - Minimum confidence threshold set to 0.4 to handle partial forearm self-occlusion.
+ */
 export function evaluatePushUp(lm: Landmark[] | null): FrameEval {
   if (!lm) return { phase: 'a', confidence: 0, visible: false }
   const side = bestSide(lm, SIDES)
@@ -18,5 +26,5 @@ export function evaluatePushUp(lm: Landmark[] | null): FrameEval {
     lm[elbow].visibility ?? 1,
     lm[wrist].visibility ?? 1,
   )
-  return { phase: angle < 120 ? 'b' : 'a', confidence, visible: confidence > 0.5 }
+  return { phase: angle <= 128 ? 'b' : 'a', confidence, visible: confidence > 0.4 }
 }
