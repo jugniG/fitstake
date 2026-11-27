@@ -7,7 +7,7 @@
  * - Respiratory Rate (Breaths per minute)
  * - Heart Rate Variability (HRV ms)
  * - Dynamic Cardiovascular Exertion & Heart Rate Recovery (HRR)
- * - Anti-Spoofing & Biometric Liveness Validation
+ * - Real-Time Optical Presentation Attack Detection (PAD / Screen & Replay Liveness)
  */
 
 export type ExertionZone = 'Resting' | 'Warm-up' | 'Aerobic' | 'Peak'
@@ -17,6 +17,8 @@ export interface SmartSpectraReading {
   breathingRate: number
   hrvMs: number
   livenessScore: number
+  isRealHuman: boolean
+  rejectionReason: string | null
   exertionZone: ExertionZone
   signalQuality: 'Good' | 'Fair' | 'Calibrating'
   timestampMs: number
@@ -40,12 +42,19 @@ export class SmartSpectraSensor {
   private frameCount = 0
   private setStartMs = 0
 
+  // In-Browser Optical Analyzer State
+  private offscreenCanvas: HTMLCanvasElement | null = null
+  private offscreenCtx: CanvasRenderingContext2D | null = null
+  private prevPixels: Uint8ClampedArray | null = null
+  private consecutiveSpoofCount = 0
+
   public startActiveSet(nowMs: number): void {
     this.setStartMs = nowMs
   }
 
   /**
-   * Samples a video frame, analyzing facial micro-luminance modulation (rPPG).
+   * Samples a video frame, analyzing facial micro-luminance modulation (rPPG)
+   * and optical motion distribution to detect live humans vs synthetic screen replays.
    */
   public processFrame(
     video: HTMLVideoElement | null,
@@ -60,13 +69,10 @@ export class SmartSpectraSensor {
     this.lastProcessedMs = nowMs
     this.frameCount++
 
-    let liveness = 0.95
-    if (!video || video.readyState < 2) {
-      liveness = 0.5
-    }
-    if (isSpoofDetected) {
-      liveness = 0.2
-    }
+    // Real-time Optical Analysis: Inspect video pixels for synthetic screen signatures
+    const opticalCheck = this.analyzeVideoFeed(video)
+    const effectiveSpoof = isSpoofDetected || !opticalCheck.isRealHuman
+    const liveness = effectiveSpoof ? 0.2 : opticalCheck.livenessScore
 
     if (isResting) {
       // Recovery phase: Heart rate recovery (HRR) cools down ~0.4-0.8 BPM every few seconds toward baseline
@@ -106,9 +112,11 @@ export class SmartSpectraSensor {
       pulseBpm: roundedBpm,
       breathingRate: roundedBr,
       hrvMs: Math.max(25, Math.round(this.hrvMs - (roundedBpm - this.baselineBpm) * 0.3)),
-      livenessScore: isSpoofDetected ? 0.2 : Math.min(1, liveness),
+      livenessScore: liveness,
+      isRealHuman: opticalCheck.isRealHuman,
+      rejectionReason: opticalCheck.reason,
       exertionZone: this.resolveZone(roundedBpm),
-      signalQuality: isSpoofDetected ? 'Fair' : this.frameCount > 15 ? 'Good' : 'Calibrating',
+      signalQuality: effectiveSpoof ? 'Fair' : this.frameCount > 15 ? 'Good' : 'Calibrating',
       timestampMs: nowMs,
     }
   }
@@ -144,6 +152,8 @@ export class SmartSpectraSensor {
     this.breathingRate = this.baselineBreathing
     this.frameCount = 0
     this.setStartMs = 0
+    this.prevPixels = null
+    this.consecutiveSpoofCount = 0
   }
 
   private resolveZone(bpm: number): ExertionZone {
@@ -162,9 +172,128 @@ export class SmartSpectraSensor {
       breathingRate: Math.round(this.breathingRate),
       hrvMs: this.hrvMs,
       livenessScore: isSpoofDetected ? 0.2 : 0.95,
+      isRealHuman: !isSpoofDetected,
+      rejectionReason: isSpoofDetected ? 'Synthetic display detected.' : null,
       exertionZone: this.resolveZone(bpm),
       signalQuality: isSpoofDetected ? 'Fair' : 'Good',
       timestampMs: nowMs,
+    }
+  }
+
+  /**
+   * Real in-browser optical analyzer:
+   * Inspects the downsampled video frame to distinguish living human exercise from a phone screen replay.
+   */
+  private analyzeVideoFeed(video: HTMLVideoElement | null): {
+    isRealHuman: boolean
+    livenessScore: number
+    reason: string | null
+  } {
+    if (typeof document === 'undefined' || !video) {
+      return { isRealHuman: true, livenessScore: 0.95, reason: null }
+    }
+
+    if (video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) {
+      return { isRealHuman: true, livenessScore: 0.5, reason: null }
+    }
+
+    const width = 64
+    const height = 48
+
+    if (!this.offscreenCanvas) {
+      this.offscreenCanvas = document.createElement('canvas')
+      this.offscreenCanvas.width = width
+      this.offscreenCanvas.height = height
+      this.offscreenCtx = this.offscreenCanvas.getContext('2d', { willReadFrequently: true })
+    }
+
+    const ctx = this.offscreenCtx
+    if (!ctx) return { isRealHuman: true, livenessScore: 0.95, reason: null }
+
+    ctx.drawImage(video, 0, 0, width, height)
+    const imgData = ctx.getImageData(0, 0, width, height)
+    const pixels = imgData.data
+
+    if (!this.prevPixels || this.prevPixels.length !== pixels.length) {
+      this.prevPixels = new Uint8ClampedArray(pixels)
+      return { isRealHuman: true, livenessScore: 0.95, reason: null }
+    }
+
+    let movingCells = 0
+    let minMotX = width
+    let maxMotX = 0
+    let minMotY = height
+    let maxMotY = 0
+
+    let specularGlareCells = 0
+    const totalCells = width * height
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = (y * width + x) * 4
+        const r = pixels[idx]
+        const g = pixels[idx + 1]
+        const b = pixels[idx + 2]
+
+        const prevR = this.prevPixels[idx]
+        const prevG = this.prevPixels[idx + 1]
+        const prevB = this.prevPixels[idx + 2]
+
+        const diff = Math.abs(r - prevR) + Math.abs(g - prevG) + Math.abs(b - prevB)
+        if (diff > 28) {
+          movingCells++
+          if (x < minMotX) minMotX = x
+          if (x > maxMotX) maxMotX = x
+          if (y < minMotY) minMotY = y
+          if (y > maxMotY) maxMotY = y
+        }
+
+        // Detect glass display specular glare (> 242 brightness in all channels)
+        if (r > 242 && g > 242 && b > 242) {
+          specularGlareCells++
+        }
+      }
+    }
+
+    // Save previous pixels for subsequent frame delta
+    this.prevPixels.set(pixels)
+
+    // When exercise movement is occurring:
+    if (movingCells >= 15) {
+      const motWidthRatio = (maxMotX - minMotX + 1) / width
+      const motHeightRatio = (maxMotY - minMotY + 1) / height
+      const motAreaRatio = motWidthRatio * motHeightRatio
+
+      // Handheld Phone Replay Signature:
+      // The video moves inside a phone screen, but that motion is artificially localized to < 16% of
+      // the camera view while the surrounding room and user hands are stationary.
+      // A live human doing squats/push-ups creates broad optical displacement (> 22% of frame).
+      const isMotionTrappedInSmallDisplay =
+        motAreaRatio < 0.16 || (motWidthRatio < 0.32 && motHeightRatio < 0.38)
+
+      // Glass screen reflection check:
+      const isGlassReflectionHigh = specularGlareCells / totalCells > 0.04
+
+      if (isMotionTrappedInSmallDisplay || isGlassReflectionHigh) {
+        this.consecutiveSpoofCount++
+        if (this.consecutiveSpoofCount >= 3) {
+          return {
+            isRealHuman: false,
+            livenessScore: 0.2,
+            reason: isGlassReflectionHigh
+              ? 'Fake human detected: digital display glare detected.'
+              : 'Fake human detected: video motion isolated to a small display screen.',
+          }
+        }
+      } else {
+        this.consecutiveSpoofCount = Math.max(0, this.consecutiveSpoofCount - 1)
+      }
+    }
+
+    return {
+      isRealHuman: true,
+      livenessScore: 0.95,
+      reason: null,
     }
   }
 }

@@ -72,6 +72,8 @@ export function RepRecorder({
     breathingRate: 16,
     hrvMs: 55,
     livenessScore: 0.95,
+    isRealHuman: true,
+    rejectionReason: null,
     exertionZone: 'Resting',
     signalQuality: 'Good',
     timestampMs: 0,
@@ -509,11 +511,21 @@ export function RepRecorder({
 
     const live = current.liveness.onFrame(nowMs)
     if (!live.ok) {
-      current.isSpoof = Boolean(live.isSpoof)
-      setIsSpoofDetected(current.isSpoof)
       setFeedback({ message: live.reason ?? 'Looking for movement…', isError: true })
       return
     }
+
+    // SmartSpectra Real-Human Liveness Gate
+    if (!reading.isRealHuman && reading.rejectionReason) {
+      current.isSpoof = true
+      setIsSpoofDetected(true)
+      setFeedback({
+        message: reading.rejectionReason,
+        isError: true,
+      })
+      return
+    }
+
     if (current.isSpoof) {
       current.isSpoof = false
       setIsSpoofDetected(false)
