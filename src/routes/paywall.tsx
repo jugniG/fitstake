@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { Check, Loader2 } from 'lucide-react'
+import { Check, CheckCircle2, Loader2 } from 'lucide-react'
 import { getSession } from '#/lib/auth.functions'
 import { signOut } from '#/lib/auth-client'
 import { getAppAccess, startAccessCheckout } from '#/lib/server/access'
@@ -14,15 +14,19 @@ import type { SetupDraft } from '#/components/challenge/setup-draft'
 import { formatUSD } from '#/lib/format'
 import { cn } from '#/lib/utils'
 
-const CONFIRM_POLL_MS = 2000
-// Total wait, not attempt count: a slow database call shouldn't stretch the wait to minutes.
-const CONFIRM_MAX_MS = 45_000
+const CONFIRM_POLL_MS = 5000
+// 12 checks x 5s = 1 minute, then tell the user to reload.
+const CONFIRM_MAX_CHECKS = 12
+// How long the "Payment confirmed" banner shows before redirecting.
+const CONFIRMED_REDIRECT_MS = 1200
 
-type ConfirmState = 'idle' | 'confirming' | 'failed' | 'timed_out'
+type ConfirmState = 'idle' | 'confirming' | 'confirmed' | 'failed' | 'timed_out'
+
+type PaywallSearch = { checkout?: 'return' }
 
 export const Route = createFileRoute('/paywall')({
-  validateSearch: (search: Record<string, unknown>) =>
-    search.checkout === 'return' ? { checkout: 'return' as const } : {},
+  validateSearch: (search: Record<string, unknown>): PaywallSearch =>
+    search.checkout === 'return' ? { checkout: 'return' } : {},
   beforeLoad: async ({ search }) => {
     const session = await getSession()
     if (!session) throw redirect({ to: '/login' })
@@ -57,45 +61,38 @@ function PaywallPage() {
   useEffect(() => setDraft(readSetupDraft()), [])
   const draftExerciseCount = draft?.exercises.filter((e) => e.enabled).length ?? 0
 
-  // On return the webhook may not have landed yet, so poll until access changes. A weekly
-  // subscriber who upgrades already has access, so wait specifically for lifetime in that case.
+  // Back from Dodo: every 5s, read the user's plan from the DB (written by the webhook).
   useEffect(() => {
     if (checkout !== 'return') return
-    let active = true
-    let timer: number | undefined
-    const startedAt = Date.now()
-    const waitForLifetime = weeklyActive
-
-    async function poll() {
+    let checks = 0
+    const timer = window.setInterval(async () => {
+      checks++
       try {
         const latest = await getAppAccess()
-        if (!active) return
-        const done = waitForLifetime ? latest.reason === 'lifetime' : latest.hasAccess
-        if (done) {
+        if (latest.plan !== null) {
+          window.clearInterval(timer)
+          setConfirmState('confirmed')
           // Onboarding users still need to authorize their card for the challenge they built.
-          void navigate({ to: readSetupDraft() ? '/setup' : '/dashboard', replace: true })
+          window.setTimeout(() => {
+            void navigate({ to: readSetupDraft() ? '/setup' : '/dashboard', replace: true })
+          }, CONFIRMED_REDIRECT_MS)
           return
         }
         if (latest.recentCheckoutFailed) {
+          window.clearInterval(timer)
           setConfirmState('failed')
           return
         }
       } catch (cause) {
         console.error('[paywall] could not confirm payment:', cause)
       }
-      if (Date.now() - startedAt >= CONFIRM_MAX_MS) {
-        if (active) setConfirmState('timed_out')
-        return
+      if (checks >= CONFIRM_MAX_CHECKS) {
+        window.clearInterval(timer)
+        setConfirmState('timed_out')
       }
-      timer = window.setTimeout(poll, CONFIRM_POLL_MS)
-    }
-
-    void poll()
-    return () => {
-      active = false
-      if (timer) window.clearTimeout(timer)
-    }
-  }, [checkout, navigate, weeklyActive])
+    }, CONFIRM_POLL_MS)
+    return () => window.clearInterval(timer)
+  }, [checkout, navigate])
 
   async function onChoose(plan: AccessPlan) {
     setError(null)
@@ -132,6 +129,15 @@ function PaywallPage() {
               Confirming your payment with Dodo…
             </div>
           ) : null}
+          {confirmState === 'confirmed' ? (
+            <div
+              role="status"
+              className="flex items-center justify-center gap-3 rounded-2xl border-2 border-emerald-500 bg-emerald-500 px-5 py-4 text-base font-bold text-white shadow-md"
+            >
+              <CheckCircle2 className="size-5 shrink-0" aria-hidden="true" />
+              Payment confirmed. Taking you to the next step…
+            </div>
+          ) : null}
           {confirmState === 'failed' ? (
             <div
               role="alert"
@@ -151,8 +157,8 @@ function PaywallPage() {
             >
               <p className="text-base font-bold">Still waiting for Dodo to confirm.</p>
               <p className="mt-1 text-sm">
-                If you finished checkout, reload this page in a minute. If you didn't, choose a plan
-                below.
+                We haven't received Dodo's payment confirmation (the webhook) yet. If you finished
+                checkout, reload this page in a minute. If you didn't, choose a plan below.
               </p>
             </div>
           ) : null}
