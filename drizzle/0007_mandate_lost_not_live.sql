@@ -1,0 +1,2 @@
+DROP INDEX "stakefit"."challenge_one_live_per_user";--> statement-breakpoint
+CREATE UNIQUE INDEX "challenge_one_live_per_user" ON "stakefit"."challenge" USING btree ("userId") WHERE "stakefit"."challenge"."status" in ('pending_mandate', 'active');

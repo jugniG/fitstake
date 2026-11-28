@@ -25,7 +25,7 @@ const createChallengeSchema = z.object({
   totalDays: z.number().int().min(1).max(365),
   startDayOffset: z.union([z.literal(0), z.literal(1)]),
   timezone: z.string().min(1).max(64).refine(isValidTimeZone, 'Choose a valid IANA timezone.'),
-  // The user ticked the consent box. The statement itself is rebuilt on the server.
+  // The user clicked "Authorize payment" under the statement. The statement is rebuilt here.
   consentAccepted: z.literal(true),
 })
 

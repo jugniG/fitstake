@@ -9,7 +9,6 @@ import { createUpdateCardLink } from '#/lib/dodo/charges'
 import { ensureDodoCustomer } from '#/lib/dodo/customers'
 import { isUniqueViolation } from '#/lib/server/db-errors'
 import { resolveAppAccess } from '#/lib/server/access.server'
-import { chargeDueDays, finishChallengeIfDone } from '#/lib/server/stake-charges.server'
 import { canCompleteDay, computeTotals, consentStatement, currentDayStatus } from '#/lib/challenge'
 import {
   createWorkoutSessionToken,
@@ -18,13 +17,14 @@ import {
 } from '#/lib/challenge/session-token'
 import type { DayWindow, RoutineExercise } from '#/lib/challenge'
 import type { CreateChallengeInput, DashboardView } from './challenges'
+import { finishChallengeIfDone } from '#/lib/server/stake-charges.server'
 import { EXPERIMENT_EVENT } from '#/lib/experiments'
 import { trackExperimentEvent } from '#/lib/flagsmith.server'
 
 const reportedChallengeCreated = new Set<string>()
 
-const LIVE_STATES = ['pending_mandate', 'active', 'mandate_lost'] as const
-const RECORDABLE_STATES = ['active', 'mandate_lost'] as const
+const LIVE_STATES = ['pending_mandate', 'active'] as const
+const RECORDABLE_STATES = ['active'] as const
 const UNPAID_CHARGE_STATES = ['failed', 'abandoned'] as const
 const MIN_SECONDS_PER_REP = 0.6
 
@@ -59,30 +59,30 @@ function readRoutine(row: ChallengeRow): RoutineExercise[] {
   ]
 }
 
-// Unpaid missed days across every challenge, plus whether any challenge lost its card.
+// Unpaid missed days on the running challenge. An ended challenge has no card left to retry,
+// so its unpaid days can't block a new one.
 async function readChallengeBlocker(userId: string): Promise<ChallengeBlocker> {
-  const [{ reason }, unpaid, lost] = await Promise.all([
+  const [{ reason }, unpaid] = await Promise.all([
     resolveAppAccess(userId),
     db
       .select({ amountCents: stakeCharge.amountCents })
       .from(stakeCharge)
       .innerJoin(challenge, eq(challenge.id, stakeCharge.challengeId))
       .where(
-        and(eq(challenge.userId, userId), inArray(stakeCharge.status, [...UNPAID_CHARGE_STATES])),
+        and(
+          eq(challenge.userId, userId),
+          eq(challenge.status, 'active'),
+          inArray(stakeCharge.status, [...UNPAID_CHARGE_STATES]),
+        ),
       ),
-    db.query.challenge.findFirst({
-      where: and(eq(challenge.userId, userId), eq(challenge.status, 'mandate_lost')),
-      columns: { id: true },
-    }),
   ])
   const owedAmount = unpaid.reduce((sum, row) => sum + row.amountCents, 0) / 100
-  return newChallengeBlocker({ reason, owedAmount, hasLostMandate: !!lost })
+  return newChallengeBlocker({ reason, owedAmount })
 }
 
 const BLOCKER_MESSAGES: Record<Exclude<ChallengeBlocker, null>, string> = {
   no_plan: 'Choose a plan to create a new challenge.',
   owes_charges: 'You have unpaid missed days. Update your card on the dashboard first.',
-  mandate_lost: 'Your card authorization ended. Re-authorize it on the dashboard first.',
 }
 
 async function openMandateCheckout(challengeRow: ChallengeRow, sessionUser: SessionUser) {
@@ -173,19 +173,16 @@ export async function createChallengeImpl(data: CreateChallengeInput) {
   }
 }
 
-// Resumes an unfinished authorization, or re-authorizes a challenge whose card mandate ended.
+// Resumes an unfinished card authorization.
 export async function resumeMandateCheckoutImpl() {
   const session = await ensureSession()
   const sessionUser = session.user as SessionUser
   const existing = await db.query.challenge.findFirst({
-    where: and(
-      eq(challenge.userId, sessionUser.id),
-      inArray(challenge.status, ['pending_mandate', 'mandate_lost']),
-    ),
+    where: and(eq(challenge.userId, sessionUser.id), eq(challenge.status, 'pending_mandate')),
     orderBy: desc(challenge.createdAt),
   })
   if (!existing) throw new Error('There is no card authorization to finish.')
-  if (existing.status === 'pending_mandate' && existing.mandateCheckoutUrl) {
+  if (existing.mandateCheckoutUrl) {
     return { checkoutUrl: existing.mandateCheckoutUrl }
   }
 
@@ -229,24 +226,6 @@ export async function getDashboardImpl(): Promise<DashboardView> {
     orderBy: desc(challenge.createdAt),
     columns: { id: true, status: true },
   })
-
-  // Opening the app is when missed days are charged. Failures are logged and retried on the
-  // next open or by the daily cron; they never block the dashboard.
-  if (latest?.status === 'active') {
-    try {
-      const result = await chargeDueDays(latest.id, now)
-      if (result === 'failed') console.error(`[dashboard] charge run failed for ${latest.id}`)
-      await finishChallengeIfDone(latest.id, now)
-    } catch (error) {
-      console.error('[dashboard] charging missed days failed:', error)
-    }
-  } else if (latest?.status === 'mandate_lost') {
-    try {
-      await finishChallengeIfDone(latest.id, now)
-    } catch (error) {
-      console.error('[dashboard] closing a challenge failed:', error)
-    }
-  }
 
   const blocker = await readChallengeBlocker(userId)
 

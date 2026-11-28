@@ -50,6 +50,13 @@
       "when": 1795644905584,
       "tag": "0006_lifetime_trial",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795863924789,
+      "tag": "0007_mandate_lost_not_live",
+      "breakpoints": true
     }
   ]
 }

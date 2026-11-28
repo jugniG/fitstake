@@ -170,11 +170,8 @@ async function handleMandateEvent(
   }
 
   if (type === 'subscription.active') {
-    // Re-authorized (new card or recovered mandate). Give unpaid days a fresh retry run on the
-    // new card instead of leaving them failed or abandoned.
-    if (linked.status === 'mandate_lost') {
-      await tx.update(challenge).set({ status: 'active' }).where(eq(challenge.id, linked.id))
-    }
+    if (linked.status !== 'active') return
+    // Card updated or mandate recovered from hold: give unpaid days a fresh retry run on it.
     const now = new Date()
     await tx
       .update(stakeCharge)
@@ -188,6 +185,8 @@ async function handleMandateEvent(
     return
   }
 
+  // The user removed the card (or it expired): the plan stops. The dashboard sends them to setup
+  // with this plan prefilled to authorize a new one.
   if (MANDATE_LOST_EVENTS.has(type) && linked.status === 'active') {
     console.warn(`[webhook] challenge ${linked.id}: card mandate ended (${type})`)
     await tx.update(challenge).set({ status: 'mandate_lost' }).where(eq(challenge.id, linked.id))
@@ -214,7 +213,7 @@ async function activateChallenge(parsed: ParsedDodoSubscription, tx: DbTransacti
     console.error('[webhook] stake mandate references unknown challenge', challengeId)
     return
   }
-  if (row.status !== 'pending_mandate' && row.status !== 'mandate_lost') return // already active
+  if (row.status !== 'pending_mandate') return // already active or ended
 
   const ownerId = await findUserByDodoCustomer(tx, parsed.dodoCustomerId)
   if (ownerId !== row.userId) {
@@ -223,25 +222,6 @@ async function activateChallenge(parsed: ParsedDodoSubscription, tx: DbTransacti
     )
   }
 
-  // Re-authorization after a lost mandate: the days already exist; swap in the new mandate and
-  // give unpaid days a fresh retry run on it.
-  if (row.status === 'mandate_lost') {
-    const now = new Date()
-    await tx
-      .update(challenge)
-      .set({ status: 'active', dodoSubscriptionId: parsed.dodoSubscriptionId })
-      .where(and(eq(challenge.id, challengeId), eq(challenge.status, 'mandate_lost')))
-    await tx
-      .update(stakeCharge)
-      .set({ status: 'failed', attempts: 0, firstAttemptAt: now, nextAttemptAt: now })
-      .where(
-        and(
-          eq(stakeCharge.challengeId, challengeId),
-          inArray(stakeCharge.status, ['failed', 'abandoned']),
-        ),
-      )
-    return
-  }
   if (!isValidTimeZone(row.timezone)) {
     throw new Error(`challenge ${challengeId} has an invalid timezone: ${row.timezone}`)
   }

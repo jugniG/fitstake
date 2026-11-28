@@ -43,7 +43,7 @@ function RecordPage() {
   if (!data) return <p className="text-sm font-medium text-[#5a6678]">Connecting camera…</p>
 
   const challenge = data.challenge
-  if (!challenge || (challenge.status !== 'active' && challenge.status !== 'mandate_lost')) {
+  if (challenge?.status !== 'active') {
     return (
       <div className="rounded-3xl border border-[#0d1b2a14] bg-white p-8 text-center space-y-3">
         <h1 className="font-display text-2xl font-bold text-[#0d1b2a]">No open day.</h1>

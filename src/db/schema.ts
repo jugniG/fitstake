@@ -188,10 +188,11 @@ export const challenge = appSchema.table(
     index('challenge_userId_idx').on(t.userId),
     index('challenge_status_idx').on(t.status),
     // The application checks this before inserting, but only the database can stop two
-    // concurrent setup requests from creating two live challenges for one user.
+    // concurrent setup requests from creating two live challenges for one user. A mandate_lost
+    // plan has stopped, so it must not block the user's next one.
     uniqueIndex('challenge_one_live_per_user')
       .on(t.userId)
-      .where(sql`${t.status} in ('pending_mandate', 'active', 'mandate_lost')`),
+      .where(sql`${t.status} in ('pending_mandate', 'active')`),
   ],
 )
 

@@ -126,24 +126,13 @@ describe('lifetime trial', () => {
 
 describe('newChallengeBlocker', () => {
   it('needs a plan', () => {
-    expect(newChallengeBlocker({ reason: 'none', owedAmount: 0, hasLostMandate: false })).toBe(
-      'no_plan',
-    )
-    expect(
-      newChallengeBlocker({ reason: 'running_challenge', owedAmount: 0, hasLostMandate: false }),
-    ).toBe('no_plan')
+    expect(newChallengeBlocker({ reason: 'none', owedAmount: 0 })).toBe('no_plan')
+    expect(newChallengeBlocker({ reason: 'running_challenge', owedAmount: 0 })).toBe('no_plan')
   })
 
-  it('blocks while missed days are unpaid or a card mandate is lost', () => {
-    expect(newChallengeBlocker({ reason: 'lifetime', owedAmount: 10, hasLostMandate: false })).toBe(
-      'owes_charges',
-    )
-    expect(newChallengeBlocker({ reason: 'subscribed', owedAmount: 0, hasLostMandate: true })).toBe(
-      'mandate_lost',
-    )
-    expect(newChallengeBlocker({ reason: 'trial', owedAmount: 0, hasLostMandate: false })).toBe(
-      null,
-    )
+  it('blocks while missed days are unpaid', () => {
+    expect(newChallengeBlocker({ reason: 'lifetime', owedAmount: 10 })).toBe('owes_charges')
+    expect(newChallengeBlocker({ reason: 'trial', owedAmount: 0 })).toBe(null)
   })
 })
 

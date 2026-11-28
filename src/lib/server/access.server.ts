@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { db, challenge, lifetimeAccess, lifetimeTrial, userSubscription } from '#/db.server'
 import { ensureSession } from '#/lib/auth.functions'
 import {
@@ -43,7 +43,7 @@ async function loadAccessRows(userId: string) {
     db.query.challenge.findFirst({
       where: and(
         eq(challenge.userId, userId),
-        inArray(challenge.status, ['active', 'mandate_lost']),
+        eq(challenge.status, 'active'),
       ),
       columns: { id: true },
     }),

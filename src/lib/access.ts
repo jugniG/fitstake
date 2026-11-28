@@ -89,14 +89,13 @@ export function appAccessReason(
   return 'none'
 }
 
-export type ChallengeBlocker = 'no_plan' | 'owes_charges' | 'mandate_lost' | null
+export type ChallengeBlocker = 'no_plan' | 'owes_charges' | null
 
 // Why a user can't start a new challenge, if they can't. The running-challenge exemption only
-// covers finishing one; unpaid missed days and a lost card mandate must be fixed first.
+// covers finishing one; unpaid missed days must be paid first.
 export function newChallengeBlocker(input: {
   reason: AppAccessReason
   owedAmount: number
-  hasLostMandate: boolean
 }): ChallengeBlocker {
   const hasPlan =
     input.reason === 'lifetime' ||
@@ -105,12 +104,11 @@ export function newChallengeBlocker(input: {
     input.reason === 'paywall_off'
   if (!hasPlan) return 'no_plan'
   if (input.owedAmount > 0) return 'owes_charges'
-  if (input.hasLostMandate) return 'mandate_lost'
   return null
 }
 
 export function canStartChallenge(reason: AppAccessReason): boolean {
-  return newChallengeBlocker({ reason, owedAmount: 0, hasLostMandate: false }) === null
+  return newChallengeBlocker({ reason, owedAmount: 0 }) === null
 }
 
 // One trial per user across both plans. Anyone with a weekly subscription row or a lifetime

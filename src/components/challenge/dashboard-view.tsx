@@ -82,7 +82,7 @@ export function DashboardView({
       ? `${EXERCISE_LABELS.custom_gesture} (${CUSTOM_GESTURE_LABELS[challenge.customGesture ?? 'pinch']})`
       : EXERCISE_LABELS[challenge.exerciseType]
   const hasOpenDay = days.some((day) => day.status === 'pending')
-  const canRecord = challenge.status === 'active' || challenge.status === 'mandate_lost'
+  const canRecord = challenge.status === 'active'
 
   const persistRoutine = async (next: RoutineExercise[]) => {
     try {
@@ -194,7 +194,7 @@ export function DashboardView({
                   'w-full py-4 text-base flex items-center justify-center gap-2 font-bold shadow-md',
               })}
             >
-              <Video className="size-5" /> Open Camera & Record Today's Workout
+              <Video className="size-5" /> Start workout
             </Link>
           </div>
         ) : null}
@@ -220,19 +220,6 @@ export function DashboardView({
               : 'Your challenge is saved. Authorize your card to open Day 1. Nothing is charged now.'}
           </p>
           {!confirmingMandate ? <MandateButton label="Authorize card" /> : null}
-        </Card>
-      ) : null}
-
-      {challenge.status === 'mandate_lost' ? (
-        <Card className="border-rose-200 bg-rose-50 p-5 text-rose-900">
-          <p className="text-sm font-bold" role="status">
-            Your card authorization ended.
-          </p>
-          <p className="mt-1 text-xs text-rose-800/80">
-            Missed days can't be charged until you re-authorize, and you can't start a new
-            challenge. You can still record today's workout.
-          </p>
-          <MandateButton label="Re-authorize card" />
         </Card>
       ) : null}
 
@@ -445,7 +432,7 @@ function statusLabel(status: ChallengeStatus): string {
     case 'active':
       return 'In progress'
     case 'mandate_lost':
-      return 'Card authorization ended'
+      return 'Card authorization removed'
     case 'completed':
       return 'Complete'
   }

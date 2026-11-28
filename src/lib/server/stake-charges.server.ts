@@ -250,12 +250,7 @@ export async function finishChallengeIfDone(
     where: eq(challenge.id, challengeId),
     with: { days: true, charges: true },
   })
-  if (
-    !challengeRow ||
-    (challengeRow.status !== 'active' && challengeRow.status !== 'mandate_lost')
-  ) {
-    return false
-  }
+  if (challengeRow?.status !== 'active') return false
   if (challengeRow.days.length !== challengeRow.totalDays) return false
 
   const allDecided = challengeRow.days.every((row) => {
@@ -266,20 +261,17 @@ export async function finishChallengeIfDone(
 
   const missed = challengeRow.days.filter((row) => row.status === 'forfeited').length
   const paid = challengeRow.charges.filter((charge) => charge.status === 'succeeded').length
-  // A lost mandate can't be charged; its unpaid days stay visible as owed on the dashboard.
-  if (challengeRow.status === 'active' && paid < missed) return false
+  if (paid < missed) return false
 
   const closed = await db
     .update(challenge)
     .set({ status: 'completed', completedAt: now })
-    .where(
-      and(eq(challenge.id, challengeId), inArray(challenge.status, ['active', 'mandate_lost'])),
-    )
+    .where(and(eq(challenge.id, challengeId), eq(challenge.status, 'active')))
     .returning({ dodoSubscriptionId: challenge.dodoSubscriptionId })
   const subscriptionId = closed.at(0)?.dodoSubscriptionId
   if (closed.length === 0) return false
 
-  if (subscriptionId && challengeRow.status === 'active') {
+  if (subscriptionId) {
     try {
       await cancelSubscriptionNow(subscriptionId)
     } catch (error) {

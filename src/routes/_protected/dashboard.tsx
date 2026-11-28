@@ -3,9 +3,34 @@ import { useEffect, useState } from 'react'
 import { getDashboard } from '#/lib/server/challenges'
 import type { DashboardView } from '#/lib/server/challenges'
 import { DashboardView as DashboardViewComponent } from '#/components/challenge/dashboard-view'
+import { saveSetupDraft } from '#/components/challenge/setup-draft'
+import type { SetupDraft } from '#/components/challenge/setup-draft'
+import { EXERCISE_CATALOG } from '#/components/challenge/exercise-drawer'
 
 const POLL_MS = 3000
 const MAX_POLLS = 20
+// Matches the setup draft's limit.
+const MAX_DRAFT_SETS = 20
+
+// The setup form lists every catalog exercise with an enabled flag.
+function draftFromChallenge(challenge: NonNullable<DashboardView['challenge']>): SetupDraft {
+  return {
+    totalDays: challenge.totalDays,
+    dailyStakeAmount: challenge.dailyStakeAmount,
+    startDayOffset: '0',
+    exercises: EXERCISE_CATALOG.map((item) => {
+      const chosen = challenge.routine.find((r) => r.exerciseType === item.type)
+      return {
+        enabled: !!chosen,
+        exerciseType: item.type,
+        customGesture:
+          item.type === 'custom_gesture' ? (chosen?.customGesture ?? 'pinch') : null,
+        targetSets: Math.min(chosen?.targetSets ?? item.defaultSets, MAX_DRAFT_SETS),
+        targetReps: chosen?.targetReps ?? item.defaultReps,
+      }
+    }),
+  }
+}
 
 export const Route = createFileRoute('/_protected/dashboard')({
   validateSearch: (search: Record<string, unknown>) =>
@@ -30,6 +55,13 @@ function DashboardPage() {
         // No challenge yet: setup is the first screen, in both paywall versions. A draft resumes
         // where the user left off.
         if (!result.challenge) {
+          void navigate({ to: '/setup', replace: true })
+          return
+        }
+        // Card authorization removed: the plan stopped. Prefill setup with it so the user only
+        // has to authorize payment again.
+        if (result.challenge.status === 'mandate_lost') {
+          saveSetupDraft(draftFromChallenge(result.challenge))
           void navigate({ to: '/setup', replace: true })
           return
         }

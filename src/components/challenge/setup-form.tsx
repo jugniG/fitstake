@@ -33,8 +33,6 @@ const setupSchema = z
     dailyStakeAmount: z.number().int().min(1).max(10_000),
     exercises: z.array(exerciseItemSchema),
     startDayOffset: z.enum(['0', '1']).transform((value) => (value === '1' ? 1 : 0)),
-    // Required only on the final step for users with a plan; never saved in the draft.
-    consentAccepted: z.boolean(),
   })
   .refine((data) => data.exercises.some((e) => e.enabled), {
     message: 'Please choose at least 1 exercise for your daily workout.',
@@ -53,7 +51,7 @@ const STEP_COUNT = STEP_FIELDS.length
 const LAST_STEP = STEP_COUNT - 1
 
 // Without a plan this is onboarding: the user builds the challenge first, then picks a plan on
-// /paywall, then comes back here to agree to the terms and authorize their card.
+// /paywall, then comes back here to authorize the payment.
 export function SetupForm({ hasPlan }: { hasPlan: boolean }) {
   const navigate = useNavigate()
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -75,7 +73,6 @@ export function SetupForm({ hasPlan }: { hasPlan: boolean }) {
     setValue,
     reset,
     trigger,
-    setError,
     formState: { errors, isSubmitting },
   } = useForm<SetupInput, unknown, SetupValues>({
     resolver: zodResolver(setupSchema),
@@ -83,7 +80,6 @@ export function SetupForm({ hasPlan }: { hasPlan: boolean }) {
       totalDays: 30,
       dailyStakeAmount: 10,
       startDayOffset: late ? '1' : '0',
-      consentAccepted: false,
       exercises: EXERCISE_CATALOG.map((item) => ({
         enabled: item.type === 'push_up' || item.type === 'leg_raise',
         exerciseType: item.type,
@@ -98,9 +94,8 @@ export function SetupForm({ hasPlan }: { hasPlan: boolean }) {
   useEffect(() => {
     const draft = readSetupDraft()
     if (draft) {
-      // Consent is never restored: the user must tick it again for the terms on screen.
-      reset({ ...draft, consentAccepted: false })
-      // Back from the plan checkout: everything is answered, so go straight to the consent step.
+      reset(draft)
+      // Back from the plan checkout: everything is answered, so go straight to the review step.
       if (hasPlan) setStep(LAST_STEP)
     }
     setDraftRestored(true)
@@ -233,13 +228,6 @@ export function SetupForm({ hasPlan }: { hasPlan: boolean }) {
         startDayOffset: values.startDayOffset === 1 ? '1' : '0',
       })
       void navigate({ to: '/paywall' })
-      return
-    }
-
-    if (!values.consentAccepted) {
-      setError('consentAccepted', {
-        message: 'Tick the box to agree to the charges before authorizing your card.',
-      })
       return
     }
 
@@ -762,24 +750,9 @@ export function SetupForm({ hasPlan }: { hasPlan: boolean }) {
           </div>
 
           {hasPlan ? (
-            <div className="space-y-1.5">
-              <label className="flex items-start gap-3 rounded-2xl border border-[#0d1b2a14] bg-white/70 p-4 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 size-4 shrink-0 accent-[#2b66f2] cursor-pointer"
-                  aria-describedby={errors.consentAccepted ? 'consent-error' : undefined}
-                  {...register('consentAccepted')}
-                />
-                <span className="text-xs leading-relaxed text-[#0d1b2a]">
-                  {consentStatement({ dailyStakeAmount: dailyStake, totalDays })}
-                </span>
-              </label>
-              {errors.consentAccepted ? (
-                <p id="consent-error" role="alert" className="text-xs font-semibold text-rose-600">
-                  {errors.consentAccepted.message}
-                </p>
-              ) : null}
-            </div>
+            <p className="rounded-2xl border border-[#0d1b2a14] bg-white/70 p-4 text-xs leading-relaxed text-[#0d1b2a]">
+              {consentStatement({ dailyStakeAmount: dailyStake, totalDays })}
+            </p>
           ) : null}
 
           {submitError ? (
@@ -801,7 +774,7 @@ export function SetupForm({ hasPlan }: { hasPlan: boolean }) {
               className="flex-1 py-4 text-base shadow-sm flex items-center justify-center gap-2 font-bold cursor-pointer"
               disabled={isSubmitting || activeExercises.length === 0}
             >
-              {hasPlan ? <>Authorize card</> : <>Next: choose your plan</>}{' '}
+              {hasPlan ? <>Authorize payment</> : <>Next: choose your plan</>}{' '}
               <ArrowRight className="size-4" />
             </Button>
           </div>
