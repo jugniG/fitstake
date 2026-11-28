@@ -8,7 +8,7 @@ day you complete your sets and reps on the live camera costs nothing. Each day y
 your stake the next time you open the app, or by a daily background job. A day is charged at most
 once, and a challenge never costs more than days × stake.
 
-App access is a separate plan: **$2/week with a 3-day free trial**, or **$49 once for lifetime**.
+App access is a separate plan: **$2/week with a 3-day free trial**, or **$9.99 once for lifetime**.
 
 ## Stack
 
@@ -40,7 +40,7 @@ guards. This is an accepted trade-off for serverless hosting, not full server-si
      `DODO_LIFETIME_PRODUCT_ID`, `DODO_STAKE_PRODUCT_ID`, `CRON_SECRET`
 3. **Migrate the DB:** `npm run db:migrate` (SQL is generated in `drizzle/`).
 4. **Dodo dashboard** (same mode as your key):
-   - Products: a $2/week subscription, a $49 one-time product, and a subscription product used
+   - Products: a $2/week subscription, a $9.99 one-time product, and a subscription product used
      only for on-demand stake mandates.
    - Webhook endpoint `<APP_URL>/api/webhooks/dodo` subscribed to `subscription.*` and
      `payment.succeeded` / `payment.failed`; copy its signing secret into `DODO_WEBHOOK_SECRET`.

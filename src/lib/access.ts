@@ -1,9 +1,13 @@
 // Pure app-access rules, shared by the server and the paywall UI.
 
 export const WEEKLY_PRICE_USD = 2
-export const LIFETIME_PRICE_USD = 49
+// Stored in cents: 9.99 * 100 is not exactly 999 in floating point, and Dodo charges in cents.
+// Must match the price of the Dodo lifetime product (DODO_LIFETIME_PRODUCT_ID).
+export const LIFETIME_PRICE_CENTS = 999
+// Display form, e.g. "9.99".
+export const LIFETIME_PRICE_USD = (LIFETIME_PRICE_CENTS / 100).toFixed(2)
 // Both plans. Weekly uses Dodo's own trial; lifetime authorizes the card and the app charges
-// $49 when the trial ends (Dodo one-time products can't have trials).
+// the lifetime price when the trial ends (Dodo one-time products can't have trials).
 export const TRIAL_DAYS = 3
 export const TRIAL_MS = TRIAL_DAYS * 24 * 60 * 60 * 1000
 
@@ -47,7 +51,7 @@ export type LifetimeTrialSnapshot = {
   trialEndsAt: Date
 }
 
-// A lifetime trial grants access during its 3 days, and past them while the $49 charge is
+// A lifetime trial grants access during its 3 days, and past them while the $9.99 charge is
 // due or processing so a slow charge doesn't lock the user out. A trial cancelled before it
 // ends keeps access until the end. A failed charge grants nothing.
 export function lifetimeTrialGrantsAccess(trial: LifetimeTrialSnapshot | null, now: Date): boolean {
@@ -57,7 +61,7 @@ export function lifetimeTrialGrantsAccess(trial: LifetimeTrialSnapshot | null, n
   return false
 }
 
-// The $49 is charged once, after the trial ends, and only if the user didn't cancel.
+// The $9.99 is charged once, after the trial ends, and only if the user didn't cancel.
 export function lifetimeTrialChargeDue(trial: LifetimeTrialSnapshot | null, now: Date): boolean {
   return trial?.status === 'trialing' && trial.trialEndsAt.getTime() <= now.getTime()
 }

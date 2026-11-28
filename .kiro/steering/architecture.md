@@ -21,7 +21,7 @@ Dodo calls use cents (×100).
 
 Key flows:
 
-- Access → `/paywall` → Dodo weekly ($2/week, 3-day trial) or lifetime ($49) checkout → webhook
+- Access → `/paywall` → Dodo weekly ($2/week, 3-day trial) or lifetime ($9.99) checkout → webhook
   writes `user_subscription` / `lifetime_access`.
 - Setup → consent checkbox → `createChallenge` → Dodo on-demand mandate checkout (nothing charged)
   → `subscription.active` webhook activates the challenge and creates the day rows.

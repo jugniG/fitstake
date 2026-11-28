@@ -1,12 +1,12 @@
 import { and, eq, inArray, isNull, lt, lte, or } from 'drizzle-orm'
 import { db, lifetimeTrial } from '#/db.server'
-import { LIFETIME_PRICE_USD } from '#/lib/access'
+import { LIFETIME_PRICE_CENTS, LIFETIME_PRICE_USD } from '#/lib/access'
 import { isStaleClaim } from '#/lib/challenge'
 import { chargeLifetimeAfterTrial } from '#/lib/dodo/charges'
 
 export type LifetimeChargeResult = 'charged' | 'not_due' | 'deferred' | 'failed'
 
-// Charges $49 for a lifetime trial whose 3 days are over. Called when the user opens the app and
+// Charges $9.99 for a lifetime trial whose 3 days are over. Called when the user opens the app and
 // from the daily cron. The conditional UPDATE is the claim: only one caller moves a trial from
 // `trialing` (or a crashed `charging`) to a fresh `charging`, and the idempotency key keeps a
 // re-sent claim from charging twice.
@@ -41,7 +41,7 @@ export async function chargeLifetimeTrialIfDue(
 
   const result = await chargeLifetimeAfterTrial({
     subscriptionId: trial.dodoSubscriptionId,
-    amountCents: LIFETIME_PRICE_USD * 100,
+    amountCents: LIFETIME_PRICE_CENTS,
     userId,
     trialId: trial.id,
   })

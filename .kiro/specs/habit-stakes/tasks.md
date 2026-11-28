@@ -34,7 +34,7 @@ Source of truth: `requirements.md` v2 and `design.md` v2.
 ## Manual setup (you)
 
 - [ ] Dodo dashboard (test mode): create products - weekly subscription $2/week, lifetime
-      one-time $49, stake subscription for on-demand mandates - and copy their ids into `.env`
+      one-time $9.99, stake subscription for on-demand mandates - and copy their ids into `.env`
 - [ ] API key → `DODO_API_KEY`; webhook endpoint `<APP_URL>/api/webhooks/dodo` → signing secret
       → `DODO_WEBHOOK_SECRET`
 - [ ] Confirm with Dodo that missed-workout penalty charges fit their merchant policy (OQ-3)

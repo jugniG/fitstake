@@ -198,7 +198,7 @@ DODO_API_KEY=              # Dodo dashboard -> Developer -> API keys (test key f
 DODO_WEBHOOK_SECRET=       # Developer -> Webhooks -> endpoint signing secret
 DODO_MODE=test_mode        # live_mode to go live
 DODO_WEEKLY_PRODUCT_ID=    # subscription product, $2/week
-DODO_LIFETIME_PRODUCT_ID=  # one-time product, $49
+DODO_LIFETIME_PRODUCT_ID=  # one-time product, $9.99
 DODO_STAKE_PRODUCT_ID=     # subscription product used for on-demand mandates
 CRON_SECRET=               # protects /api/cron/charge-missed
 ```

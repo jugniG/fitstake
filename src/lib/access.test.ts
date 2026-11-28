@@ -89,7 +89,7 @@ describe('app access', () => {
 describe('lifetime trial', () => {
   const trialFor = (status: string, trialEndsAt: Date) => ({ status, trialEndsAt })
 
-  it('grants trial access during the 3 days and while the $49 charge is due or processing', () => {
+  it('grants trial access during the 3 days and while the $9.99 charge is due or processing', () => {
     for (const trial of [
       trialFor('trialing', later),
       trialFor('trialing', earlier),

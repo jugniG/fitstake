@@ -14,7 +14,7 @@ export type AppAccess = {
   trialAvailable: boolean
   trialEndsAt: string | null
   endsAt: string | null
-  // The $49 charge at the end of a lifetime trial was declined.
+  // The $9.99 charge at the end of a lifetime trial was declined.
   lifetimeChargeFailed: boolean
   // A weekly checkout failed in the last few minutes (e.g. card declined), so the paywall can
   // stop waiting and say so.

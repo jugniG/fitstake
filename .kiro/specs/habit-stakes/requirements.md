@@ -11,7 +11,7 @@ Habit-Stakes (StakeFit) is a real-money habit-accountability app. A user sets up
 each day. **A completed day costs nothing. Each missed day is charged that day's stake.** There
 is no upfront pot and no refund at the end.
 
-Access to the app itself is a separate plan: **$2/week with a 3-day free trial**, or **$49 once
+Access to the app itself is a separate plan: **$2/week with a 3-day free trial**, or **$9.99 once
 for lifetime**. All payments, including stakes and plans, go through Dodo Payments. Kelviq is
 removed entirely.
 
@@ -120,7 +120,7 @@ removed entirely.
 
 - Weekly: Dodo subscription product priced $2/week, checkout with `trial_period_days: 3` for a
   user's first subscription only. Card required.
-- Lifetime: Dodo one-time product priced $49. Granted on `payment.succeeded` with
+- Lifetime: Dodo one-time product priced $9.99. Granted on `payment.succeeded` with
   `metadata.kind = 'lifetime'`. Cancels an active weekly subscription.
 - Access rules are unchanged: lifetime, trial or active weekly grants access; a user with a
   running challenge keeps access to finish it; a new challenge needs a plan.

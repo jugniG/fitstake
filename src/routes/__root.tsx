@@ -59,6 +59,19 @@ function RootDocument({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <script
+          src="https://cdn.databuddy.cc/databuddy.js"
+          data-client-id="e2a60b17-5ba6-4eb0-bcdb-f7d75fab37d6"
+          data-track-web-vitals="true"
+          crossOrigin="anonymous"
+          async
+        ></script>
+        <script
+          src="https://cdn.databuddy.cc/replay.js"
+          data-client-id="e2a60b17-5ba6-4eb0-bcdb-f7d75fab37d6"
+          crossOrigin="anonymous"
+          async
+        ></script>
       </head>
       <body suppressHydrationWarning>
         {children}

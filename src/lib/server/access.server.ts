@@ -65,7 +65,7 @@ export async function resolveAppAccess(userId: string): Promise<{
   const now = new Date()
   let rows = await loadAccessRows(userId)
 
-  // Opening the app is when an ended lifetime trial is charged its $49 (the cron is a backstop).
+  // Opening the app is when an ended lifetime trial is charged its $9.99 (the cron is a backstop).
   if (!rows.purchase && lifetimeTrialChargeDue(rows.trial, now)) {
     try {
       await chargeLifetimeTrialIfDue(userId, now)

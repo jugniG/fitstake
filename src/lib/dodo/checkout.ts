@@ -50,7 +50,7 @@ export function createWeeklyCheckout(args: {
   })
 }
 
-// $49 one-time lifetime access.
+// $9.99 one-time lifetime access.
 export function createLifetimeCheckout(args: {
   userId: string
   dodoCustomerId: string
@@ -70,7 +70,7 @@ export function createLifetimeCheckout(args: {
 }
 
 // Lifetime with a 3-day trial. Dodo one-time products can't have a trial, so the card is
-// authorized as an on-demand mandate (nothing charged) and the app charges $49 when the trial
+// authorized as an on-demand mandate (nothing charged) and the app charges $9.99 when the trial
 // ends.
 export function createLifetimeTrialCheckout(args: {
   userId: string

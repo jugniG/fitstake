@@ -1,4 +1,4 @@
-import { Check, Flame } from 'lucide-react'
+import { Flame } from 'lucide-react'
 import founderPhoto from '#/assets/founder-sahil.jpg'
 
 export function FounderStory() {

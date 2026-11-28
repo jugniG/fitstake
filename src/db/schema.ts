@@ -307,7 +307,7 @@ export const userSubscription = appSchema.table('user_subscription', {
     .$onUpdate(() => new Date()),
 })
 
-// One-time $49 lifetime purchase, written only by the payment.succeeded webhook.
+// One-time $9.99 lifetime purchase, written only by the payment.succeeded webhook.
 export const lifetimeAccess = appSchema.table('lifetime_access', {
   id: text('id')
     .primaryKey()
@@ -324,7 +324,7 @@ export const lifetimeAccess = appSchema.table('lifetime_access', {
 })
 
 // Lifetime bought with a 3-day trial: the card is authorized as an on-demand mandate and the
-// app charges $49 once the trial ends. A paid trial also gets a lifetime_access row; this row
+// app charges $9.99 once the trial ends. A paid trial also gets a lifetime_access row; this row
 // stays as the record that the user's one trial is used.
 export const lifetimeTrial = appSchema.table('lifetime_trial', {
   id: text('id')
